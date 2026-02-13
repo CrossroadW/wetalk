@@ -15,6 +15,7 @@ struct TextContent {
     std::string text;
 };
 
+// ── 资源大类 ──
 enum class ResourceType : uint8_t {
     Image,
     Video,
@@ -22,8 +23,19 @@ enum class ResourceType : uint8_t {
     File
 };
 
+// ── 资源小类 (具体格式) ──
+enum class ResourceSubtype : uint8_t {
+    // Image
+    Png, Jpeg, Gif, Webp, Bmp,
+    // Video
+    Mp4, Avi, Mkv, Webm,
+    // Audio
+    Mp3, Wav, Ogg, Flac, Aac,
+    // File
+    Pdf, Doc, Xls, Zip, Unknown
+};
+
 struct ResourceMeta {
-    std::string mimeType;                       // "image/png", "application/pdf"
     std::size_t size;                            // 文件大小 (bytes)
     std::string filename;                        // 原始文件名
     std::map<std::string, std::string> extra;    // 扩展元信息
@@ -35,6 +47,7 @@ struct ResourceMeta {
 struct ResourceContent {
     std::string resourceId;     // 服务器资源 ID，本地通过固定目录映射
     ResourceType type;
+    ResourceSubtype subtype;
     ResourceMeta meta;
 };
 

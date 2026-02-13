@@ -1,24 +1,6 @@
-# Core Architecture - 数据模型与系统设计
+# Core Architecture - 系统设计
 
-> 核心数据模型如何协作，后台简化为本地数据库
-
-## 数据模型关系
-
-```
-User (id)
-  │
-  ├── 好友关系 ──→ User                     (contacts 模块，不在 core)
-  │
-  ├── 所属 ──→ Group (id, ownerId, memberIds)
-  │                │
-  │                ├── 私聊 = 2 人 Group
-  │                └── 群聊 = N 人 Group
-  │
-  └── 发送 ──→ Message (id, senderId, chatId, content, timestamp)
-                  │
-                  ├── chatId 始终是 Group.id
-                  └── MessageContent = variant<monostate, Text, Image, File>
-```
+> 模块职责、核心业务流程、Storage 接口、EventBus 事件
 
 ## 核心设计: 统一聊天模型
 
@@ -43,152 +25,6 @@ A ↔ B 私聊中 (Group { id: "g0", members: [A, B] })
   ├─ 历史消息全部保留，无需迁移
   └─ 私聊自然变成了群聊
 ```
-
-## Core 数据模型
-
-```cpp
-// ── User: 身份 ──
-struct User {
-    std::string id;
-};
-
-// ── Group: 聊天容器 (私聊 = 2人, 群聊 = N人) ──
-struct Group {
-    std::string id;
-    std::string ownerId;                // 私聊时为空
-    std::vector<std::string> memberIds;
-};
-
-// ── MessageContent: 消息载荷 ──
-struct TextContent { std::string text; };
-
-enum class ResourceType : uint8_t { Image, Video, Audio, File };
-
-struct ResourceMeta {
-    std::string mimeType;                       // "image/png", "application/pdf"
-    std::size_t size;                            // 文件大小 (bytes)
-    std::string filename;                        // 原始文件名
-    std::map<std::string, std::string> extra;    // 扩展元信息
-    // Image: {"width": "800", "height": "600"}
-    // Audio: {"duration": "30"}
-    // Video: {"width": "1920", "height": "1080", "duration": "120"}
-};
-
-struct ResourceContent {
-    std::string resourceId;     // 服务器资源 ID，本地通过固定目录映射
-    ResourceType type;
-    ResourceMeta meta;
-};
-
-// ── 消息内容 = 内容块列表，支持图文混排 ──
-using ContentBlock = std::variant<std::monostate, TextContent, ResourceContent>;
-using MessageContent = std::vector<ContentBlock>;
-
-// 示例: "看看这张图 [图片] 还有这个文件 [文件]"
-// MessageContent = [
-//     TextContent{"看看这张图"},
-//     ResourceContent{id: "img1", type: Image, ...},
-//     TextContent{"还有这个文件"},
-//     ResourceContent{id: "file1", type: File, ...}
-// ]
-
-// ── Message: 一条消息 ──
-struct Message {
-    std::string id;
-    std::string senderId;
-    std::string chatId;         // 始终是 Group.id
-    std::string replyTo;        // 引用消息 id，空则无引用（支持跨群引用）
-    MessageContent content;     // 内容块列表
-    int64_t timestamp;
-    int64_t editedAt;           // 最后编辑时间，0 = 未编辑
-    bool revoked;               // 是否已撤回
-    uint32_t readCount;         // 已读人数（私聊: 0或1, 群聊: 0~N）
-};
-```
-
-**不在 core 中的类型:**
-
-| 类型 | 所属模块 | 原因 |
-|------|---------|------|
-| Friendship | contacts | 好友关系是社交图谱，不是核心数据 |
-| 聊天列表项 | chat | 未读数、最后消息等属于 UI 状态 |
-| 用户资料 (昵称/头像) | contacts | 属于展示层，不是身份本身 |
-
-## 数据库设计 (SQLite)
-
-```sql
--- 用户表
-CREATE TABLE users (
-    id TEXT PRIMARY KEY
-);
-
--- 群组表 (私聊也是 Group)
-CREATE TABLE groups_ (
-    id TEXT PRIMARY KEY,
-    owner_id TEXT  -- 私聊时为空
-);
-
--- 群组成员 (多对多)
-CREATE TABLE group_members (
-    group_id TEXT,
-    user_id TEXT,
-    PRIMARY KEY (group_id, user_id)
-);
-
--- 好友关系 (contacts 模块管理)
-CREATE TABLE friendships (
-    user_id_a TEXT,
-    user_id_b TEXT,
-    PRIMARY KEY (user_id_a, user_id_b)
-);
-
--- 消息表
-CREATE TABLE messages (
-    id TEXT PRIMARY KEY,
-    sender_id TEXT,
-    chat_id TEXT NOT NULL,
-    reply_to TEXT,                -- 引用消息 id，NULL 则无引用
-    content_data TEXT NOT NULL,   -- JSON 数组，内容块列表
-    timestamp INTEGER NOT NULL,
-    edited_at INTEGER DEFAULT 0,  -- 最后编辑时间，0 = 未编辑
-    revoked INTEGER DEFAULT 0,    -- 是否已撤回，0=否 1=是
-    read_count INTEGER DEFAULT 0  -- 已读人数
-);
-
-CREATE INDEX idx_messages_chat ON messages(chat_id, timestamp);
-CREATE INDEX idx_messages_reply ON messages(reply_to);
-```
-
-**content_data 格式 (JSON 数组，每个元素是一个内容块):**
-
-```json
-[
-    {"type": 0, "data": null},                                          // monostate
-    {"type": 1, "data": {"text": "看看这张图"}},                          // TextContent
-    {"type": 2, "data": {"resourceId": "abc123", "type": 0, "meta": {   // ResourceContent
-        "mimeType": "image/png", "size": 102400,
-        "filename": "photo.png",
-        "extra": {"width": "800", "height": "600"}
-    }}}
-]
-```
-
-**ContentBlock type 映射:**
-
-| type | variant 类型 |
-|:---:|---|
-| 0 | monostate |
-| 1 | TextContent |
-| 2 | ResourceContent |
-
-**ResourceType 映射:**
-
-| 值 | 类型 |
-|:---:|---|
-| 0 | Image |
-| 1 | Video |
-| 2 | Audio |
-| 3 | File |
 
 ## 模块职责
 
@@ -269,7 +105,7 @@ chat 模块:
        replyTo: "" (或引用的消息 id),
        content: [
            TextContent{"看看这张图"},
-           ResourceContent{resourceId: "img1", type: Image, meta: {...}}
+           ResourceContent{resourceId: "img1", type: Image, subtype: Jpeg, meta: {...}}
        ],
        timestamp: now,
        editedAt: 0,
@@ -474,5 +310,6 @@ using Event = std::variant<
 | 私聊 vs 群聊 | 统一为 Group | 私聊 = 2 人 Group，转群只需加人，无需迁移消息 |
 | 聊天列表 | 从 messages 聚合 | 不是存储实体，是派生视图 |
 | 好友关系 | contacts 模块管理 | 独立于聊天，社交图谱关系 |
+| 资源类型 | ResourceType + ResourceSubtype | 大类+小类枚举，不存复合字符串 |
 | 后台 | SQLite | 当前简化为本地数据库，未来可替换 |
 | core 不依赖 Qt | std::string | 纯 C++ 标准库类型 |
