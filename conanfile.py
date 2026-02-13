@@ -11,6 +11,7 @@ class MyProjectConan(ConanFile):
         self.requires("boost/1.78.0")
         self.requires("sqlitecpp/3.3.3")
         self.requires("nlohmann_json/3.12.0")
+        self.requires("grpc/1.69.0")
 
     def layout(self):
         import os

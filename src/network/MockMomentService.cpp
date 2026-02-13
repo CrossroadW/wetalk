@@ -1,0 +1,80 @@
+#include "MockMomentService.h"
+
+#include "MockDataStore.h"
+
+#include <algorithm>
+#include <set>
+
+namespace wechat::network {
+
+MockMomentService::MockMomentService(std::shared_ptr<MockDataStore> store)
+    : store(std::move(store)) {}
+
+Result<Moment> MockMomentService::postMoment(
+    const std::string& token, const std::string& text,
+    const std::vector<std::string>& imageIds) {
+    auto userId = store->resolveToken(token);
+    if (userId.empty())
+        return {ErrorCode::Unauthorized, "invalid token"};
+
+    if (text.empty() && imageIds.empty())
+        return {ErrorCode::InvalidArgument, "moment must have text or images"};
+
+    auto& moment = store->addMoment(userId, text, imageIds);
+    return moment;
+}
+
+Result<std::vector<Moment>> MockMomentService::listMoments(
+    const std::string& token, int64_t beforeTs, int limit) {
+    auto userId = store->resolveToken(token);
+    if (userId.empty())
+        return {ErrorCode::Unauthorized, "invalid token"};
+
+    // 可见范围：自己 + 好友
+    auto friendIds = store->getFriendIds(userId);
+    std::set<std::string> visible(friendIds.begin(), friendIds.end());
+    visible.insert(userId);
+
+    return store->getMoments(visible, beforeTs, limit);
+}
+
+VoidResult MockMomentService::likeMoment(const std::string& token,
+                                         const std::string& momentId) {
+    auto userId = store->resolveToken(token);
+    if (userId.empty())
+        return {ErrorCode::Unauthorized, "invalid token"};
+
+    auto* moment = store->findMoment(momentId);
+    if (!moment)
+        return {ErrorCode::NotFound, "moment not found"};
+
+    auto& likes = moment->likedBy;
+    if (std::find(likes.begin(), likes.end(), userId) != likes.end())
+        return {ErrorCode::AlreadyExists, "already liked"};
+
+    likes.push_back(userId);
+    return success();
+}
+
+Result<Moment::Comment> MockMomentService::commentMoment(
+    const std::string& token, const std::string& momentId,
+    const std::string& text) {
+    auto userId = store->resolveToken(token);
+    if (userId.empty())
+        return {ErrorCode::Unauthorized, "invalid token"};
+
+    auto* moment = store->findMoment(momentId);
+    if (!moment)
+        return {ErrorCode::NotFound, "moment not found"};
+
+    if (text.empty())
+        return {ErrorCode::InvalidArgument, "comment text required"};
+
+    auto commentId = store->nextId("c");
+    auto ts = store->now();
+    Moment::Comment comment{commentId, userId, text, ts};
+    moment->comments.push_back(comment);
+    return comment;
+}
+
+} // namespace wechat::network

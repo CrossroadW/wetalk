@@ -6,3 +6,7 @@ compiler.cppstd=23
 compiler.runtime=dynamic
 compiler.version=194
 os=Windows
+
+[conf]
+tools.cmake.cmaketoolchain:generator=Ninja Multi-Config
+tools.microsoft.msbuild:vs_version=17
