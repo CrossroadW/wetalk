@@ -1,0 +1,43 @@
+{
+    "version": 4,
+    "vendor": {
+        "conan": {}
+    },
+    "include": [
+        "depends/CMakePresets.json"
+    ],
+    "configurePresets": [
+        {
+            "name": "default",
+            "inherits": "conan-default",
+            "cacheVariables": {
+                "CMAKE_PREFIX_PATH": "C:/Qt/6.5.3/msvc2019_64",
+                "ENABLE_TESTING": true
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Debug",
+            "inherits": "conan-debug",
+            "configurePreset": "default"
+        },
+        {
+            "name": "Release",
+            "inherits": "conan-release",
+            "configurePreset": "default"
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "Debug",
+            "inherits": "conan-debug",
+            "configurePreset": "default"
+        },
+        {
+            "name": "Release",
+            "inherits": "conan-release",
+            "configurePreset": "default"
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmake --list-presets:*)",
+      "Bash(del \"d:\\\\workspace\\\\wechat\\\\conanfile.txt\")",
+      "Bash(findstr:*)"
+    ]
+  }
+}
