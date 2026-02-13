@@ -14,9 +14,10 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 endif()
 
-find_package(spdlog REQUIRED CONFIG)
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Network)
-
+find_package(spdlog CONFIG REQUIRED)
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Widgets Network)
+find_package(Boost CONFIG REQUIRED headers)
+find_package(SQLiteCpp CONFIG REQUIRED)
 if(ENABLE_TESTING)
     include(CTest)
     find_package(GTest REQUIRED CONFIG)
@@ -36,16 +37,16 @@ add_subdirectory(src/contacts)
 add_subdirectory(src/moments)
 
 # Main app
-add_executable(myapp)
+add_executable(wetalk)
 
-target_sources(myapp
+target_sources(wetalk
     PRIVATE
         src/main.cpp
 )
 
-target_compile_features(myapp PRIVATE cxx_std_23)
+target_compile_features(wetalk PRIVATE cxx_std_23)
 
-target_link_libraries(myapp
+target_link_libraries(wetalk
     PUBLIC
         wechat_core
         wechat_auth
@@ -56,7 +57,7 @@ target_link_libraries(myapp
         Qt6::Widgets
 )
 
-target_compile_options(myapp
+target_compile_options(wetalk
     PRIVATE
         $<$<CXX_COMPILER_ID:MSVC>:/W4 /utf-8>
         $<$<OR:$<CXX_COMPILER_ID:GNU>,$<CXX_COMPILER_ID:Clang>>:
@@ -64,7 +65,7 @@ target_compile_options(myapp
         >
 )
 
-target_compile_definitions(myapp
+target_compile_definitions(wetalk
     PRIVATE
         $<$<CONFIG:Debug>:DEBUG _DEBUG>
         $<$<CONFIG:Release>:NDEBUG>
@@ -72,6 +73,8 @@ target_compile_definitions(myapp
 )
 
 if(WIN32)
-    set_target_properties(myapp PROPERTIES WIN32_EXECUTABLE OFF)
+    # Debug: 显示控制台（便于调试），Release: 隐藏控制台
+    set_target_properties(wetalk PROPERTIES
+        WIN32_EXECUTABLE $<$<CONFIG:Release>:ON>)
 endif()
 

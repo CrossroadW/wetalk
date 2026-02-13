@@ -1,7 +1,9 @@
+#include <wechat/log/Log.h>
+
 #include <spdlog/spdlog.h>
 
 int main() {
-    spdlog::set_level(spdlog::level::trace);
+    wechat::log::init();
 
     spdlog::trace("This is a trace message");
     spdlog::debug("This is a debug message");

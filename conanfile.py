@@ -8,7 +8,8 @@ class MyProjectConan(ConanFile):
     def requirements(self):
         self.requires("spdlog/1.17.0")
         self.requires("gtest/1.17.0")
-
+        self.requires("boost/1.78.0")
+        self.requires("sqlitecpp/3.3.3")
     def layout(self):
         import os
         self.folders.build = os.path.join(os.path.dirname(__file__), "build")
