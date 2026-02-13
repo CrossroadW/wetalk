@@ -14,6 +14,8 @@ target_link_libraries(wechat_storage
     PUBLIC
         wechat_core
         wechat_log
+        SQLiteCpp
+        nlohmann_json::nlohmann_json
 )
 
 if(ENABLE_TESTING)

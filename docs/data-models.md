@@ -88,16 +88,9 @@ struct Message {
     int64_t editedAt;           // 最后编辑时间，0 = 未编辑
     bool revoked;               // 是否已撤回
     uint32_t readCount;         // 已读人数（私聊: 0或1, 群聊: 0~N）
+    int64_t updatedAt;          // 最后修改时间（编辑/撤回时更新），0 = 未修改
 };
 ```
-
-**不在 core 中的类型:**
-
-| 类型 | 所属模块 | 原因 |
-|------|---------|------|
-| Friendship | contacts | 好友关系是社交图谱，不是核心数据 |
-| 聊天列表项 | chat | 未读数、最后消息等属于 UI 状态 |
-| 用户资料 (昵称/头像) | contacts | 属于展示层，不是身份本身 |
 
 ---
 
@@ -112,12 +105,16 @@ CREATE TABLE users (
 
 CREATE TABLE groups_ (
     id TEXT PRIMARY KEY,
-    owner_id TEXT              -- 私聊时为空
+    owner_id TEXT,             -- 私聊时为空
+    updated_at INTEGER DEFAULT 0 -- 群信息变更时更新，用于增量同步
 );
 
 CREATE TABLE group_members (
     group_id TEXT,
     user_id TEXT,
+    joined_at INTEGER NOT NULL,    -- 加入时间
+    removed INTEGER DEFAULT 0,     -- 0=在群, 1=已退出/被移除
+    updated_at INTEGER DEFAULT 0,  -- 最后变更时间，用于增量同步
     PRIMARY KEY (group_id, user_id)
 );
 
@@ -136,11 +133,15 @@ CREATE TABLE messages (
     timestamp INTEGER NOT NULL,
     edited_at INTEGER DEFAULT 0,
     revoked INTEGER DEFAULT 0,
-    read_count INTEGER DEFAULT 0
+    read_count INTEGER DEFAULT 0,
+    updated_at INTEGER DEFAULT 0 -- 编辑/撤回时更新，用于增量同步
 );
+
+CREATE INDEX idx_group_members_user ON group_members(user_id);
 
 CREATE INDEX idx_messages_chat ON messages(chat_id, timestamp);
 CREATE INDEX idx_messages_reply ON messages(reply_to);
+CREATE INDEX idx_messages_updated ON messages(chat_id, updated_at);
 ```
 
 ### 资源管理
@@ -169,85 +170,6 @@ CREATE INDEX idx_messages_reply ON messages(reply_to);
 
 ---
 
-## Client 同步扩展表
-
-> 以下表仅客户端使用，用于增量同步和离线支持
-
-```sql
--- 当前登录用户
-CREATE TABLE current_user (
-    id TEXT PRIMARY KEY
-);
-
--- 每个聊天的同步进度
-CREATE TABLE sync_state (
-    chat_id TEXT PRIMARY KEY,
-    last_sync_timestamp INTEGER DEFAULT 0,  -- 最后同步到的消息时间戳
-    has_more_history INTEGER DEFAULT 1       -- 是否还有更早的历史可拉取
-);
-
--- 离线操作队列 (断网时暂存，联网后推送到 server)
-CREATE TABLE pending_ops (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    op_type TEXT NOT NULL,       -- 'send_message', 'edit_message', 'revoke_message',
-                                 -- 'read_message', 'add_member', 'remove_member'
-    payload TEXT NOT NULL,       -- 操作参数
-    created_at INTEGER NOT NULL
-);
-
--- 本地已读进度 (用于计算未读数)
-CREATE TABLE read_progress (
-    chat_id TEXT PRIMARY KEY,
-    last_read_timestamp INTEGER DEFAULT 0
-);
-```
-
-### 数据流
-
-```
-UI 层 ──读──→ 本地 SQLite (共用表 + 同步扩展表)
-                  ↑ 写入
-              同步层 ←──增量拉取──→ Server (共用表)
-                  ↑ 写入
-              离线操作 → pending_ops → 联网后推送
-```
-
-### 同步场景
-
-**打开聊天:**
-```
-1. 读本地 messages WHERE chat_id = :id
-2. 本地为空或需更新 → 同步层拉取，写入 messages + 更新 sync_state
-3. UI 从本地渲染
-```
-
-**发送消息 (在线):**
-```
-1. 写入本地 messages
-2. 推送到 server
-3. server 确认后更新本地状态
-```
-
-**发送消息 (离线):**
-```
-1. 写入本地 messages
-2. 写入 pending_ops
-3. 联网后逐条推送，成功后删除 pending_ops
-```
-
-**上滑加载历史:**
-```
-1. 查 sync_state.has_more_history
-2. 有 → 拉取更早消息，写入 messages，更新 sync_state
-3. server 返回空 → has_more_history = 0
-```
-
-**计算未读数:**
-```
-SELECT COUNT(*) FROM messages
-WHERE chat_id = :id
-AND timestamp > (SELECT last_read_timestamp FROM read_progress WHERE chat_id = :id)
-```
 
 ---
 

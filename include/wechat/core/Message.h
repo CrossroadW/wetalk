@@ -68,6 +68,7 @@ struct Message {
     int64_t editedAt;           // 最后编辑时间，0 = 未编辑
     bool revoked;               // 是否已撤回
     uint32_t readCount;         // 已读人数
+    int64_t updatedAt;          // 最后修改时间（编辑/撤回时更新），0 = 未修改
 };
 
 } // namespace core

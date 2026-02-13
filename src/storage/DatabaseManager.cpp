@@ -1,0 +1,67 @@
+#include "wechat/storage/DatabaseManager.h"
+
+namespace wechat {
+namespace storage {
+
+DatabaseManager::DatabaseManager(const std::string& dbPath)
+    : db_(std::make_unique<SQLite::Database>(
+          dbPath, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE)) {
+    db_->exec("PRAGMA journal_mode=WAL");
+    db_->exec("PRAGMA foreign_keys=ON");
+}
+
+SQLite::Database& DatabaseManager::db() { return *db_; }
+
+void DatabaseManager::initSchema() {
+    db_->exec(R"(
+        CREATE TABLE IF NOT EXISTS users (
+            id TEXT PRIMARY KEY
+        );
+
+        CREATE TABLE IF NOT EXISTS groups_ (
+            id TEXT PRIMARY KEY,
+            owner_id TEXT,
+            updated_at INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS group_members (
+            group_id TEXT,
+            user_id TEXT,
+            joined_at INTEGER NOT NULL,
+            removed INTEGER DEFAULT 0,
+            updated_at INTEGER DEFAULT 0,
+            PRIMARY KEY (group_id, user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS friendships (
+            user_id_a TEXT,
+            user_id_b TEXT,
+            PRIMARY KEY (user_id_a, user_id_b)
+        );
+
+        CREATE TABLE IF NOT EXISTS messages (
+            id TEXT PRIMARY KEY,
+            sender_id TEXT,
+            chat_id TEXT NOT NULL,
+            reply_to TEXT,
+            content_data TEXT NOT NULL,
+            timestamp INTEGER NOT NULL,
+            edited_at INTEGER DEFAULT 0,
+            revoked INTEGER DEFAULT 0,
+            read_count INTEGER DEFAULT 0,
+            updated_at INTEGER DEFAULT 0
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_group_members_user
+            ON group_members(user_id);
+        CREATE INDEX IF NOT EXISTS idx_messages_chat
+            ON messages(chat_id, timestamp);
+        CREATE INDEX IF NOT EXISTS idx_messages_reply
+            ON messages(reply_to);
+        CREATE INDEX IF NOT EXISTS idx_messages_updated
+            ON messages(chat_id, updated_at);
+    )");
+}
+
+} // namespace storage
+} // namespace wechat
