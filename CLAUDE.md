@@ -61,31 +61,7 @@
 - Generator: Ninja Multi-Config
 - C++ Standard: C++23
 
-## 🚀 快速命令
 
-| 任务 | 命令 |
-|-----|------|
-| 安装依赖 | `conan install . --build=missing` |
-| 配置项目 | `conan install . --build=missing` (自动生成 CMake 配置) |
-| 构建 Debug | `cmake --build build --config Debug` |
-| 构建 Release | `cmake --build build --config Release` |
-| 运行 Debug | `.\build\Debug\wetalk.exe` |
-| 运行 Release | `.\build\Release\wetalk.exe` |
-| 清理缓存 | `conan cache clean "*"` |
-| 查看缓存 | `conan list "*"` |
-
-## 🧹 Conan 缓存管理
-
-| 操作 | 命令 |
-|-----|------|
-| 查看缓存位置 | `conan cache path` |
-| 查看所有包 | `conan list "*"` |
-| 清理特定包 | `conan remove "包名/*" -c` |
-| 清理所有包 | `conan remove "*" -c` |
-| 清理构建缓存 | `conan cache clean "*"` |
-| 清理源码和构建 | `conan cache clean "*" --source --build` |
-
-**缓存位置**: `C:\Users\<用户名>\.conan2\p`
 
 ## 📝 重要文件说明
 
@@ -123,27 +99,3 @@
 - **Build Types**: Debug, Release (Ninja Multi-Config)
 - **平台**: Windows (可跨平台)
 - **GUI 框架**: Qt6
-
-## ⚙️ 环境检查清单
-
-- [ ] 已安装 Conan 2.0+
-- [ ] 已安装 CMake 3.24+
-- [ ] 已安装 Ninja
-- [ ] 已安装 C++23 编译器 (MSVC 2022 / gcc 11+ / clang 14+)
-- [ ] 已安装 Qt6 (Core, Widgets, Network)
-- [ ] 运行过 `conan install . --build=missing`
-
-## 🔍 常见问题
-
-**Q: 如何清理 Conan 缓存？**
-A: 使用 `conan cache clean "*"` 清理构建缓存，或 `conan remove "*" -c` 删除所有包
-
-**Q: 如何重新构建项目？**
-A: 删除 `build` 目录，然后重新运行 `conan install . --build=missing`
-
-**Q: 如何添加新的依赖？**
-A: 在 `conanfile.py` 的 `requirements()` 方法中添加，然后重新运行 `conan install`
-
----
-
-**提示**: 当项目结构或依赖有重大变化时，请及时更新此文件。

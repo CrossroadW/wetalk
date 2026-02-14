@@ -4,7 +4,8 @@
       "Bash(cmake --list-presets:*)",
       "Bash(del \"d:\\\\workspace\\\\wechat\\\\conanfile.txt\")",
       "Bash(findstr:*)",
-      "Bash(cmake --build:*)"
+      "Bash(cmake --build:*)",
+      "Bash(ls -la src/chat/*)"
     ]
   }
 }

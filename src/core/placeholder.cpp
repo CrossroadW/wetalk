@@ -1,1 +1,0 @@
-// wechat_core placeholder
