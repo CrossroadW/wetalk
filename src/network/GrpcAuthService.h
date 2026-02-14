@@ -4,7 +4,9 @@
 #include <wechat/network/AuthService.h>
 #include <memory>
 #include <string>
-
+#include "auth.pb.h"
+#include "auth.grpc.pb.h"
+using namespace wechat::auth;
 namespace wechat {
 namespace network {
 
@@ -12,7 +14,7 @@ class GrpcAuthService : public AuthService {
 public:
     explicit GrpcAuthService(const std::string& serverAddress);
 
-    Result<RegisterResponse> registerUser(
+    Result<LoginResponse> registerUser(
         const std::string& username,
         const std::string& password) override;
 

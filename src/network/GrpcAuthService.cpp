@@ -18,7 +18,7 @@ GrpcAuthService::GrpcAuthService(const std::string& serverAddress)
     //                               grpc::InsecureChannelCredentials());
 }
 
-Result<RegisterResponse> GrpcAuthService::registerUser(
+Result<LoginResponse> GrpcAuthService::registerUser(
     const std::string& username, const std::string& password) {
     // TODO: 实现真实的 gRPC 调用
     return {ErrorCode::Unavailable,

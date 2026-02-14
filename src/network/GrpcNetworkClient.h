@@ -1,10 +1,17 @@
 #pragma once
 
+#include <wechat/network/NetworkClient.h>
 #include "MockDataStore.h"
-
+#include "GrpcAuthService.h"
+#include "MockChatService.h"
+#include "MockContactService.h"
+#include "MockGroupService.h"
+#include "MockMomentService.h"
+#include "auth.pb.h"
+#include "auth.grpc.pb.h"
 #include <memory>
 #include <string>
-
+using namespace wechat::auth;
 namespace wechat {
 namespace network {
 
@@ -27,10 +34,10 @@ public:
 private:
     std::shared_ptr<MockDataStore> store;
     std::unique_ptr<GrpcAuthService> authService;
-    std::unique_ptr<ChatService> chatService;
-    std::unique_ptr<ContactService> contactService;
-    std::unique_ptr<GroupService> groupService;
-    std::unique_ptr<MomentService> momentService;
+    std::unique_ptr<MockChatService> chatService;
+    std::unique_ptr<MockContactService> contactService;
+    std::unique_ptr<MockGroupService> groupService;
+    std::unique_ptr<MockMomentService> momentService;
 };
 
 /// 创建 gRPC 客户端

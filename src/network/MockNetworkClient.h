@@ -8,7 +8,6 @@
 #include "MockDataStore.h"
 #include "MockGroupService.h"
 #include "MockMomentService.h"
-
 #include <memory>
 
 namespace wechat {

@@ -6,36 +6,37 @@
 #include "MockContactService.h"
 #include "MockGroupService.h"
 #include "MockMomentService.h"
-
+#include "auth.pb.h"
+#include "auth.grpc.pb.h"
 namespace wechat {
 namespace network {
 
 GrpcNetworkClient::GrpcNetworkClient(const std::string& serverAddress)
     : store(std::make_shared<MockDataStore>()),
-      authService(serverAddress),
-      chatService(store),
-      contactService(store),
-      groupService(store),
-      momentService(store) {}
+      authService(std::make_unique<GrpcAuthService>(serverAddress)),
+      chatService(std::make_unique<MockChatService>(store)),
+      contactService(std::make_unique<MockContactService>(store)),
+      groupService(std::make_unique<MockGroupService>(store)),
+      momentService(std::make_unique<MockMomentService>(store)) {}
 
 AuthService& GrpcNetworkClient::auth() {
-    return authService;
+    return *authService;
 }
 
 ChatService& GrpcNetworkClient::chat() {
-    return chatService;
+    return *chatService;
 }
 
 ContactService& GrpcNetworkClient::contacts() {
-    return contactService;
+    return *contactService;
 }
 
 GroupService& GrpcNetworkClient::groups() {
-    return groupService;
+    return *groupService;
 }
 
 MomentService& GrpcNetworkClient::moments() {
-    return momentService;
+    return *momentService;
 }
 
 std::unique_ptr<NetworkClient> createGrpcClient(

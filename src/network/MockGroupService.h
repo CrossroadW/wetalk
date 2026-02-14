@@ -3,7 +3,6 @@
 #include <wechat/network/GroupService.h>
 
 #include <memory>
-
 namespace wechat::network {
 
 class MockDataStore;

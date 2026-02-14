@@ -1,9 +1,7 @@
 #pragma once
 
 #include <wechat/network/ContactService.h>
-
 #include <memory>
-
 namespace wechat::network {
 
 class MockDataStore;

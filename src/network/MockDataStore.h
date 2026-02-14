@@ -4,14 +4,12 @@
 #include <wechat/core/Message.h>
 #include <wechat/core/User.h>
 #include <wechat/network/MomentService.h>
-
 #include <cstdint>
 #include <map>
 #include <mutex>
 #include <set>
 #include <string>
 #include <vector>
-
 namespace wechat { namespace network {
 /// Mock 服务端内存状态
 /// 所有 MockXxxService 共享同一个 MockDataStore 实例

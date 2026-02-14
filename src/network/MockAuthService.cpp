@@ -12,15 +12,11 @@ Result<LoginResponse> MockAuthService::registerUser(
     if (username.empty() || password.empty())
         return {ErrorCode::InvalidArgument, "username and password required"};
 
-    // 检查是否已存在
-    if (!store->authenticate(username, password).empty() ||
-        !store->searchUsers(username).empty()) {
-        // 更精确：尝试用任意密码看用户名是否存在
-        auto existing = store->searchUsers(username);
-        for (auto& u : existing) {
-            // searchUsers 是模糊匹配，这里需要精确检查
-            // 简化处理：直接尝试注册，addUser 不做去重，我们在这里检查
-        }
+    // 检查用户名是否已存在 - searchUsers 使用精确匹配当搜索词与用户名长度相同时
+    // 如果 searchUsers 返回任何结果，说明用户名已存在（因为我们搜索的是完整用户名）
+    auto existingUsers = store->searchUsers(username);
+    if (!existingUsers.empty()) {
+        return {ErrorCode::AlreadyExists, "username already exists"};
     }
 
     auto userId = store->addUser(username, password);
