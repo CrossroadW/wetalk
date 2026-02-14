@@ -16,33 +16,15 @@
 #include <wechat/core/Message.h>
 #include <wechat/core/User.h>
 
+// Forward declaration
 namespace wechat {
 namespace chat {
+    class MessageItemWidget;
+}
+}
 
-/**
- * @brief 消息项控件 - 用于在列表中显示单个消息
- */
-class MessageItemWidget : public QWidget {
-    Q_OBJECT
-
-public:
-    explicit MessageItemWidget(QWidget *parent = nullptr);
-
-    void setMessageData(const core::Message& message, const core::User& currentUser);
-
-    // 提供对消息数据的公共访问方法
-    const core::Message& getMessage() const { return message_; }
-
-    // 返回推荐的大小
-    QSize sizeHint() const override;
-
-protected:
-    void paintEvent(QPaintEvent *event) override;
-
-private:
-    core::Message message_;
-    core::User currentUser_;
-};
+namespace wechat {
+namespace chat {
 
 /**
  * @brief 自定义 ListView - 消息列表
@@ -55,11 +37,17 @@ public:
 
     void addMessage(const core::Message& message, const core::User& currentUser);
 
-private slots:
-    void onItemClicked(QListWidgetItem *item);
+    // 获取当前选中的消息项
+    MessageItemWidget* getSelectedItem() const { return selectedItem_; }
+
+    // 设置选中的消息项
+    void setSelectedItem(MessageItemWidget* item);
 
 signals:
     void messageSelected(const core::Message& message);
+
+private:
+    MessageItemWidget* selectedItem_ = nullptr;
 };
 
 } // namespace chat

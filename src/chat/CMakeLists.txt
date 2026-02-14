@@ -7,6 +7,8 @@ list(FILTER CHAT_SOURCES EXCLUDE REGEX ".*/sandbox/.*")
 # 分别列出头文件，以确保 AUTOMOC 正确处理
 set(CHAT_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/MessageListView.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/MessageItemWidget.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/MessageUtils.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ChatWidget.h
 )
 
@@ -45,11 +47,6 @@ if(ENABLE_TESTING)
     file(GLOB_RECURSE CHAT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
     if(CHAT_TEST_SOURCES)
         add_executable(test_chat ${CHAT_TEST_SOURCES})
-        set_target_properties(test_chat PROPERTIES
-            AUTOMOC ON
-            AUTOUIC OFF
-            AUTORCC OFF
-        )
         target_link_libraries(test_chat PUBLIC wechat_chat GTest::gtest_main)
         gtest_discover_tests(test_chat)
     endif()
