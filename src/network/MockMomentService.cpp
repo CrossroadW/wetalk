@@ -5,7 +5,8 @@
 #include <algorithm>
 #include <set>
 
-namespace wechat::network {
+namespace wechat {
+namespace network {
 
 MockMomentService::MockMomentService(std::shared_ptr<MockDataStore> store)
     : store(std::move(store)) {}
@@ -77,4 +78,5 @@ Result<Moment::Comment> MockMomentService::commentMoment(
     return comment;
 }
 
-} // namespace wechat::network
+} // namespace network
+} // namespace wechat

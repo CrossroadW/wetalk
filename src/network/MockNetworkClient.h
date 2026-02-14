@@ -11,7 +11,8 @@
 
 #include <memory>
 
-namespace wechat::network {
+namespace wechat {
+namespace network {
 
 class MockNetworkClient : public NetworkClient {
 public:
@@ -32,4 +33,5 @@ private:
     MockMomentService momentService;
 };
 
-} // namespace wechat::network
+} // namespace network
+} // namespace wechat

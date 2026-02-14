@@ -150,14 +150,32 @@ enum class MessageType {
 
 #### 命名空间
 
-小写，与模块名一致：
+**小写，与模块名一致，禁止嵌套声明**：
 
 ```cpp
+// 正确
+namespace wechat {
+namespace core {
+    // ...
+}
+}
+
+// 错误 - 不要嵌套声明
 namespace wechat::core {
     // ...
 }
+```
 
-namespace wechat::chat {
+```cpp
+// 正确
+namespace wechat {
+namespace auth {
+    // ...
+}
+}
+
+// 错误 - 不要嵌套声明
+namespace wechat::auth {
     // ...
 }
 ```

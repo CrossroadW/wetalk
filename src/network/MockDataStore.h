@@ -12,8 +12,7 @@
 #include <string>
 #include <vector>
 
-namespace wechat::network {
-
+namespace wechat { namespace network {
 /// Mock 服务端内存状态
 /// 所有 MockXxxService 共享同一个 MockDataStore 实例
 class MockDataStore {
@@ -114,4 +113,4 @@ private:
         const std::string& a, const std::string& b);
 };
 
-} // namespace wechat::network
+} } // namespace wechat::network

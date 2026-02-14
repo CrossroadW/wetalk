@@ -4,7 +4,8 @@
 #include <string>
 #include <variant>
 
-namespace wechat::network {
+namespace wechat {
+namespace network {
 
 // ── 错误码 ──
 
@@ -57,4 +58,5 @@ using VoidResult = Result<Unit>;
 
 inline VoidResult success() { return Unit{}; }
 
-} // namespace wechat::network
+} // namespace network
+} // namespace wechat

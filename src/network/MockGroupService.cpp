@@ -4,7 +4,8 @@
 
 #include <algorithm>
 
-namespace wechat::network {
+namespace wechat {
+namespace network {
 
 MockGroupService::MockGroupService(std::shared_ptr<MockDataStore> store)
     : store(std::move(store)) {}
@@ -109,4 +110,5 @@ Result<std::vector<core::Group>> MockGroupService::listMyGroups(
     return store->getGroupsByUser(userId);
 }
 
-} // namespace wechat::network
+} // namespace network
+} // namespace wechat

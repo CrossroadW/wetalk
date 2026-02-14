@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package wechat.auth;
+
+// ══════════════════════════════════════════════════
+// Auth Service
+// ══════════════════════════════════════════════════
+
+// 请求/响应类型
+message RegisterRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message RegisterResponse {
+    string user_id = 1;
+    string token = 2;
+}
+
+message LoginRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    string user_id = 1;
+    string token = 2;
+}
+
+message LogoutRequest {
+    string token = 1;
+}
+
+message LogoutResponse {}
+
+message GetCurrentUserRequest {
+    string token = 1;
+}
+
+message GetCurrentUserResponse {
+    string user_id = 1;
+}
+
+message Error {
+    int32 code = 1;     // ErrorCode enum value
+    string message = 2;
+}
+
+// 服务定义
+service AuthService {
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+    rpc Login(LoginRequest) returns (LoginResponse);
+    rpc Logout(LogoutRequest) returns (LogoutResponse);
+    rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+}

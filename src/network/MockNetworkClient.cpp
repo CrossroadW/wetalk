@@ -1,6 +1,7 @@
 #include "MockNetworkClient.h"
 
-namespace wechat::network {
+namespace wechat {
+namespace network {
 
 MockNetworkClient::MockNetworkClient()
     : store(std::make_shared<MockDataStore>()),
@@ -20,4 +21,5 @@ std::unique_ptr<NetworkClient> createMockClient() {
     return std::make_unique<MockNetworkClient>();
 }
 
-} // namespace wechat::network
+} // namespace network
+} // namespace wechat
