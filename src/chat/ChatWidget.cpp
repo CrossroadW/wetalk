@@ -38,7 +38,7 @@ void ChatWidget::setupUI() {
     messageListView_ = new MessageListView();
     messageListView_->setStyleSheet(
         "QListWidget {"
-        "    background-color: #f0f0f0;"
+        "    background-color: #EDEDED;"
         "    border: none;"
         "}"
     );

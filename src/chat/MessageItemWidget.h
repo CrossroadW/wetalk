@@ -30,15 +30,15 @@ namespace chat {
  * 设计要点:
  * 1. 背景显示: 根据发送者身份显示不同背景色
  *    - 自己的消息: rgb(200, 220, 255) - 蓝色背景，右对齐
- *    - 对方消息: rgb(240, 240, 240) - 灰色背景，左对齐
+ *    - 对方消息: rgb(245, 245, 245) - 浅灰色背景，左对齐
  * 2. 交互功能:
  *    - 支持文本选择但禁用键盘编辑（避免插入光标）
  *    - 图片保持比例缩放，最大250x200，点击可预览
  *    - 支持右键菜单（复制、转发、回复）
  *    - 点击选中消息项并触发选中边框
  * 3. 布局规范:
- *    - 气泡圆角: 10px
- *    - 气泡内边距: 10px
+ *    - 气泡圆角: 8px
+ *    - 气泡内边距: 8px
  *    - 时间标签: 灰色，右对齐
  * 4. 内容处理:
  *    - 文本内容自动换行
@@ -67,6 +67,7 @@ public:
 
     // 更新整个消息显示
     void updateMessageDisplay();
+void updateTextLabelsMaxWidth(int maxWidth);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
