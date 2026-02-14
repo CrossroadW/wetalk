@@ -11,8 +11,9 @@
             "name": "default",
             "inherits": "conan-default",
             "cacheVariables": {
-                "CMAKE_PREFIX_PATH": "C:/Qt/6.5.3/msvc2019_64",
-                "ENABLE_TESTING": true
+                "CMAKE_PREFIX_PATH": "C:/Qt/6.5.1/msvc2019_64",
+                "ENABLE_TESTING": true,
+                "BoostROOT": "C:/Users/31093/Desktop/archives/boost_1_89_0/Boost-lib64-msvc-14.3"
             }
         }
     ],

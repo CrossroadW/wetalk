@@ -3,7 +3,8 @@
     "allow": [
       "Bash(cmake --list-presets:*)",
       "Bash(del \"d:\\\\workspace\\\\wechat\\\\conanfile.txt\")",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(cmake --build:*)"
     ]
   }
 }
