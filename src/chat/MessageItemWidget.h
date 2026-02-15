@@ -50,51 +50,54 @@ class MessageItemWidget : public QWidget {
 public:
     explicit MessageItemWidget(QWidget *parent = nullptr);
 
-    void setMessageData(const core::Message& message, const core::User& currentUser);
+    void setMessageData(core::Message const &message,
+                        core::User const &currentUser);
 
-    // 提供对消息数据的公共访问方法
-    const core::Message& getMessage() const { return message_; }
-
-    // 返回推荐的大小
-    QSize sizeHint() const override;
+    core::Message const &getMessage() const {
+        return message_;
+    }
 
     // 检查点击位置是否在有效内容区域内
-    bool isClickOnContent(const QPoint &pos) const;
+    bool isClickOnContent(QPoint const &pos) const;
 
     // 设置选中状态
     void setSelected(bool selected);
-    bool isSelected() const { return selected_; }
+
+    bool isSelected() const {
+        return selected_;
+    }
 
     // 更新整个消息显示
     void updateMessageDisplay();
-void updateTextLabelsMaxWidth(int maxWidth);
+    void updateTextLabelsMaxWidth(int maxWidth);
 
 protected:
     void mousePressEvent(QMouseEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
-    void resizeEvent(QResizeEvent *event) override;   // ⭐ 新增
-bool eventFilter(QObject *watched, QEvent *event);
+    void resizeEvent(QResizeEvent *event) override; // ⭐ 新增
+    bool eventFilter(QObject *watched, QEvent *event)override;
+
 private:
     core::Message message_;
     core::User currentUser_;
     bool selected_ = false;
-    QString baseBubbleStyle;                     // 当前气泡基础样式
-    QMap<QLabel*, QPixmap> originalPixmaps;      // 保存原始图片
+    QString baseBubbleStyle;                 // 当前气泡基础样式
+    QMap<QLabel *, QPixmap> originalPixmaps; // 保存原始图片
     // 用于布局的控件
     QVBoxLayout *mainLayout;
     QHBoxLayout *contentLayout;
     QLabel *timeLabel;
-    QWidget *bubbleWidget;      // 消息气泡容器
-    QVBoxLayout *bubbleLayout;  // 气泡内容布局
+    QWidget *bubbleWidget;     // 消息气泡容器
+    QVBoxLayout *bubbleLayout; // 气泡内容布局
 
     // 用于处理消息内容的控件
-    std::vector<QWidget*> contentWidgets;
+    std::vector<QWidget *> contentWidgets;
 
     // 用于处理右键菜单
-    void showContextMenu(const QPoint &pos);
+    void showContextMenu(QPoint const &pos);
 
 signals:
-    void clicked(const core::Message& message);
+    void clicked(core::Message const &message);
 };
 
 } // namespace chat

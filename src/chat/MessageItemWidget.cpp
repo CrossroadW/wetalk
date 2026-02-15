@@ -254,23 +254,20 @@ void MessageItemWidget::updateMessageDisplay() {
     }
 
     // 使布局重新计算并更新 geometry
-    bubbleLayout->activate();
-    bubbleWidget->updateGeometry();
-    bubbleWidget->adjustSize();
-    mainLayout->activate();
+    // bubbleLayout->activate();
+    // bubbleWidget->updateGeometry();
+    // bubbleWidget->adjustSize();
+    // mainLayout->activate();
 
-    // 在事件循环后再调整文本控件高度，以确保 width 已经设置并触发正确的换行
-    QTimer::singleShot(0, this, [this, estInnerWidth] {
-        // 更新文本控件的最大宽度并调整尺寸（确保文本不会被截断）
-        updateTextLabelsMaxWidth(estInnerWidth);
+    // // 在事件循环后再调整文本控件高度，以确保 width 已经设置并触发正确的换行
+    // QTimer::singleShot(0, this, [this, estInnerWidth] {
+    //     // 更新文本控件的最大宽度并调整尺寸（确保文本不会被截断）
+    //     updateTextLabelsMaxWidth(estInnerWidth);
 
-        updateGeometry();
-    });
+    //     updateGeometry();
+    // });
 }
 
-QSize MessageItemWidget::sizeHint() const {
-    return mainLayout->sizeHint();
-}
 
 bool MessageItemWidget::eventFilter(QObject *watched, QEvent *event) {
     if (event->type() == QEvent::MouseButtonPress) {

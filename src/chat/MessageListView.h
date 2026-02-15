@@ -19,9 +19,9 @@
 // Forward declaration
 namespace wechat {
 namespace chat {
-    class MessageItemWidget;
+class MessageItemWidget;
 }
-}
+} // namespace wechat
 
 namespace wechat {
 namespace chat {
@@ -35,19 +35,22 @@ class MessageListView : public QListWidget {
 public:
     explicit MessageListView(QWidget *parent = nullptr);
 
-    void addMessage(const core::Message& message, const core::User& currentUser);
+    void addMessage(core::Message const &message,
+                    core::User const &currentUser);
 
     // 获取当前选中的消息项
-    MessageItemWidget* getSelectedItem() const { return selectedItem_; }
+    MessageItemWidget *getSelectedItem() const {
+        return selectedItem_;
+    }
 
     // 设置选中的消息项
-    void setSelectedItem(MessageItemWidget* item);
+    void setSelectedItem(MessageItemWidget *item);
 
 signals:
-    void messageSelected(const core::Message& message);
+    void messageSelected(core::Message const &message);
 
 private:
-    MessageItemWidget* selectedItem_ = nullptr;
+    MessageItemWidget *selectedItem_ = nullptr;
 };
 
 } // namespace chat

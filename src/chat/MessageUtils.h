@@ -7,10 +7,10 @@ namespace wechat {
 namespace chat {
 
 // 辅助函数：提取文本内容
-QString extractTextFromContent(const core::MessageContent& content);
+QString extractTextFromContent(core::MessageContent const &content);
 
 // 辅助函数：获取资源路径
-QString getResourcePath(const core::ResourceContent& resource);
+QString getResourcePath(core::ResourceContent const &resource);
 
 } // namespace chat
 } // namespace wechat

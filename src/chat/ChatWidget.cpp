@@ -13,12 +13,11 @@ namespace wechat {
 namespace chat {
 
 ChatWidget::ChatWidget(QWidget *parent)
-    : QWidget(parent)
-    , messageListView_(nullptr)
-    , messageInput_(nullptr)
-    , sendButton_(nullptr)
-    , titleLabel_(nullptr) {
-
+    : QWidget(parent),
+      messageListView_(nullptr),
+      messageInput_(nullptr),
+      sendButton_(nullptr),
+      titleLabel_(nullptr) {
     setupUI();
     setupConnections();
 }
@@ -29,49 +28,44 @@ void ChatWidget::setupUI() {
     // 标题栏
     auto *titleBar = new QHBoxLayout();
     titleLabel_ = new QLabel("Chat");
-    titleLabel_->setStyleSheet("font-size: 18px; font-weight: bold; margin: 10px;");
+    titleLabel_->setStyleSheet(
+        "font-size: 18px; font-weight: bold; margin: 10px;");
     titleBar->addWidget(titleLabel_);
     titleBar->addStretch();
     mainLayout->addLayout(titleBar);
 
     // 消息列表
     messageListView_ = new MessageListView();
-    messageListView_->setStyleSheet(
-        "QListWidget {"
-        "    background-color: #EDEDED;"
-        "    border: none;"
-        "}"
-    );
+    messageListView_->setStyleSheet("QListWidget {"
+                                    "    background-color: #EDEDED;"
+                                    "    border: none;"
+                                    "}");
     mainLayout->addWidget(messageListView_);
 
     // 输入区域
     auto *inputArea = new QHBoxLayout();
     messageInput_ = new QLineEdit();
     messageInput_->setPlaceholderText("Type a message...");
-    messageInput_->setStyleSheet(
-        "QLineEdit {"
-        "    padding: 10px;"
-        "    font-size: 14px;"
-        "    border: 1px solid #ccc;"
-        "    border-radius: 15px;"
-        "    margin: 10px;"
-        "}"
-    );
+    messageInput_->setStyleSheet("QLineEdit {"
+                                 "    padding: 10px;"
+                                 "    font-size: 14px;"
+                                 "    border: 1px solid #ccc;"
+                                 "    border-radius: 15px;"
+                                 "    margin: 10px;"
+                                 "}");
 
     sendButton_ = new QPushButton("Send");
-    sendButton_->setStyleSheet(
-        "QPushButton {"
-        "    background-color: #4CAF50;"
-        "    color: white;"
-        "    border: none;"
-        "    padding: 10px 20px;"
-        "    margin: 10px;"
-        "    border-radius: 15px;"
-        "}"
-        "QPushButton:hover {"
-        "    background-color: #45a049;"
-        "}"
-    );
+    sendButton_->setStyleSheet("QPushButton {"
+                               "    background-color: #4CAF50;"
+                               "    color: white;"
+                               "    border: none;"
+                               "    padding: 10px 20px;"
+                               "    margin: 10px;"
+                               "    border-radius: 15px;"
+                               "}"
+                               "QPushButton:hover {"
+                               "    background-color: #45a049;"
+                               "}");
 
     inputArea->addWidget(messageInput_);
     inputArea->addWidget(sendButton_);
@@ -86,17 +80,19 @@ void ChatWidget::setupConnections() {
     connect(sendButton_, &QPushButton::clicked, this, &ChatWidget::sendMessage);
 
     // 回车发送消息
-    connect(messageInput_, &QLineEdit::returnPressed, this, &ChatWidget::sendMessage);
+    connect(messageInput_, &QLineEdit::returnPressed, this,
+            &ChatWidget::sendMessage);
 }
 
-void ChatWidget::setCurrentUser(const core::User& user) {
+void ChatWidget::setCurrentUser(core::User const &user) {
     currentUser_ = user;
 }
 
-void ChatWidget::setChatPartner(const core::User& partner) {
+void ChatWidget::setChatPartner(core::User const &partner) {
     chatPartner_ = partner;
     if (titleLabel_) {
-        titleLabel_->setText(QString::fromStdString("Chat with " + chatPartner_.id));
+        titleLabel_->setText(
+            QString::fromStdString("Chat with " + chatPartner_.id));
     }
 }
 

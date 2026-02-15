@@ -21,11 +21,13 @@ class ChatWidget : public QWidget {
 public:
     explicit ChatWidget(QWidget *parent = nullptr);
 
-    void setCurrentUser(const core::User& user);
-    void setChatPartner(const core::User& partner);
+    void setCurrentUser(core::User const &user);
+    void setChatPartner(core::User const &partner);
 
     // 提供对消息列表的访问，以便在沙盒中添加示例消息
-    MessageListView* getMessageListView() { return messageListView_; }
+    MessageListView *getMessageListView() {
+        return messageListView_;
+    }
 
 public slots:
     void sendMessage();

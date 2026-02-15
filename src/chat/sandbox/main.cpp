@@ -39,7 +39,10 @@ int main(int argc, char *argv[]) {
     msg1.replyTo = "";
 
     core::TextContent textContent1;
-    textContent1.text = "Hello there! This is a longer message to demonstrate how text wraps and handles multiple lines in the message bubble. It contains more content to show how the layout adapts to different amounts of text.";
+    textContent1.text =
+        "Hello there! This is a longer message to demonstrate how text wraps "
+        "and handles multiple lines in the message bubble. It contains more "
+        "content to show how the layout adapts to different amounts of text.";
     msg1.content = {textContent1};
 
     chatWidget.getMessageListView()->addMessage(msg1, currentUser);
@@ -81,7 +84,10 @@ int main(int argc, char *argv[]) {
     msg2.replyTo = "";
 
     core::TextContent textContent2;
-    textContent2.text = "Hi! How are you? This is another longer message to show how text wraps and displays in the message bubble. The text should properly wrap to fit within the bubble.";
+    textContent2.text =
+        "Hi! How are you? This is another longer message to show how text "
+        "wraps and displays in the message bubble. The text should properly "
+        "wrap to fit within the bubble.";
     msg2.content = {textContent2};
 
     chatWidget.getMessageListView()->addMessage(msg2, currentUser);

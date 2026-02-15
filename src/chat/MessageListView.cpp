@@ -17,32 +17,33 @@ namespace wechat {
 namespace chat {
 
 // MessageListView 实现
-MessageListView::MessageListView(QWidget *parent)
-    : QListWidget(parent) {
-    setStyleSheet(
-        "QListWidget {"
-        "    background-color: white;"
-        "    border: none;"
-        "    outline: none;"
-        "}"
-        "QListWidget::item {"
-        "    border: none;"
-        "    padding: 0px;"
-        "    margin: 0px;"
-        "}"
-    );
+MessageListView::MessageListView(QWidget *parent) : QListWidget(parent) {
+    setStyleSheet("QListWidget {"
+                  "    background-color: white;"
+                  "    border: none;"
+                  "    outline: none;" // 移除焦点轮廓
+                  "}"
+                  "QListWidget::item {"
+                  "    border: none;"
+                  "    padding: 0px;"
+                  "    margin: 0px;"
+                  "}"
+                  "QListWidget::item:focus {"
+                  "    border: none;"  // 移除选中项的边框
+                  "    outline: none;" // 移除焦点虚线框
+                  "}");
 
     // 设置平滑滚动和滚动条行为
-    setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);  // 平滑滚动
-    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);  // 禁用水平滚动条
-    setResizeMode(QListWidget::Adjust);  // 自适应大小
-    setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
+    setVerticalScrollMode(QAbstractItemView::ScrollPerPixel); // 平滑滚动
+    setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);     // 禁用水平滚动条
+    setResizeMode(QListWidget::Adjust);                       // 自适应大
     // 禁用默认选择行为，因为我们有自己的选择机制
     setSelectionMode(QAbstractItemView::NoSelection);
+    setFocusPolicy(Qt::NoFocus); // 完全禁用焦点
 }
 
-void MessageListView::addMessage(const core::Message& message, const core::User& currentUser) {
+void MessageListView::addMessage(core::Message const &message,
+                                 core::User const &currentUser) {
     // 创建自定义的消息项
     MessageItemWidget *messageWidget = new MessageItemWidget();
 
@@ -50,18 +51,19 @@ void MessageListView::addMessage(const core::Message& message, const core::User&
     messageWidget->setMessageData(message, currentUser);
 
     // 连接点击信号
-    connect(messageWidget, &MessageItemWidget::clicked, this, [this, messageWidget](const core::Message& msg) {
-        // 实现单选功能：点击一个消息时，取消之前选中的消息
-        if (selectedItem_ && selectedItem_ != messageWidget) {
-            selectedItem_->setSelected(false);
-        }
+    connect(messageWidget, &MessageItemWidget::clicked, this,
+            [this, messageWidget](core::Message const &msg) {
+                // 实现单选功能：点击一个消息时，取消之前选中的消息
+                if (selectedItem_ && selectedItem_ != messageWidget) {
+                    selectedItem_->setSelected(false);
+                }
 
-        // 设置新的选中项
-        setSelectedItem(messageWidget);
+                // 设置新的选中项
+                setSelectedItem(messageWidget);
 
-        // 发出消息选中信号
-        emit messageSelected(msg);
-    });
+                // 发出消息选中信号
+                emit messageSelected(msg);
+            });
 
     // 创建列表项
     QListWidgetItem *item = new QListWidgetItem();
@@ -78,7 +80,7 @@ void MessageListView::addMessage(const core::Message& message, const core::User&
     scrollToBottom();
 }
 
-void MessageListView::setSelectedItem(MessageItemWidget* item) {
+void MessageListView::setSelectedItem(MessageItemWidget *item) {
     // 取消之前选中的项
     if (selectedItem_ && selectedItem_ != item) {
         selectedItem_->setSelected(false);
