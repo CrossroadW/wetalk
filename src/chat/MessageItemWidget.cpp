@@ -115,7 +115,7 @@ void MessageItemWidget::setMessageData(core::Message const &message,
 
     // 让布局更新（如果在 QListWidget 中，后续 resizeEvent 也会尝试更新 item
     // 高度）
-    updateGeometry();
+    // updateGeometry();
 }
 
 void MessageItemWidget::updateTextLabelsMaxWidth(int maxWidth) {
@@ -141,10 +141,10 @@ void MessageItemWidget::updateTextLabelsMaxWidth(int maxWidth) {
         lbl->adjustSize();
     }
 
-    bubbleLayout->activate();
-    bubbleWidget->updateGeometry();
-    bubbleWidget->adjustSize();
-    updateGeometry();
+    // bubbleLayout->activate();
+    // bubbleWidget->updateGeometry();
+    // bubbleWidget->adjustSize();
+    // updateGeometry();
 }
 
 void MessageItemWidget::updateMessageDisplay() {
@@ -360,10 +360,21 @@ void MessageItemWidget::contextMenuEvent(QContextMenuEvent *event) {
 
 void MessageItemWidget::showContextMenu(QPoint const &pos) {
     QMenu menu(this);
-    QAction *copyAction = menu.addAction(tr("Copy"));
-    QAction *forwardAction = menu.addAction(tr("Forward"));
-    QAction *replyAction = menu.addAction(tr("Reply"));
 
+    bool isSelf = (message_.senderId == currentUser_.id);
+
+    QAction *copyAction = menu.addAction(tr("复制"));
+    QAction *replyAction = menu.addAction(tr("回复"));
+    QAction *forwardAction = menu.addAction(tr("转发"));
+
+    // 只有自己发的消息才能撤回
+    QAction *revokeAction = nullptr;
+    if (isSelf && !message_.revoked) {
+        menu.addSeparator();
+        revokeAction = menu.addAction(tr("撤回"));
+    }
+
+    // 复制
     connect(copyAction, &QAction::triggered, [this]() {
         QString allText;
         for (auto const &block: message_.content) {
@@ -381,6 +392,23 @@ void MessageItemWidget::showContextMenu(QPoint const &pos) {
             QApplication::clipboard()->setText(allText.trimmed());
         }
     });
+
+    // 回复
+    connect(replyAction, &QAction::triggered, [this]() {
+        emit replyRequested(message_);
+    });
+
+    // 转发
+    connect(forwardAction, &QAction::triggered, [this]() {
+        emit forwardRequested(message_);
+    });
+
+    // 撤回
+    if (revokeAction) {
+        connect(revokeAction, &QAction::triggered, [this]() {
+            emit revokeRequested(message_);
+        });
+    }
 
     menu.exec(pos);
 }

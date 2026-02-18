@@ -14,7 +14,7 @@ TEST(EventBusTest, SubscribeAndPublish) {
 
     bus.subscribe([&](Event const &e) { called = true; });
 
-    bus.publish(PlaceholderEvent{});
+    bus.publish(MessageSentEvent{});
     EXPECT_TRUE(called);
 }
 
@@ -26,7 +26,7 @@ TEST(EventBusTest, MultipleSubscribers) {
     bus.subscribe([&](Event const &) { ++count; });
     bus.subscribe([&](Event const &) { ++count; });
 
-    bus.publish(PlaceholderEvent{});
+    bus.publish(MessageSentEvent{});
     EXPECT_EQ(count, 3);
 }
 
@@ -35,11 +35,11 @@ TEST(EventBusTest, Disconnect) {
     int count = 0;
 
     auto conn = bus.subscribe([&](Event const &) { ++count; });
-    bus.publish(PlaceholderEvent{});
+    bus.publish(MessageSentEvent{});
     EXPECT_EQ(count, 1);
 
     conn.disconnect();
-    bus.publish(PlaceholderEvent{});
+    bus.publish(MessageSentEvent{});
     EXPECT_EQ(count, 1);
 }
 
@@ -50,11 +50,11 @@ TEST(EventBusTest, ScopedConnection) {
     {
         boost::signals2::scoped_connection sc =
             bus.subscribe([&](Event const &) { ++count; });
-        bus.publish(PlaceholderEvent{});
+        bus.publish(MessageSentEvent{});
         EXPECT_EQ(count, 1);
     }
 
-    bus.publish(PlaceholderEvent{});
+    bus.publish(MessageSentEvent{});
     EXPECT_EQ(count, 1);
 }
 
@@ -74,7 +74,7 @@ TEST(EventBusTest, SubscriberCount) {
 
 TEST(EventBusTest, NoSubscribersPublishDoesNotCrash) {
     EventBus bus;
-    EXPECT_NO_THROW(bus.publish(PlaceholderEvent{}));
+    EXPECT_NO_THROW(bus.publish(MessageSentEvent{}));
     EXPECT_EQ(bus.subscriberCount(), 0);
 }
 

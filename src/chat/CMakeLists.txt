@@ -10,6 +10,8 @@ set(CHAT_HEADERS
     ${CMAKE_CURRENT_SOURCE_DIR}/MessageItemWidget.h
     ${CMAKE_CURRENT_SOURCE_DIR}/MessageUtils.h
     ${CMAKE_CURRENT_SOURCE_DIR}/ChatWidget.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/ChatController.h
+    ${CMAKE_CURRENT_SOURCE_DIR}/MockAutoResponder.h
 )
 
 target_sources(wechat_chat PRIVATE

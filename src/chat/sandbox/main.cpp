@@ -1,124 +1,68 @@
 #include <QApplication>
-#include <QMainWindow>
-#include <QLabel>
-#include <QDateTime>
 #include <spdlog/spdlog.h>
+
 #include <wechat/log/Log.h>
-#include "../ChatWidget.h"
+#include <wechat/core/EventBus.h>
 #include <wechat/core/User.h>
-#include <wechat/core/Message.h>
+#include <wechat/chat/ChatManager.h>
+#include <wechat/network/NetworkClient.h>
+
+#include "../ChatWidget.h"
+#include "../ChatController.h"
+#include "../MockAutoResponder.h"
 
 using namespace wechat;
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-    // app.setStyleSheet(R"(*{border:1px solid green;})");
     log::init();
-    // 创建聊天界面
+
+    // 1. 创建 Mock 网络客户端
+    auto networkClient = network::createMockClient();
+
+    // 2. 注册两个用户
+    auto regAlice = networkClient->auth().registerUser("alice", "pass");
+    auto regBob = networkClient->auth().registerUser("bob", "pass");
+    auto tokenAlice = regAlice.value().token;
+    auto tokenBob = regBob.value().token;
+    auto aliceId = regAlice.value().userId;
+    auto bobId = regBob.value().userId;
+
+    // 3. 建立好友关系并创建群聊
+    networkClient->contacts().addFriend(tokenAlice, bobId);
+    auto groupResult = networkClient->groups().createGroup(
+        tokenAlice, {aliceId, bobId});
+    auto chatId = groupResult.value().id;
+
+    // 4. 创建 EventBus + ChatManager
+    core::EventBus bus;
+    chat::ChatManager manager(*networkClient, bus);
+    manager.setSession(tokenAlice, aliceId);
+
+    // 5. 创建 ChatController（Qt 桥接层）
+    chat::ChatController controller(manager, bus);
+
+    // 6. 创建 ChatWidget 并注入 controller
     chat::ChatWidget chatWidget;
+    chatWidget.setCurrentUser(core::User{aliceId});
+    chatWidget.setChatPartner(core::User{bobId});
+    chatWidget.setController(&controller);
 
-    // 设置模拟用户数据
-    core::User currentUser;
-    currentUser.id = "user1";
+    // 7. 模拟对方用户（Bob）
+    chat::MockAutoResponder responder(*networkClient);
+    responder.setResponderSession(tokenBob, bobId);
+    responder.setChatId(chatId);
 
-    core::User chatPartner;
-    chatPartner.id = "user2";
+    // Bob 预设几条消息，模拟聊天场景
+    responder.scheduleMessage("Hey Alice! How are you?", 3000);
+    responder.scheduleMessage("I just saw the news, pretty exciting!", 8000);
 
-    chatWidget.setCurrentUser(currentUser);
-    chatWidget.setChatPartner(chatPartner);
-
-    // 对方发送的普通多行文本消息（靠左）
-    core::Message msg1;
-    msg1.id = "msg1";
-    msg1.senderId = "user2"; // 发送者是对方
-    msg1.chatId = "chat_user1_user2";
-    msg1.timestamp = QDateTime::currentMSecsSinceEpoch() - 40000;
-    msg1.updatedAt = 0;
-    msg1.revoked = false;
-    msg1.readCount = 0;
-    msg1.replyTo = "";
-
-    core::TextContent textContent1;
-    textContent1.text =
-        "Hello there! This is a longer message to demonstrate how text wraps "
-        "and handles multiple lines in the message bubble. It contains more "
-        "content to show how the layout adapts to different amounts of text.";
-    msg1.content = {textContent1};
-
-    chatWidget.getMessageListView()->addMessage(msg1, currentUser);
-
-    // 对方发送的文本+图片消息（靠左）
-    core::Message comboMsg1;
-    comboMsg1.id = "combo_msg1";
-    comboMsg1.senderId = "user2";
-    comboMsg1.chatId = "chat_user1_user2";
-    comboMsg1.timestamp = QDateTime::currentMSecsSinceEpoch() - 30000;
-    comboMsg1.updatedAt = 0;
-    comboMsg1.revoked = false;
-    comboMsg1.readCount = 0;
-    comboMsg1.replyTo = "";
-
-    core::TextContent comboText1;
-    comboText1.text = "Look at this picture I took yesterday!";
-
-    core::ResourceContent comboResource1;
-    comboResource1.type = core::ResourceType::Image;
-    comboResource1.subtype = core::ResourceSubtype::Png;
-    comboResource1.resourceId = "image.png";
-    comboResource1.meta.size = 0;
-    comboResource1.meta.filename = "image.png";
-
-    comboMsg1.content = {comboText1, comboResource1};
-
-    chatWidget.getMessageListView()->addMessage(comboMsg1, currentUser);
-
-    // 自己发送的普通多行文本消息（靠右）
-    core::Message msg2;
-    msg2.id = "msg2";
-    msg2.senderId = "user1"; // 发送者是自己
-    msg2.chatId = "chat_user1_user2";
-    msg2.timestamp = QDateTime::currentMSecsSinceEpoch() - 20000;
-    msg2.updatedAt = 0;
-    msg2.revoked = false;
-    msg2.readCount = 0;
-    msg2.replyTo = "";
-
-    core::TextContent textContent2;
-    textContent2.text =
-        "Hi! How are you? This is another longer message to show how text "
-        "wraps and displays in the message bubble. The text should properly "
-        "wrap to fit within the bubble.";
-    msg2.content = {textContent2};
-
-    chatWidget.getMessageListView()->addMessage(msg2, currentUser);
-
-    // 自己发送的文本+图片消息（靠右）
-    core::Message comboMsg2;
-    comboMsg2.id = "combo_msg2";
-    comboMsg2.senderId = "user1";
-    comboMsg2.chatId = "chat_user1_user2";
-    comboMsg2.timestamp = QDateTime::currentMSecsSinceEpoch() - 10000;
-    comboMsg2.updatedAt = 0;
-    comboMsg2.revoked = false;
-    comboMsg2.readCount = 0;
-    comboMsg2.replyTo = "";
-
-    core::ResourceContent comboResource2;
-    comboResource2.type = core::ResourceType::Image;
-    comboResource2.subtype = core::ResourceSubtype::Png;
-    comboResource2.resourceId = "image.png";
-    comboResource2.meta.size = 0;
-    comboResource2.meta.filename = "image.png";
-
-    core::TextContent comboText2;
-    comboText2.text = "Nice! Here's one from my perspective.";
-
-    comboMsg2.content = {comboResource2, comboText2};
-
-    chatWidget.getMessageListView()->addMessage(comboMsg2, currentUser);
+    // 8. 打开聊天并启动轮询
+    controller.onOpenChat(QString::fromStdString(chatId));
+    controller.startPolling(2000);  // 每 2 秒轮询一次
 
     chatWidget.show();
 
-    spdlog::info("Chat sandbox started with message list view");
+    spdlog::info("Chat sandbox started — alice <-> bob, polling every 2s");
     return app.exec();
 }

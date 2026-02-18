@@ -65,6 +65,14 @@ void MessageListView::addMessage(core::Message const &message,
                 emit messageSelected(msg);
             });
 
+    // 转发右键菜单信号
+    connect(messageWidget, &MessageItemWidget::replyRequested, this,
+            &MessageListView::replyRequested);
+    connect(messageWidget, &MessageItemWidget::forwardRequested, this,
+            &MessageListView::forwardRequested);
+    connect(messageWidget, &MessageItemWidget::revokeRequested, this,
+            &MessageListView::revokeRequested);
+
     // 创建列表项
     QListWidgetItem *item = new QListWidgetItem();
 

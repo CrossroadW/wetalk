@@ -46,8 +46,11 @@ public:
     // 设置选中的消息项
     void setSelectedItem(MessageItemWidget *item);
 
-signals:
+Q_SIGNALS:
     void messageSelected(core::Message const &message);
+    void replyRequested(core::Message const &message);
+    void forwardRequested(core::Message const &message);
+    void revokeRequested(core::Message const &message);
 
 private:
     MessageItemWidget *selectedItem_ = nullptr;

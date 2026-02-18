@@ -96,8 +96,11 @@ private:
     // 用于处理右键菜单
     void showContextMenu(QPoint const &pos);
 
-signals:
+Q_SIGNALS:
     void clicked(core::Message const &message);
+    void replyRequested(core::Message const &message);
+    void forwardRequested(core::Message const &message);
+    void revokeRequested(core::Message const &message);
 };
 
 } // namespace chat
