@@ -1,101 +1,56 @@
-# Project Overview - CLAUDE.md
+# WeTalk - 项目指南
 
-> 此文件记录项目的结构和依赖信息，用于快速了解项目现状
+> 基于 C++23 / Qt6 的微信客户端克隆项目。此文件是 Claude Code 的入口索引。
 
-## 📋 最后更新时间
-2025-01-XX
+## 文档
 
-## 📁 项目结构
+- `README.md` — 项目介绍、开发路线图、技术栈、环境要求
+- `TODO.md` — 各模块待办事项和完成进度
+- `docs/conventions.md` — 编码规范（命名、目录结构、CMake、include 顺序等）
+- `docs/constraints.md` — 项目约束（CMake、Qt、Pimpl、命名空间、模块化）
+- `docs/data-models.md` — 数据模型定义、数据库表结构、类型映射
+- `docs/data-cache-mechanism.md` — 客户端增量缓存机制设计
+
+## 关键目录
+
+- `include/wechat/<module>/` — 跨模块导出的公共头文件
+- `src/<module>/` — 模块实现，每个模块含 `tests/` 和可选的 `sandbox/`
+- `docs/` — 项目文档
+- `conan/` — Conan 配置（debug/release profiles）
+
+## 关键文件
+
+- `include/wechat/core/Event.h` — 事件类型定义（MessageSent/SendFailed/Received/Revoked/Edited）
+- `include/wechat/core/EventBus.h` — 发布-订阅事件总线（Boost.Signals2）
+- `include/wechat/core/Message.h` — 消息数据结构（variant 内容块，支持图文混排）
+- `include/wechat/chat/ChatManager.h` — 聊天业务逻辑（纯 C++，不依赖 Qt）
+- `include/wechat/network/NetworkClient.h` — 网络客户端抽象工厂
+- `include/wechat/network/ChatService.h` — 聊天服务接口（发送/同步/撤回/编辑）
+- `src/chat/ChatController.h` — Qt 桥接层（EventBus 事件 → Qt signals + QTimer 轮询）
+- `src/chat/ChatWidget.h` — 主聊天界面
+- `src/chat/MockAutoResponder.h` — 模拟对方用户发消息
+- `src/network/MockDataStore.h` — 内存数据存储（Mock 后端）
+
+## 架构
 
 ```
-./
-├── conan/                    # Conan 配置目录
-│   ├── debug/
-│   │   └── profile          # Debug 配置文件
-│   └── release/
-│       └── profile          # Release 配置文件
-├── include/                  # 头文件目录
-│   └── wechat/
-│       ├── core/            # 核心模块（User, Message, EventBus 等）
-│       ├── log/             # 日志模块
-│       ├── auth/            # 认证模块
-│       ├── chat/            # 聊天模块
-│       ├── contacts/        # 联系人模块
-│       ├── moments/         # 朋友圈模块
-│       ├── network/         # 网络模块
-│       └── storage/         # 存储模块
-├── src/                      # 源代码目录
-│   ├── main.cpp             # 主程序入口
-│   ├── core/                # 核心模块实现
-│   ├── log/                 # 日志模块实现
-│   ├── auth/                # 认证模块实现
-│   ├── chat/                # 聊天模块实现
-│   ├── contacts/            # 联系人模块实现
-│   ├── moments/             # 朋友圈模块实现
-│   ├── network/             # 网络模块实现
-│   └── storage/             # 存储模块实现
-├── build/                    # 构建输出目录（自动生成）
-├── .vscode/
-│   └── tasks.json           # VSCode 任务配置
-├── CMakeLists.txt           # CMake 构建配置
-├── conanfile.py             # Conan 依赖配置
-├── .gitignore               # Git 忽略文件
-├── README.md                # 项目说明
-└── CLAUDE.md                # 此文件
+UI 层 (Qt Widgets)       ChatWidget, MessageListView, MessageItemWidget
+    ↕ Qt signals/slots
+桥接层 (QObject)         ChatController — EventBus 事件转 Qt signals + QTimer 轮询
+    ↕ EventBus
+业务层 (纯 C++)          ChatManager — 发送/同步/撤回/编辑
+    ↕ 同步调用
+服务层                   NetworkClient → ChatService, AuthService, ContactService...
+    ↕
+数据层                   MockDataStore (内存) / SQLite (计划中)
 ```
 
-## 📦 项目依赖
+发送: ChatWidget → ChatController → ChatManager → ChatService.sendMessage() → EventBus(MessageSentEvent) → ChatController → ChatWidget
 
-通过 `conanfile.py` 统一管理：
+接收: QTimer → ChatManager.pollMessages() → syncMessages() → EventBus(MessagesReceivedEvent) → ChatController → ChatWidget
 
-- **spdlog**: 1.17.0 - 高性能日志库
-- **gtest**: 1.17.0 - Google 测试框架
-- **boost**: 1.90.0 - Boost 库（headers）
-- **sqlitecpp**: 3.3.3 - SQLite C++ 封装
-- **Qt6**: Core, Widgets, Network - GUI 框架（系统安装）
+## 依赖与工具
 
-## 🔧 构建工具版本
+spdlog 1.17.0, gtest 1.17.0, boost 1.90.0 (Signals2), sqlitecpp 3.3.3, Qt6 (Core/Widgets/Network)
 
-- CMake: >= 3.24
-- Conan: >= 2.0
-- Generator: Ninja Multi-Config
-- C++ Standard: C++23
-
-
-
-## 📝 重要文件说明
-
-| 文件 | 说明 |
-|-----|------|
-| `conanfile.py` | Conan 依赖配置（统一管理所有依赖） |
-| `conan/debug/profile` | Debug 编译配置文件 |
-| `conan/release/profile` | Release 编译配置文件 |
-| `CMakeLists.txt` | CMake 构建规则定义 |
-| `.vscode/tasks.json` | VSCode 集成任务 |
-
-## 🏗️ 模块架构
-
-项目采用模块化设计，每个模块包含：
-- 头文件：`include/wechat/<模块>/`
-- 实现文件：`src/<模块>/`
-- 单元测试：`src/<模块>/tests/`
-- 沙盒测试：`src/<模块>/sandbox/`
-- CMake 配置：`src/<模块>/CMakeLists.txt`
-
-**核心模块**：
-- `core` - 核心数据结构和事件总线
-- `log` - 日志系统
-- `storage` - 数据持久化
-- `network` - 网络通信
-- `auth` - 用户认证
-- `chat` - 聊天功能
-- `contacts` - 联系人管理
-- `moments` - 朋友圈功能
-
-## 📌 当前编译配置
-
-- **C++ 标准**: C++23
-- **编译器**: MSVC (Windows) / GCC / Clang
-- **Build Types**: Debug, Release (Ninja Multi-Config)
-- **平台**: Windows (可跨平台)
-- **GUI 框架**: Qt6
+C++23 / CMake 3.24+ / Conan 2.0+ / MSVC / Ninja Multi-Config / `ENABLE_TESTING=ON`

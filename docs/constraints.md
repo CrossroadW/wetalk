@@ -1,37 +1,65 @@
 # 项目约束规范
 
-## CMake 依赖管理规范
+> 所有约束集中在此文件，覆盖 CMake、Qt、代码风格、模块化等方面
 
-### 基本原则
-- 所有的 `find_package` 调用必须在根目录的 CMakeLists.txt 中进行
-- 模块内的 CMakeLists.txt 文件禁止包含 `find_package` 调用
-- 模块内的 CMakeLists.txt 文件禁止包含 `cmake_minimum_required` 和 `project` 声明
-- 所有 MOC、RCC、UIC 等 Qt 工具必须针对特定目标使用，不能全局应用
+## CMake 约束
+
+### 依赖管理
+- 所有 `find_package` 调用必须在根目录 `CMakeLists.txt` 中
+- 模块 CMakeLists.txt 禁止包含 `find_package`、`cmake_minimum_required`、`project`
+- 所有依赖统一使用 `PUBLIC` 链接
+
+### Qt 工具
+- MOC、RCC、UIC 必须针对特定目标设置，不能全局应用
+- 使用 `qt_add_executable()` 而非 `add_executable()`
+- 不为不需要的目录添加不必要的 AUTOMOC 等设置
 
 ### 适用范围
-此规范适用于以下模块：
-- src/core/
-- src/log/
-- src/storage/
-- src/network/
-- src/auth/
-- src/chat/
-- src/contacts/
-- src/moments/
-- src/grpc/
+src/core、src/log、src/storage、src/network、src/auth、src/chat、src/contacts、src/moments
 
-### 理由
-1. **集中管理**：所有依赖在一个地方定义，便于维护
-2. **版本一致性**：确保所有模块使用相同版本的依赖库
-3. **减少重复**：避免在每个子模块中重复查找相同的包
-4. **构建性能**：减少重复的依赖查找过程
-5. **Qt 工具明确性**：确保 Qt 元对象编译器等工具应用于正确的可执行文件或库
+## Qt 使用约束
 
-### Qt 工具使用规范
-- 使用 `qt_add_executable()` 而不是 `add_executable()` 来自动处理 MOC、RCC、UIC
-- 如果必须手动指定，应使用 `qt_wrap_cpp()`、`qt_add_resources()`、`qt_add_ui()` 等针对特定目标
-- 避免全局的 Qt 工具调用，以确保构建的可预测性和可维护性
+- **非界面代码禁止使用 Qt 信号槽**
+- Qt 信号槽仅用于 UI 层（Widget、View 等可见组件）
+- 模块间通信、事件系统、业务逻辑层使用纯 C++ 实现（EventBus / Boost.Signals2）
+- core、network、storage、auth 等非 UI 模块不依赖 Qt 信号槽
+- UI 模块中的业务逻辑类（如 ChatManager）同样不依赖 Qt，通过 Controller 桥接
 
-### 例外情况
-- 测试和沙盒目标的特殊配置可在模块内 CMakeLists.txt 中定义（如 Qt Widgets 连接）
-- 模块特定的编译选项和定义可以在模块 CMakeLists.txt 中定义
+## Pimpl 约束
+
+- `include/` 目录下导出的公共头文件必须使用 Pimpl 模式
+- `src/` 内部的实现类无需使用 Pimpl
+
+## 命名空间约束
+
+### .cpp 文件
+- 允许使用 `using namespace` 简化代码
+- 推荐在文件开头使用，如 `using namespace wechat;`
+
+### .h 文件
+- **严格禁止** 任何形式的 `using namespace`
+- 所有类型必须使用完整命名空间限定符
+- 命名空间声明使用非嵌套形式：
+
+```cpp
+// 正确
+namespace wechat {
+namespace core {
+}
+}
+
+// 错误
+namespace wechat::core {
+}
+```
+
+## 模块化约束
+
+- 单个源文件长度控制在 500-800 行以内
+- 按功能职责拆分代码到不同模块
+- 头文件只声明，不包含不必要的实现
+
+## UI 组件约束
+
+- 优先使用标准 Qt 控件，避免复杂自绘
+- 标准控件提供原生交互体验（文本选择、复制等）
