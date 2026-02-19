@@ -1,10 +1,10 @@
 #include <wechat/chat/ChatManager.h>
-#include <wechat/core/Event.h>
 
 namespace wechat::chat {
 
-ChatManager::ChatManager(network::NetworkClient &client, core::EventBus &bus)
-    : client_(client), bus_(bus) {}
+ChatManager::ChatManager(network::NetworkClient &client,
+                         std::shared_ptr<ChatSignals> chatSignals)
+    : client_(client), signals_(chatSignals) {}
 
 // ── 会话 ──
 
@@ -50,11 +50,10 @@ std::string ChatManager::sendMessage(core::MessageContent const &content,
         if (msg.timestamp > lastSyncTs_[activeChatId_]) {
             lastSyncTs_[activeChatId_] = msg.timestamp;
         }
-        bus_.publish(
-            core::MessageSentEvent{tempId, std::move(result.value())});
+        signals_->messageSent(tempId, result.value());
     } else {
-        bus_.publish(core::MessageSendFailedEvent{
-            tempId, result.error().code, result.error().message});
+        signals_->messageSendFailed(tempId, result.error().code,
+                                    result.error().message);
     }
 
     return tempId;
@@ -76,8 +75,7 @@ void ChatManager::pollMessages() {
         // 推进同步游标
         lastSyncTs_[activeChatId_] = msgs.back().timestamp;
 
-        bus_.publish(core::MessagesReceivedEvent{
-            activeChatId_, std::move(result.value().messages)});
+        signals_->messagesReceived(activeChatId_, result.value().messages);
     }
 }
 
@@ -86,8 +84,7 @@ void ChatManager::pollMessages() {
 void ChatManager::revokeMessage(std::string const &messageId) {
     auto result = client_.chat().revokeMessage(token_, messageId);
     if (result.ok()) {
-        bus_.publish(
-            core::MessageRevokedEvent{messageId, activeChatId_});
+        signals_->messageRevoked(messageId, activeChatId_);
     }
 }
 

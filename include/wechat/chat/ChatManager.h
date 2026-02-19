@@ -1,11 +1,12 @@
 #pragma once
 
-#include <wechat/core/EventBus.h>
+#include <wechat/chat/ChatSignals.h>
 #include <wechat/core/Message.h>
 #include <wechat/network/NetworkClient.h>
 
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <string>
 
 namespace wechat::chat {
@@ -14,18 +15,20 @@ namespace wechat::chat {
 ///
 /// 职责：
 ///   - 持有 NetworkClient 引用，调用 ChatService 完成发送/同步
-///   - 通过 EventBus 发布结果事件（MessageSentEvent / MessagesReceivedEvent 等）
+///   - 通过注入的 ChatSignals 触发信号（messageSent / messagesReceived 等）
 ///   - 维护增量同步游标 lastSyncTs_
 ///
 /// 用法：
-///   ChatManager mgr(networkClient, eventBus);
+///   auto chatSignals = std::make_shared<ChatSignals>();
+///   ChatManager mgr(networkClient, chatSignals);
 ///   mgr.setSession(token, userId);
 ///   mgr.openChat(chatId);         // 切换聊天并做首次同步
 ///   mgr.sendTextMessage("hello");  // 发送消息
 ///   mgr.pollMessages();            // 轮询新消息（由外部定时器驱动）
 class ChatManager {
 public:
-    ChatManager(network::NetworkClient &client, core::EventBus &bus);
+    ChatManager(network::NetworkClient &client,
+                std::shared_ptr<ChatSignals> chatSignals);
 
     // ── 会话 ──
 
@@ -60,7 +63,7 @@ public:
 
 private:
     network::NetworkClient &client_;
-    core::EventBus &bus_;
+    std::shared_ptr<ChatSignals> signals_;
 
     std::string token_;
     std::string userId_;

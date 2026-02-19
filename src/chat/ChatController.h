@@ -5,22 +5,24 @@
 #include <boost/signals2/connection.hpp>
 
 #include <wechat/chat/ChatManager.h>
-#include <wechat/core/EventBus.h>
+#include <wechat/chat/ChatSignals.h>
 #include <wechat/core/Message.h>
 
+#include <memory>
 #include <string>
 #include <vector>
 
 namespace wechat::chat {
 
-/// Qt 桥接层：订阅 EventBus 事件，转为 Qt signals 供 UI 使用
+/// Qt 桥接层：订阅 ChatSignals 事件，转为 Qt signals 供 UI 使用
 ///
 /// 同时持有 QTimer 驱动 ChatManager::pollMessages() 轮询
 class ChatController : public QObject {
     Q_OBJECT
 
 public:
-    explicit ChatController(ChatManager &manager, core::EventBus &bus,
+    explicit ChatController(ChatManager &manager,
+                            std::shared_ptr<ChatSignals> chatSignals,
                             QObject *parent = nullptr);
     ~ChatController() override;
 
@@ -51,11 +53,13 @@ public slots:
     void onOpenChat(QString const &chatId);
 
 private:
-    void onEvent(core::Event const &event);
-
     ChatManager &manager_;
-    core::EventBus &bus_;
-    boost::signals2::scoped_connection busConnection_;
+    std::shared_ptr<ChatSignals> signals_;
+    boost::signals2::scoped_connection messageSentConnection_;
+    boost::signals2::scoped_connection messageSendFailedConnection_;
+    boost::signals2::scoped_connection messagesReceivedConnection_;
+    boost::signals2::scoped_connection messageRevokedConnection_;
+    boost::signals2::scoped_connection messageEditedConnection_;
     QTimer pollTimer_;
 };
 

@@ -1,17 +1,41 @@
 #include "ChatController.h"
 
-#include <wechat/core/Event.h>
-
-#include <variant>
-
 namespace wechat::chat {
 
-ChatController::ChatController(ChatManager &manager, core::EventBus &bus,
+ChatController::ChatController(ChatManager &manager,
+                               std::shared_ptr<ChatSignals> chatSignals,
                                QObject *parent)
-    : QObject(parent), manager_(manager), bus_(bus) {
-    // 订阅 EventBus，mock 服务是同步的，回调在主线程执行
-    busConnection_ = bus_.subscribe(
-        [this](core::Event const &e) { onEvent(e); });
+    : QObject(parent), manager_(manager), signals_(chatSignals) {
+    // 订阅各个信号
+    messageSentConnection_ = signals_->messageSent.connect(
+        [this](const std::string& clientTempId, const core::Message& msg) {
+            emit messageSent(QString::fromStdString(clientTempId), msg);
+        });
+
+    messageSendFailedConnection_ = signals_->messageSendFailed.connect(
+        [this](const std::string& clientTempId, auto code,
+               const std::string& reason) {
+            emit messageSendFailed(QString::fromStdString(clientTempId),
+                                   QString::fromStdString(reason));
+        });
+
+    messagesReceivedConnection_ = signals_->messagesReceived.connect(
+        [this](const std::string& chatId,
+               const std::vector<core::Message>& messages) {
+            emit messagesReceived(QString::fromStdString(chatId), messages);
+        });
+
+    messageRevokedConnection_ = signals_->messageRevoked.connect(
+        [this](const std::string& messageId, const std::string& chatId) {
+            emit messageRevoked(QString::fromStdString(messageId));
+        });
+
+    messageEditedConnection_ = signals_->messageEdited.connect(
+        [this](const std::string& messageId, const std::string& chatId,
+               const core::Message& updatedMessage) {
+            emit messageEdited(QString::fromStdString(messageId),
+                               updatedMessage);
+        });
 
     connect(&pollTimer_, &QTimer::timeout, this,
             [this]() { manager_.pollMessages(); });
@@ -35,40 +59,6 @@ void ChatController::onSendText(QString const &text) {
 
 void ChatController::onOpenChat(QString const &chatId) {
     manager_.openChat(chatId.toStdString());
-}
-
-// ── EventBus → Qt signals ──
-
-void ChatController::onEvent(core::Event const &event) {
-    std::visit(
-        [this](auto const &ev) {
-            using T = std::decay_t<decltype(ev)>;
-
-            if constexpr (std::is_same_v<T, core::MessageSentEvent>) {
-                emit messageSent(
-                    QString::fromStdString(ev.clientTempId),
-                    ev.serverMessage);
-            } else if constexpr (std::is_same_v<T,
-                                                core::MessageSendFailedEvent>) {
-                emit messageSendFailed(
-                    QString::fromStdString(ev.clientTempId),
-                    QString::fromStdString(ev.reason));
-            } else if constexpr (std::is_same_v<T,
-                                                core::MessagesReceivedEvent>) {
-                emit messagesReceived(
-                    QString::fromStdString(ev.chatId), ev.messages);
-            } else if constexpr (std::is_same_v<T,
-                                                core::MessageRevokedEvent>) {
-                emit messageRevoked(
-                    QString::fromStdString(ev.messageId));
-            } else if constexpr (std::is_same_v<T,
-                                                core::MessageEditedEvent>) {
-                emit messageEdited(
-                    QString::fromStdString(ev.messageId),
-                    ev.updatedMessage);
-            }
-        },
-        event);
 }
 
 } // namespace wechat::chat

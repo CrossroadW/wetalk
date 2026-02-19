@@ -1,82 +1,10 @@
 #include <gtest/gtest.h>
 #include <SQLiteCpp/SQLiteCpp.h>
-#include <wechat/core/Event.h>
-#include <wechat/core/EventBus.h>
 #include <wechat/core/Group.h>
 #include <wechat/core/Message.h>
 #include <wechat/core/User.h>
 
 using namespace wechat::core;
-
-TEST(EventBusTest, SubscribeAndPublish) {
-    EventBus bus;
-    bool called = false;
-
-    bus.subscribe([&](Event const &e) { called = true; });
-
-    bus.publish(MessageSentEvent{});
-    EXPECT_TRUE(called);
-}
-
-TEST(EventBusTest, MultipleSubscribers) {
-    EventBus bus;
-    int count = 0;
-
-    bus.subscribe([&](Event const &) { ++count; });
-    bus.subscribe([&](Event const &) { ++count; });
-    bus.subscribe([&](Event const &) { ++count; });
-
-    bus.publish(MessageSentEvent{});
-    EXPECT_EQ(count, 3);
-}
-
-TEST(EventBusTest, Disconnect) {
-    EventBus bus;
-    int count = 0;
-
-    auto conn = bus.subscribe([&](Event const &) { ++count; });
-    bus.publish(MessageSentEvent{});
-    EXPECT_EQ(count, 1);
-
-    conn.disconnect();
-    bus.publish(MessageSentEvent{});
-    EXPECT_EQ(count, 1);
-}
-
-TEST(EventBusTest, ScopedConnection) {
-    EventBus bus;
-    int count = 0;
-
-    {
-        boost::signals2::scoped_connection sc =
-            bus.subscribe([&](Event const &) { ++count; });
-        bus.publish(MessageSentEvent{});
-        EXPECT_EQ(count, 1);
-    }
-
-    bus.publish(MessageSentEvent{});
-    EXPECT_EQ(count, 1);
-}
-
-TEST(EventBusTest, SubscriberCount) {
-    EventBus bus;
-    EXPECT_EQ(bus.subscriberCount(), 0);
-
-    auto c1 = bus.subscribe([](Event const &) {});
-    EXPECT_EQ(bus.subscriberCount(), 1);
-
-    auto c2 = bus.subscribe([](Event const &) {});
-    EXPECT_EQ(bus.subscriberCount(), 2);
-
-    c1.disconnect();
-    EXPECT_EQ(bus.subscriberCount(), 1);
-}
-
-TEST(EventBusTest, NoSubscribersPublishDoesNotCrash) {
-    EventBus bus;
-    EXPECT_NO_THROW(bus.publish(MessageSentEvent{}));
-    EXPECT_EQ(bus.subscriberCount(), 0);
-}
 
 // ── SQLite 基础测试 ──
 

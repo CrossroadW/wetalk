@@ -56,17 +56,6 @@ include/
 | contacts | wechat_contacts | 联系人管理 | 是 |
 | moments | wechat_moments | 朋友圈/动态 | 是 |
 
-### 模块依赖关系
-
-```
-log（spdlog PUBLIC）
-core ← storage
-core ← network
-core + storage + network ← auth
-core + storage + network + Qt ← chat
-core + storage + network + Qt ← contacts
-core + storage + network + Qt ← moments
-```
 
 ## 代码规范
 
