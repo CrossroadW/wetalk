@@ -24,9 +24,10 @@ target_include_directories(wechat_chat
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# 定义项目根路径
+# 定义项目根路径和 Qt 无关键字模式
 target_compile_definitions(wechat_chat PRIVATE
     PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}"
+    QT_NO_KEYWORDS
 )
 
 set_target_properties(wechat_chat PROPERTIES
@@ -56,6 +57,7 @@ if(ENABLE_TESTING)
     file(GLOB_RECURSE CHAT_SANDBOX_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.cpp)
     if(CHAT_SANDBOX_SOURCES)
         qt_add_executable(sandbox_chat ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/main.cpp)
+        target_compile_definitions(sandbox_chat PRIVATE QT_NO_KEYWORDS)
         target_link_libraries(sandbox_chat PUBLIC wechat_chat Qt6::Widgets)
     endif()
 endif()

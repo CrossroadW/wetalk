@@ -274,7 +274,7 @@ bool MessageItemWidget::eventFilter(QObject *watched, QEvent *event) {
         // 如果点击的是 bubbleWidget 或 bubble 内的某个子控件，都触发选中
         // 这里不区分具体哪个子控件：只要是被安装过滤器的控件就会到这里
         setSelected(!selected_);
-        emit clicked(message_);
+        Q_EMIT clicked(message_);
 
         // 不拦截事件：让控件继续收到事件（例如图片的默认响应）
         return false;
@@ -349,7 +349,7 @@ void MessageItemWidget::mousePressEvent(QMouseEvent *event) {
     if (isClickOnContent(event->pos())) {
         // 切换选中：选中时让背景色变暗（而不是画 border）
         setSelected(!selected_);
-        emit clicked(message_);
+        Q_EMIT clicked(message_);
     }
     QWidget::mousePressEvent(event);
 }
@@ -395,18 +395,18 @@ void MessageItemWidget::showContextMenu(QPoint const &pos) {
 
     // 回复
     connect(replyAction, &QAction::triggered, [this]() {
-        emit replyRequested(message_);
+        Q_EMIT replyRequested(message_);
     });
 
     // 转发
     connect(forwardAction, &QAction::triggered, [this]() {
-        emit forwardRequested(message_);
+        Q_EMIT forwardRequested(message_);
     });
 
     // 撤回
     if (revokeAction) {
         connect(revokeAction, &QAction::triggered, [this]() {
-            emit revokeRequested(message_);
+            Q_EMIT revokeRequested(message_);
         });
     }
 

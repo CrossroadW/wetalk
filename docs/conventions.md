@@ -266,3 +266,60 @@ target_link_libraries(wechat_foo
         Qt6::Core
 )
 ```
+
+### Qt 宏规范（QT_NO_KEYWORDS）
+
+为了避免与 Qt 关键字宏冲突（如 `signals`、`slots`、`emit`），所有使用 Qt 元对象编译器（MOC）的目标都必须定义 `QT_NO_KEYWORDS` 编译标志。
+
+**强制使用标准 Qt 宏**：
+
+| 宏 | 用途 | 正确写法 | 错误写法 |
+|----|----|---------|---------|
+| `Q_SIGNALS:` | 声明信号段 | `Q_SIGNALS:` 或 `Q_SIGNALS` | `signals:` |
+| `Q_SLOTS:` | 声明槽段 | `Q_SLOTS:` 或 `private Q_SLOTS:` | `slots:` 或 `private slots:` |
+| `Q_EMIT` | 发出信号 | `Q_EMIT signal(args);` | `emit signal(args);` |
+
+**示例**：
+
+```cpp
+class ChatController : public QObject {
+    Q_OBJECT    // 必须有这个宏
+
+public:
+    explicit ChatController(/* ... */);
+
+Q_SIGNALS:
+    void messageSent(QString id, Message msg);
+    void messageFailed(QString reason);
+
+Q_SLOTS:
+    void onSendMessage(const QString& text);
+
+private Q_SLOTS:
+    void onSignalReceived();
+};
+
+// 实现文件中
+void ChatController::someMethod() {
+    Q_EMIT messageSent(id, msg);  // 发出信号
+}
+```
+
+**CMakeLists.txt 配置**：
+
+对所有包含 Qt 对象（需要 AUTOMOC）的库和可执行文件，都要添加 `QT_NO_KEYWORDS` 编译定义：
+
+```cmake
+add_library(wechat_chat STATIC ...)
+set_target_properties(wechat_chat PROPERTIES AUTOMOC ON)
+target_compile_definitions(wechat_chat PRIVATE QT_NO_KEYWORDS)
+
+qt_add_executable(sandbox_chat ...)
+target_compile_definitions(sandbox_chat PRIVATE QT_NO_KEYWORDS)
+```
+
+**原因**：
+
+1. `signals`、`slots`、`emit` 是 Qt 的特殊宏，在启用 `QT_NO_KEYWORDS` 后会被禁用
+2. 强制使用 `Q_SIGNALS`、`Q_SLOTS`、`Q_EMIT` 可以避免与其他库（如 Boost.Signals2）的名称冲突
+3. 显式的宏名增强代码可读性，明确表示这是 Qt 相关代码

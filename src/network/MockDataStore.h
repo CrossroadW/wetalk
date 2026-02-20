@@ -6,7 +6,6 @@
 #include <wechat/network/MomentService.h>
 #include <cstdint>
 #include <map>
-#include <mutex>
 #include <set>
 #include <string>
 #include <vector>
@@ -80,7 +79,6 @@ public:
                                    int64_t beforeTs, int limit);
 
 private:
-    std::mutex mutex;
     int64_t clock;
     int64_t idCounter;
 

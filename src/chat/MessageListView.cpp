@@ -62,7 +62,7 @@ void MessageListView::addMessage(core::Message const &message,
                 setSelectedItem(messageWidget);
 
                 // 发出消息选中信号
-                emit messageSelected(msg);
+                Q_EMIT messageSelected(msg);
             });
 
     // 转发右键菜单信号

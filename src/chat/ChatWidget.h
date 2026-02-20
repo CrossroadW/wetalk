@@ -38,10 +38,10 @@ public:
         return messageListView_;
     }
 
-public slots:
     void sendMessage();
+private Q_SLOTS:
 
-private slots:
+
     void onMessageSent(QString clientTempId, core::Message serverMessage);
     void onMessageSendFailed(QString clientTempId, QString reason);
     void onMessagesReceived(QString chatId,

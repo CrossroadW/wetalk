@@ -48,7 +48,7 @@ Q_SIGNALS:
     /// 消息被编辑
     void messageEdited(QString messageId, core::Message updatedMessage);
 
-public slots:
+public Q_SLOTS:
     void onSendText(QString const &text);
     void onOpenChat(QString const &chatId);
 
