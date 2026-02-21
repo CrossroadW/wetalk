@@ -11,7 +11,7 @@ MockChatService::MockChatService(std::shared_ptr<MockDataStore> store)
 
 Result<core::Message> MockChatService::sendMessage(
     const std::string& token, const std::string& chatId,
-    const std::string& replyTo, const core::MessageContent& content) {
+    int64_t replyTo, const core::MessageContent& content) {
     auto userId = store->resolveToken(token);
     if (userId.empty())
         return {ErrorCode::Unauthorized, "invalid token"};
@@ -32,22 +32,36 @@ Result<core::Message> MockChatService::sendMessage(
     return msg;
 }
 
-Result<SyncMessagesResponse> MockChatService::syncMessages(
+Result<SyncMessagesResponse> MockChatService::fetchAfter(
     const std::string& token, const std::string& chatId,
-    int64_t sinceTs, int limit) {
+    int64_t afterId, int limit) {
     auto userId = store->resolveToken(token);
     if (userId.empty())
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto msgs = store->getMessages(chatId, sinceTs, limit + 1);
+    auto msgs = store->getMessagesAfter(chatId, afterId, limit + 1);
     bool hasMore = static_cast<int>(msgs.size()) > limit;
     if (hasMore) msgs.pop_back();
 
     return SyncMessagesResponse{std::move(msgs), hasMore};
 }
 
+Result<SyncMessagesResponse> MockChatService::fetchBefore(
+    const std::string& token, const std::string& chatId,
+    int64_t beforeId, int limit) {
+    auto userId = store->resolveToken(token);
+    if (userId.empty())
+        return {ErrorCode::Unauthorized, "invalid token"};
+
+    auto msgs = store->getMessagesBefore(chatId, beforeId, limit + 1);
+    bool hasMore = static_cast<int>(msgs.size()) > limit;
+    if (hasMore) msgs.erase(msgs.begin());
+
+    return SyncMessagesResponse{std::move(msgs), hasMore};
+}
+
 VoidResult MockChatService::revokeMessage(const std::string& token,
-                                          const std::string& messageId) {
+                                          int64_t messageId) {
     auto userId = store->resolveToken(token);
     if (userId.empty())
         return {ErrorCode::Unauthorized, "invalid token"};
@@ -65,7 +79,7 @@ VoidResult MockChatService::revokeMessage(const std::string& token,
 }
 
 VoidResult MockChatService::editMessage(
-    const std::string& token, const std::string& messageId,
+    const std::string& token, int64_t messageId,
     const core::MessageContent& newContent) {
     auto userId = store->resolveToken(token);
     if (userId.empty())
@@ -90,7 +104,7 @@ VoidResult MockChatService::editMessage(
 
 VoidResult MockChatService::markRead(const std::string& token,
                                      const std::string& chatId,
-                                     const std::string& lastMessageId) {
+                                     int64_t lastMessageId) {
     auto userId = store->resolveToken(token);
     if (userId.empty())
         return {ErrorCode::Unauthorized, "invalid token"};

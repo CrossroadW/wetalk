@@ -33,20 +33,20 @@ public:
 
 Q_SIGNALS:
     /// 消息发送成功，UI 应显示服务端确认的消息
-    void messageSent(QString clientTempId, core::Message serverMessage);
+    void messageSent(int64_t clientTempId, core::Message serverMessage);
 
     /// 消息发送失败
-    void messageSendFailed(QString clientTempId, QString reason);
+    void messageSendFailed(int64_t clientTempId, QString reason);
 
     /// 收到新消息（来自轮询同步）
     void messagesReceived(QString chatId,
                           std::vector<core::Message> messages);
 
     /// 消息被撤回
-    void messageRevoked(QString messageId);
+    void messageRevoked(int64_t messageId);
 
     /// 消息被编辑
-    void messageEdited(QString messageId, core::Message updatedMessage);
+    void messageEdited(int64_t messageId, core::Message updatedMessage);
 
 public Q_SLOTS:
     void onSendText(QString const &text);

@@ -40,7 +40,7 @@ Result<std::vector<Moment>> MockMomentService::listMoments(
 }
 
 VoidResult MockMomentService::likeMoment(const std::string& token,
-                                         const std::string& momentId) {
+                                         int64_t momentId) {
     auto userId = store->resolveToken(token);
     if (userId.empty())
         return {ErrorCode::Unauthorized, "invalid token"};
@@ -58,7 +58,7 @@ VoidResult MockMomentService::likeMoment(const std::string& token,
 }
 
 Result<Moment::Comment> MockMomentService::commentMoment(
-    const std::string& token, const std::string& momentId,
+    const std::string& token, int64_t momentId,
     const std::string& text) {
     auto userId = store->resolveToken(token);
     if (userId.empty())
@@ -71,7 +71,7 @@ Result<Moment::Comment> MockMomentService::commentMoment(
     if (text.empty())
         return {ErrorCode::InvalidArgument, "comment text required"};
 
-    auto commentId = store->nextId("c");
+    auto commentId = store->nextId();
     auto ts = store->now();
     Moment::Comment comment{commentId, userId, text, ts};
     moment->comments.push_back(comment);

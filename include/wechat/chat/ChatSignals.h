@@ -18,7 +18,7 @@ public:
     /// 消息发送成功（服务端确认）
     /// @param clientTempId 客户端临时 ID
     /// @param serverMessage 服务端返回的完整消息
-    boost::signals2::signal<void(const std::string& clientTempId,
+    boost::signals2::signal<void(int64_t clientTempId,
                                   const core::Message& serverMessage)>
         messageSent;
 
@@ -26,7 +26,7 @@ public:
     /// @param clientTempId 客户端临时 ID
     /// @param code 错误码
     /// @param reason 错误原因
-    boost::signals2::signal<void(const std::string& clientTempId,
+    boost::signals2::signal<void(int64_t clientTempId,
                                   network::ErrorCode code,
                                   const std::string& reason)>
         messageSendFailed;
@@ -41,7 +41,7 @@ public:
     /// 消息被撤回
     /// @param messageId 消息 ID
     /// @param chatId 聊天 ID
-    boost::signals2::signal<void(const std::string& messageId,
+    boost::signals2::signal<void(int64_t messageId,
                                   const std::string& chatId)>
         messageRevoked;
 
@@ -49,7 +49,7 @@ public:
     /// @param messageId 消息 ID
     /// @param chatId 聊天 ID
     /// @param updatedMessage 更新后的消息
-    boost::signals2::signal<void(const std::string& messageId,
+    boost::signals2::signal<void(int64_t messageId,
                                   const std::string& chatId,
                                   const core::Message& updatedMessage)>
         messageEdited;

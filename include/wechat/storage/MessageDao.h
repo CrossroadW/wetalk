@@ -20,8 +20,8 @@ public:
 
     void insert(const core::Message& msg);
     void update(const core::Message& msg);
-    void remove(const std::string& id);
-    std::optional<core::Message> findById(const std::string& id);
+    void remove(int64_t id);
+    std::optional<core::Message> findById(int64_t id);
 
     /// 按 chat_id 分页查询，按 timestamp 降序
     std::vector<core::Message> findByChat(const std::string& chatId,
@@ -40,14 +40,14 @@ public:
                                                 int64_t since);
 
     /// 撤回消息
-    void revoke(const std::string& id, int64_t now);
+    void revoke(int64_t id, int64_t now);
 
     /// 编辑消息内容
-    void editContent(const std::string& id, const core::MessageContent& content,
+    void editContent(int64_t id, const core::MessageContent& content,
                      int64_t now);
 
     /// 更新已读人数
-    void updateReadCount(const std::string& id, uint32_t readCount, int64_t now);
+    void updateReadCount(int64_t id, uint32_t readCount, int64_t now);
 
 private:
     core::Message rowToMessage(SQLite::Statement& stmt);

@@ -210,13 +210,13 @@ TEST_F(NetworkTest, SendAndSyncMessages) {
 
     // alice 发消息
     MessageContent content = {TextContent{"hello bob!"}};
-    auto sent = client->chat().sendMessage(tokenA, chatId, "", content);
+    auto sent = client->chat().sendMessage(tokenA, chatId, 0, content);
     ASSERT_TRUE(sent.ok());
     EXPECT_EQ(sent.value().senderId, regA.value().userId);
     EXPECT_EQ(sent.value().chatId, chatId);
 
     // bob 同步
-    auto sync = client->chat().syncMessages(tokenB, chatId, 0, 50);
+    auto sync = client->chat().fetchAfter(tokenB, chatId, 0, 50);
     ASSERT_TRUE(sync.ok());
     EXPECT_EQ(sync.value().messages.size(), 1u);
     EXPECT_FALSE(sync.value().hasMore);
@@ -236,7 +236,7 @@ TEST_F(NetworkTest, SendMessageNotMember) {
 
     // bob 不是成员
     MessageContent content = {TextContent{"hi"}};
-    auto r = client->chat().sendMessage(regB.value().token, chatId, "", content);
+    auto r = client->chat().sendMessage(regB.value().token, chatId, 0, content);
     ASSERT_FALSE(r.ok());
     EXPECT_EQ(r.error().code, ErrorCode::PermissionDenied);
 }
@@ -249,14 +249,14 @@ TEST_F(NetworkTest, RevokeMessage) {
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
-        tokenA, chatId, "", MessageContent{TextContent{"oops"}});
+        tokenA, chatId, 0, MessageContent{TextContent{"oops"}});
     auto msgId = sent.value().id;
 
     auto r = client->chat().revokeMessage(tokenA, msgId);
     ASSERT_TRUE(r.ok());
 
     // 同步后消息应标记为已撤回
-    auto sync = client->chat().syncMessages(tokenA, chatId, 0, 50);
+    auto sync = client->chat().fetchAfter(tokenA, chatId, 0, 50);
     EXPECT_TRUE(sync.value().messages[0].revoked);
 }
 
@@ -270,7 +270,7 @@ TEST_F(NetworkTest, RevokeOtherUserMessage) {
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
-        regA.value().token, chatId, "", MessageContent{TextContent{"hi"}});
+        regA.value().token, chatId, 0, MessageContent{TextContent{"hi"}});
 
     // bob 不能撤回 alice 的消息
     auto r = client->chat().revokeMessage(regB.value().token, sent.value().id);
@@ -286,14 +286,14 @@ TEST_F(NetworkTest, EditMessage) {
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
-        tokenA, chatId, "", MessageContent{TextContent{"typo"}});
+        tokenA, chatId, 0, MessageContent{TextContent{"typo"}});
     auto msgId = sent.value().id;
 
     MessageContent newContent = {TextContent{"fixed"}};
     auto r = client->chat().editMessage(tokenA, msgId, newContent);
     ASSERT_TRUE(r.ok());
 
-    auto sync = client->chat().syncMessages(tokenA, chatId, 0, 50);
+    auto sync = client->chat().fetchAfter(tokenA, chatId, 0, 50);
     auto* text = std::get_if<TextContent>(&sync.value().messages[0].content[0]);
     ASSERT_NE(text, nullptr);
     EXPECT_EQ(text->text, "fixed");
@@ -310,12 +310,12 @@ TEST_F(NetworkTest, MarkRead) {
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
-        regA.value().token, chatId, "", MessageContent{TextContent{"hi"}});
+        regA.value().token, chatId, 0, MessageContent{TextContent{"hi"}});
 
     auto r = client->chat().markRead(regB.value().token, chatId, sent.value().id);
     ASSERT_TRUE(r.ok());
 
-    auto sync = client->chat().syncMessages(regA.value().token, chatId, 0, 50);
+    auto sync = client->chat().fetchAfter(regA.value().token, chatId, 0, 50);
     EXPECT_EQ(sync.value().messages[0].readCount, 1u);
 }
 
@@ -328,18 +328,18 @@ TEST_F(NetworkTest, SyncMessagesPagination) {
 
     for (int i = 0; i < 5; ++i) {
         client->chat().sendMessage(
-            tokenA, chatId, "",
+            tokenA, chatId, 0,
             MessageContent{TextContent{"msg " + std::to_string(i)}});
     }
 
-    auto sync = client->chat().syncMessages(tokenA, chatId, 0, 3);
+    auto sync = client->chat().fetchAfter(tokenA, chatId, 0, 3);
     ASSERT_TRUE(sync.ok());
     EXPECT_EQ(sync.value().messages.size(), 3u);
     EXPECT_TRUE(sync.value().hasMore);
 
-    // 用最后一条的 timestamp 继续同步
-    auto lastTs = sync.value().messages.back().timestamp;
-    auto sync2 = client->chat().syncMessages(tokenA, chatId, lastTs, 3);
+    // 用最后一条的 ID 继续同步
+    auto lastId = sync.value().messages.back().id;
+    auto sync2 = client->chat().fetchAfter(tokenA, chatId, lastId, 3);
     ASSERT_TRUE(sync2.ok());
     EXPECT_EQ(sync2.value().messages.size(), 2u);
     EXPECT_FALSE(sync2.value().hasMore);
@@ -435,11 +435,11 @@ TEST_F(NetworkTest, EndToEndFlow) {
 
     // alice 发消息
     auto msg1 = client->chat().sendMessage(
-        tokenA, chatId, "", MessageContent{TextContent{"hey bob"}});
+        tokenA, chatId, 0, MessageContent{TextContent{"hey bob"}});
     ASSERT_TRUE(msg1.ok());
 
     // bob 同步并回复
-    auto sync = client->chat().syncMessages(tokenB, chatId, 0, 50);
+    auto sync = client->chat().fetchAfter(tokenB, chatId, 0, 50);
     ASSERT_TRUE(sync.ok());
     EXPECT_EQ(sync.value().messages.size(), 1u);
 
@@ -450,8 +450,8 @@ TEST_F(NetworkTest, EndToEndFlow) {
     EXPECT_EQ(msg2.value().replyTo, msg1.value().id);
 
     // alice 同步拿到 bob 的回复
-    auto sync2 = client->chat().syncMessages(
-        tokenA, chatId, msg1.value().timestamp, 50);
+    auto sync2 = client->chat().fetchAfter(
+        tokenA, chatId, msg1.value().id, 50);
     ASSERT_TRUE(sync2.ok());
     EXPECT_EQ(sync2.value().messages.size(), 1u);
 

@@ -42,8 +42,8 @@ public:
 private Q_SLOTS:
 
 
-    void onMessageSent(QString clientTempId, core::Message serverMessage);
-    void onMessageSendFailed(QString clientTempId, QString reason);
+    void onMessageSent(int64_t clientTempId, core::Message serverMessage);
+    void onMessageSendFailed(int64_t clientTempId, QString reason);
     void onMessagesReceived(QString chatId,
                             std::vector<core::Message> messages);
 
@@ -70,7 +70,7 @@ private:
     ChatController *controller_ = nullptr;
 
     // 回复状态
-    std::string replyToMessageId_;
+    int64_t replyToMessageId_ = 0;
     QWidget *replyIndicator_ = nullptr;
     QLabel *replyLabel_ = nullptr;
     QPushButton *cancelReplyButton_ = nullptr;

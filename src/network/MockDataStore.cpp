@@ -13,15 +13,15 @@ int64_t MockDataStore::now() {
         .count();
 }
 
-std::string MockDataStore::nextId(std::string const &prefix) {
-    return prefix + std::to_string(++idCounter);
+int64_t MockDataStore::nextId() {
+    return ++idCounter;
 }
 
 // ── 用户 / 认证 ──
 
 std::string MockDataStore::addUser(std::string const &username,
                                    std::string const &password) {
-    auto id = "u" + std::to_string(++idCounter);
+    auto id = std::to_string(nextId());
     core::User user{id};
     usersByName[username] = UserRecord{user, password};
     userIdToName[id] = username;
@@ -38,7 +38,7 @@ std::string MockDataStore::authenticate(std::string const &username,
 }
 
 std::string MockDataStore::createToken(std::string const &userId) {
-    auto token = "tok_" + std::to_string(++idCounter);
+    auto token = "tok_" + std::to_string(nextId());
     tokens[token] = userId;
     return token;
 }
@@ -113,7 +113,7 @@ MockDataStore::getFriendIds(std::string const &userId) {
 core::Group &
 MockDataStore::createGroup(std::string const &ownerId,
                            std::vector<std::string> const &memberIds) {
-    auto id = "g" + std::to_string(++idCounter);
+    auto id = std::to_string(nextId());
     core::Group group{id, ownerId, memberIds};
     auto [it, _] = groups.emplace(id, std::move(group));
     return it->second;
@@ -144,9 +144,9 @@ MockDataStore::getGroupsByUser(std::string const &userId) {
 
 core::Message &MockDataStore::addMessage(std::string const &senderId,
                                          std::string const &chatId,
-                                         std::string const &replyTo,
+                                         int64_t replyTo,
                                          core::MessageContent const &content) {
-    auto id = "m" + std::to_string(++idCounter);
+    auto id = nextId();
     auto ts = now();
     core::Message msg{id, senderId, chatId, replyTo, content,
                       ts, 0,        false,  0,       0};
@@ -155,14 +155,14 @@ core::Message &MockDataStore::addMessage(std::string const &senderId,
     return it->second;
 }
 
-core::Message *MockDataStore::findMessage(std::string const &messageId) {
+core::Message *MockDataStore::findMessage(int64_t messageId) {
     auto it = messages.find(messageId);
     return it != messages.end() ? &it->second : nullptr;
 }
 
-std::vector<core::Message> MockDataStore::getMessages(std::string const &chatId,
-                                                      int64_t sinceTs,
-                                                      int limit) {
+std::vector<core::Message> MockDataStore::getMessagesAfter(std::string const &chatId,
+                                                           int64_t afterId,
+                                                           int limit) {
     std::vector<core::Message> result;
     auto it = chatMessages.find(chatId);
     if (it == chatMessages.end()) {
@@ -170,14 +170,43 @@ std::vector<core::Message> MockDataStore::getMessages(std::string const &chatId,
     }
 
     for (auto &msgId: it->second) {
-        auto msgIt = messages.find(msgId);
-        if (msgIt != messages.end() && msgIt->second.timestamp > sinceTs) {
-            result.push_back(msgIt->second);
-            if (static_cast<int>(result.size()) >= limit) {
-                break;
+        if (msgId > afterId) {
+            auto msgIt = messages.find(msgId);
+            if (msgIt != messages.end()) {
+                result.push_back(msgIt->second);
+                if (static_cast<int>(result.size()) >= limit) {
+                    break;
+                }
             }
         }
     }
+    return result;
+}
+
+std::vector<core::Message> MockDataStore::getMessagesBefore(std::string const &chatId,
+                                                            int64_t beforeId,
+                                                            int limit) {
+    std::vector<core::Message> result;
+    auto it = chatMessages.find(chatId);
+    if (it == chatMessages.end()) {
+        return result;
+    }
+
+    // 从后往前遍历，找 id < beforeId 的消息
+    auto &ids = it->second;
+    for (auto rit = ids.rbegin(); rit != ids.rend(); ++rit) {
+        if (*rit < beforeId) {
+            auto msgIt = messages.find(*rit);
+            if (msgIt != messages.end()) {
+                result.push_back(msgIt->second);
+                if (static_cast<int>(result.size()) >= limit) {
+                    break;
+                }
+            }
+        }
+    }
+    // 反转为 ID 升序
+    std::reverse(result.begin(), result.end());
     return result;
 }
 
@@ -186,7 +215,7 @@ std::vector<core::Message> MockDataStore::getMessages(std::string const &chatId,
 Moment &MockDataStore::addMoment(std::string const &authorId,
                                  std::string const &text,
                                  std::vector<std::string> const &imageIds) {
-    auto id = "mo" + std::to_string(++idCounter);
+    auto id = nextId();
     auto ts = now();
     Moment moment{id, authorId, text, imageIds, ts, {}, {}};
     auto [it, _] = moments.emplace(id, std::move(moment));
@@ -194,7 +223,7 @@ Moment &MockDataStore::addMoment(std::string const &authorId,
     return it->second;
 }
 
-Moment *MockDataStore::findMoment(std::string const &momentId) {
+Moment *MockDataStore::findMoment(int64_t momentId) {
     auto it = moments.find(momentId);
     return it != moments.end() ? &it->second : nullptr;
 }

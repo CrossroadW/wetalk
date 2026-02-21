@@ -17,9 +17,9 @@ public:
     Result<std::vector<Moment>> listMoments(
         const std::string& token, int64_t beforeTs, int limit) override;
     VoidResult likeMoment(
-        const std::string& token, const std::string& momentId) override;
+        const std::string& token, int64_t momentId) override;
     Result<Moment::Comment> commentMoment(
-        const std::string& token, const std::string& momentId,
+        const std::string& token, int64_t momentId,
         const std::string& text) override;
 
 private:

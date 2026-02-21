@@ -119,13 +119,13 @@ void MessageDao::update(const core::Message& msg) {
     stmt.exec();
 }
 
-void MessageDao::remove(const std::string& id) {
+void MessageDao::remove(int64_t id) {
     SQLite::Statement stmt(db_, "DELETE FROM messages WHERE id = ?");
     stmt.bind(1, id);
     stmt.exec();
 }
 
-std::optional<core::Message> MessageDao::findById(const std::string& id) {
+std::optional<core::Message> MessageDao::findById(int64_t id) {
     SQLite::Statement stmt(db_, R"(
         SELECT id, sender_id, chat_id, reply_to, content_data,
                timestamp, edited_at, revoked, read_count, updated_at
@@ -213,10 +213,10 @@ std::vector<core::Message> MessageDao::findUpdatedAfter(
 
 core::Message MessageDao::rowToMessage(SQLite::Statement& stmt) {
     core::Message msg;
-    msg.id = stmt.getColumn(0).getString();
+    msg.id = stmt.getColumn(0).getInt64();
     msg.senderId = stmt.getColumn(1).getString();
     msg.chatId = stmt.getColumn(2).getString();
-    msg.replyTo = stmt.getColumn(3).getString();
+    msg.replyTo = stmt.getColumn(3).getInt64();
     msg.content = deserializeContent(stmt.getColumn(4).getString());
     msg.timestamp = stmt.getColumn(5).getInt64();
     msg.editedAt = stmt.getColumn(6).getInt64();
@@ -226,7 +226,7 @@ core::Message MessageDao::rowToMessage(SQLite::Statement& stmt) {
     return msg;
 }
 
-void MessageDao::revoke(const std::string& id, int64_t now) {
+void MessageDao::revoke(int64_t id, int64_t now) {
     SQLite::Statement stmt(db_, R"(
         UPDATE messages SET revoked = 1, updated_at = ? WHERE id = ?
     )");
@@ -235,7 +235,7 @@ void MessageDao::revoke(const std::string& id, int64_t now) {
     stmt.exec();
 }
 
-void MessageDao::editContent(const std::string& id,
+void MessageDao::editContent(int64_t id,
                              const core::MessageContent& content, int64_t now) {
     SQLite::Statement stmt(db_, R"(
         UPDATE messages SET content_data = ?, edited_at = ?, updated_at = ? WHERE id = ?
@@ -247,7 +247,7 @@ void MessageDao::editContent(const std::string& id,
     stmt.exec();
 }
 
-void MessageDao::updateReadCount(const std::string& id, uint32_t readCount,
+void MessageDao::updateReadCount(int64_t id, uint32_t readCount,
                                  int64_t now) {
     SQLite::Statement stmt(db_, R"(
         UPDATE messages SET read_count = ?, updated_at = ? WHERE id = ?

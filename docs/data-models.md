@@ -14,14 +14,19 @@ User (id)
   │                ├── 私聊 = 2 人 Group
   │                └── 群聊 = N 人 Group
   │
-  └── 发送 ──→ Message (id, senderId, chatId, content, timestamp)
+  ├── 发送 ──→ Message (id:int64, senderId, chatId, content, timestamp)
+  │                │
+  │                ├── chatId 始终是 Group.id
+  │                └── MessageContent = variant<monostate, Text, Resource>
+  │                                                            │
+  │                                                            └── resourceId 引用
+  │                                                                客户端: 本地路径查找，miss 则远程 fetch
+  │                                                                服务器: 独立资源存储服务管理
+  │
+  └── 发布 ──→ Moment (id:int64, authorId, text, imageIds, timestamp)
                   │
-                  ├── chatId 始终是 Group.id
-                  └── MessageContent = variant<monostate, Text, Resource>
-                                                              │
-                                                              └── resourceId 引用
-                                                                  客户端: 本地路径查找，miss 则远程 fetch
-                                                                  服务器: 独立资源存储服务管理
+                  ├── likedBy: [userId...]
+                  └── comments: [Comment (id:int64, authorId, text, timestamp)]
 ```
 
 ## C++ 数据模型
@@ -79,16 +84,34 @@ using MessageContent = std::vector<ContentBlock>;
 
 // ── Message: 一条消息 ──
 struct Message {
-    std::string id;
+    int64_t id = 0;
     std::string senderId;
     std::string chatId;         // 始终是 Group.id
-    std::string replyTo;        // 引用消息 id，空则无引用（支持跨群引用）
+    int64_t replyTo = 0;       // 引用消息 id，0 = 无引用
     MessageContent content;     // 内容块列表
     int64_t timestamp;
     int64_t editedAt;           // 最后编辑时间，0 = 未编辑
     bool revoked;               // 是否已撤回
     uint32_t readCount;         // 已读人数（私聊: 0或1, 群聊: 0~N）
     int64_t updatedAt;          // 最后修改时间（编辑/撤回时更新），0 = 未修改
+};
+
+// ── Moment: 朋友圈动态 ──
+struct Moment {
+    int64_t id = 0;
+    std::string authorId;
+    std::string text;
+    std::vector<std::string> imageIds;  // 图片资源 ID 列表
+    int64_t timestamp;
+    std::vector<std::string> likedBy;   // 点赞用户 ID 列表
+
+    struct Comment {
+        int64_t id = 0;
+        std::string authorId;
+        std::string text;
+        int64_t timestamp;
+    };
+    std::vector<Comment> comments;
 };
 ```
 
@@ -125,10 +148,10 @@ CREATE TABLE friendships (
 );
 
 CREATE TABLE messages (
-    id TEXT PRIMARY KEY,
+    id INTEGER PRIMARY KEY,
     sender_id TEXT,
     chat_id TEXT NOT NULL,
-    reply_to TEXT,              -- 引用消息 id，NULL 则无引用
+    reply_to INTEGER DEFAULT 0, -- 引用消息 id，0 = 无引用
     content_data TEXT NOT NULL, -- 序列化的内容块列表
     timestamp INTEGER NOT NULL,
     edited_at INTEGER DEFAULT 0,
@@ -137,11 +160,44 @@ CREATE TABLE messages (
     updated_at INTEGER DEFAULT 0 -- 编辑/撤回时更新，用于增量同步
 );
 
+CREATE TABLE moments (
+    id INTEGER PRIMARY KEY,
+    author_id TEXT NOT NULL,
+    text TEXT NOT NULL DEFAULT '',
+    timestamp INTEGER NOT NULL,
+    updated_at INTEGER DEFAULT 0
+);
+
+CREATE TABLE moment_images (
+    moment_id INTEGER NOT NULL,
+    image_id TEXT NOT NULL,        -- 资源 ID
+    sort_order INTEGER DEFAULT 0,
+    PRIMARY KEY (moment_id, image_id)
+);
+
+CREATE TABLE moment_likes (
+    moment_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    PRIMARY KEY (moment_id, user_id)
+);
+
+CREATE TABLE moment_comments (
+    id INTEGER PRIMARY KEY,
+    moment_id INTEGER NOT NULL,
+    author_id TEXT NOT NULL,
+    text TEXT NOT NULL,
+    timestamp INTEGER NOT NULL
+);
+
 CREATE INDEX idx_group_members_user ON group_members(user_id);
 
 CREATE INDEX idx_messages_chat ON messages(chat_id, timestamp);
 CREATE INDEX idx_messages_reply ON messages(reply_to);
 CREATE INDEX idx_messages_updated ON messages(chat_id, updated_at);
+
+CREATE INDEX idx_moments_author ON moments(author_id, timestamp);
+CREATE INDEX idx_moment_comments_moment ON moment_comments(moment_id);
 ```
 
 ### 资源管理

@@ -24,32 +24,41 @@ public:
     virtual Result<core::Message> sendMessage(
         const std::string& token,
         const std::string& chatId,
-        const std::string& replyTo,
+        int64_t replyTo,
         const core::MessageContent& content) = 0;
 
-    /// 增量同步：获取 chatId 中 timestamp > sinceTs 的消息
-    virtual Result<SyncMessagesResponse> syncMessages(
+    /// 向下同步（新消息）：获取 chatId 中 id > afterId 的消息
+    /// afterId = 0 表示从头开始
+    virtual Result<SyncMessagesResponse> fetchAfter(
         const std::string& token,
         const std::string& chatId,
-        int64_t sinceTs,
+        int64_t afterId,
+        int limit) = 0;
+
+    /// 向上同步（历史消息）：获取 chatId 中 id < beforeId 的消息
+    /// beforeId = INT64_MAX 表示从最新开始
+    virtual Result<SyncMessagesResponse> fetchBefore(
+        const std::string& token,
+        const std::string& chatId,
+        int64_t beforeId,
         int limit) = 0;
 
     /// 撤回消息
     virtual VoidResult revokeMessage(
         const std::string& token,
-        const std::string& messageId) = 0;
+        int64_t messageId) = 0;
 
     /// 编辑消息
     virtual VoidResult editMessage(
         const std::string& token,
-        const std::string& messageId,
+        int64_t messageId,
         const core::MessageContent& newContent) = 0;
 
     /// 标记已读
     virtual VoidResult markRead(
         const std::string& token,
         const std::string& chatId,
-        const std::string& lastMessageId) = 0;
+        int64_t lastMessageId) = 0;
 };
 
 } // namespace wechat::network

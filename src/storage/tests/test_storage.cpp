@@ -119,10 +119,10 @@ TEST_F(StorageDaoTest, MessageInsertAndFind) {
     MessageDao dao(dbm->db());
 
     Message msg;
-    msg.id = "m1";
+    msg.id = 1;
     msg.senderId = "u1";
     msg.chatId = "g1";
-    msg.replyTo = "";
+    msg.replyTo = 0;
     msg.content = {
         TextContent{"hello"},
         ResourceContent{
@@ -140,7 +140,7 @@ TEST_F(StorageDaoTest, MessageInsertAndFind) {
 
     dao.insert(msg);
 
-    auto found = dao.findById("m1");
+    auto found = dao.findById(1);
     ASSERT_TRUE(found.has_value());
     EXPECT_EQ(found->senderId, "u1");
     EXPECT_EQ(found->chatId, "g1");
@@ -167,7 +167,7 @@ TEST_F(StorageDaoTest, MessagePagination) {
 
     for (int i = 1; i <= 5; ++i) {
         Message m;
-        m.id = "m" + std::to_string(i);
+        m.id = i;
         m.senderId = "u1";
         m.chatId = "g1";
         m.content = {TextContent{"msg " + std::to_string(i)}};
@@ -182,15 +182,15 @@ TEST_F(StorageDaoTest, MessagePagination) {
     // 取 timestamp < 4000 的最新 2 条
     auto page = dao.findByChat("g1", 4000, 2);
     EXPECT_EQ(page.size(), 2u);
-    EXPECT_EQ(page[0].id, "m3"); // 降序，最新的先
-    EXPECT_EQ(page[1].id, "m2");
+    EXPECT_EQ(page[0].id, 3); // 降序，最新的先
+    EXPECT_EQ(page[1].id, 2);
 }
 
 TEST_F(StorageDaoTest, MessageIncrementalSync) {
     MessageDao dao(dbm->db());
 
     Message m1;
-    m1.id = "m1"; m1.senderId = "u1"; m1.chatId = "g1";
+    m1.id = 1; m1.senderId = "u1"; m1.chatId = "g1";
     m1.content = {TextContent{"v1"}};
     m1.timestamp = 1000; m1.editedAt = 0;
     m1.revoked = false; m1.readCount = 0; m1.updatedAt = 0;
@@ -218,7 +218,7 @@ static void insertMessages(MessageDao& dao, const std::string& chatId,
                            int from, int to) {
     for (int i = from; i <= to; ++i) {
         Message m;
-        m.id = "m" + std::to_string(i);
+        m.id = i;
         m.senderId = "u1";
         m.chatId = chatId;
         m.content = {TextContent{"msg " + std::to_string(i)}};
@@ -239,8 +239,8 @@ TEST_F(StorageDaoTest, CacheColdStart) {
     // 模拟 fetch(after_ts=0, limit=50) → 拿到 [m1..m50]
     auto page = dao.findAfter("g1", 0, 50);
     EXPECT_EQ(page.size(), 50u);
-    EXPECT_EQ(page.front().id, "m1");   // 升序，最早的先
-    EXPECT_EQ(page.back().id, "m50");
+    EXPECT_EQ(page.front().id, 1);   // 升序，最早的先
+    EXPECT_EQ(page.back().id, 50);
 }
 
 TEST_F(StorageDaoTest, CacheScrollUp) {
@@ -251,8 +251,8 @@ TEST_F(StorageDaoTest, CacheScrollUp) {
     // 当前缓存 start=m3(ts=300)，向上加载
     auto older = dao.findBefore("g1", 300, 50);
     EXPECT_EQ(older.size(), 2u);        // m1, m2
-    EXPECT_EQ(older[0].id, "m2");       // 降序，最近的先
-    EXPECT_EQ(older[1].id, "m1");
+    EXPECT_EQ(older[0].id, 2);       // 降序，最近的先
+    EXPECT_EQ(older[1].id, 1);
 }
 
 TEST_F(StorageDaoTest, CacheScrollDown) {
@@ -263,8 +263,8 @@ TEST_F(StorageDaoTest, CacheScrollDown) {
     // 当前缓存 end=m50(ts=5000)，向下加载
     auto newer = dao.findAfter("g1", 5000, 50);
     EXPECT_EQ(newer.size(), 30u);       // m51..m80
-    EXPECT_EQ(newer.front().id, "m51");
-    EXPECT_EQ(newer.back().id, "m80");
+    EXPECT_EQ(newer.front().id, 51);
+    EXPECT_EQ(newer.back().id, 80);
 }
 
 TEST_F(StorageDaoTest, CacheRealtimePush) {
@@ -274,7 +274,7 @@ TEST_F(StorageDaoTest, CacheRealtimePush) {
 
     // 模拟 WS 推送 m51
     Message pushed;
-    pushed.id = "m51";
+    pushed.id = 51;
     pushed.senderId = "u2";
     pushed.chatId = "g1";
     pushed.content = {TextContent{"realtime msg"}};
@@ -288,7 +288,7 @@ TEST_F(StorageDaoTest, CacheRealtimePush) {
     // 验证能查到
     auto newer = dao.findAfter("g1", 5000, 10);
     EXPECT_EQ(newer.size(), 1u);
-    EXPECT_EQ(newer[0].id, "m51");
+    EXPECT_EQ(newer[0].id, 51);
 
     auto* text = std::get_if<TextContent>(&newer[0].content[0]);
     ASSERT_NE(text, nullptr);
@@ -303,9 +303,9 @@ TEST_F(StorageDaoTest, MessageRevoke) {
     MessageDao dao(dbm->db());
     insertMessages(dao, "g1", 1, 1);
 
-    dao.revoke("m1", 5000);
+    dao.revoke(1, 5000);
 
-    auto msg = dao.findById("m1");
+    auto msg = dao.findById(1);
     ASSERT_TRUE(msg.has_value());
     EXPECT_TRUE(msg->revoked);
     EXPECT_EQ(msg->updatedAt, 5000);
@@ -321,9 +321,9 @@ TEST_F(StorageDaoTest, MessageEditContent) {
     insertMessages(dao, "g1", 1, 1);
 
     wechat::core::MessageContent newContent = {TextContent{"edited text"}};
-    dao.editContent("m1", newContent, 6000);
+    dao.editContent(1, newContent, 6000);
 
-    auto msg = dao.findById("m1");
+    auto msg = dao.findById(1);
     ASSERT_TRUE(msg.has_value());
     EXPECT_EQ(msg->editedAt, 6000);
     EXPECT_EQ(msg->updatedAt, 6000);
@@ -342,9 +342,9 @@ TEST_F(StorageDaoTest, MessageReadCount) {
     MessageDao dao(dbm->db());
     insertMessages(dao, "g1", 1, 1);
 
-    dao.updateReadCount("m1", 3, 7000);
+    dao.updateReadCount(1, 3, 7000);
 
-    auto msg = dao.findById("m1");
+    auto msg = dao.findById(1);
     ASSERT_TRUE(msg.has_value());
     EXPECT_EQ(msg->readCount, 3u);
     EXPECT_EQ(msg->updatedAt, 7000);

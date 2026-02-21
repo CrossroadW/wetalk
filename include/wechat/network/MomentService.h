@@ -10,7 +10,7 @@ namespace wechat::network {
 
 /// 朋友圈动态
 struct Moment {
-    std::string id;
+    int64_t id = 0;
     std::string authorId;
     std::string text;
     std::vector<std::string> imageIds;
@@ -18,7 +18,7 @@ struct Moment {
     std::vector<std::string> likedBy;
 
     struct Comment {
-        std::string id;
+        int64_t id = 0;
         std::string authorId;
         std::string text;
         int64_t timestamp;
@@ -46,12 +46,12 @@ public:
     /// 点赞
     virtual VoidResult likeMoment(
         const std::string& token,
-        const std::string& momentId) = 0;
+        int64_t momentId) = 0;
 
     /// 评论
     virtual Result<Moment::Comment> commentMoment(
         const std::string& token,
-        const std::string& momentId,
+        int64_t momentId,
         const std::string& text) = 0;
 };
 

@@ -40,10 +40,10 @@ void DatabaseManager::initSchema() {
         );
 
         CREATE TABLE IF NOT EXISTS messages (
-            id TEXT PRIMARY KEY,
+            id INTEGER PRIMARY KEY,
             sender_id TEXT,
             chat_id TEXT NOT NULL,
-            reply_to TEXT,
+            reply_to INTEGER DEFAULT 0,
             content_data TEXT NOT NULL,
             timestamp INTEGER NOT NULL,
             edited_at INTEGER DEFAULT 0,

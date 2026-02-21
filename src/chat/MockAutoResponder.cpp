@@ -22,7 +22,7 @@ void MockAutoResponder::scheduleMessage(std::string const &text, int delayMs) {
     QTimer::singleShot(delayMs, this, [this, textCopy]() {
         core::TextContent tc;
         tc.text = textCopy;
-        client_.chat().sendMessage(token_, chatId_, "", {tc});
+        client_.chat().sendMessage(token_, chatId_, 0, {tc});
     });
 }
 

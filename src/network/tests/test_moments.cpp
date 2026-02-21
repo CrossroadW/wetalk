@@ -115,7 +115,7 @@ TEST_F(MomentTest, ListMomentsPagination) {
 TEST_F(MomentTest, LikeNonExistentMoment) {
     auto token = registerAndLogin("alice", "p");
 
-    auto r = client->moments().likeMoment(token, "nonexistent");
+    auto r = client->moments().likeMoment(token, 999999);
     ASSERT_FALSE(r.ok());
     EXPECT_EQ(r.error().code, ErrorCode::NotFound);
 }

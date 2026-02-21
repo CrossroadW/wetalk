@@ -13,12 +13,12 @@ namespace chat {
 TEST(ChatModuleTest, MessageStructure) {
     // 测试 Message 结构的基本功能
     core::Message msg;
-    msg.id = "test_msg_1";
+    msg.id = 1;
     msg.senderId = "user1";
     msg.chatId = "chat1";
     msg.timestamp = 1234567890;
 
-    EXPECT_EQ(msg.id, "test_msg_1");
+    EXPECT_EQ(msg.id, 1);
     EXPECT_EQ(msg.senderId, "user1");
     EXPECT_EQ(msg.chatId, "chat1");
     EXPECT_EQ(msg.timestamp, 1234567890);

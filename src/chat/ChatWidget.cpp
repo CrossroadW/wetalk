@@ -151,7 +151,7 @@ void ChatWidget::sendMessage() {
     if (controller_) {
         // 委托给 controller → ChatManager → NetworkClient
         // 如果有回复目标，通过 manager 发送带 replyTo 的消息
-        if (!replyToMessageId_.empty()) {
+        if (replyToMessageId_ != 0) {
             core::TextContent tc;
             tc.text = text.toStdString();
             controller_->manager().sendMessage({tc}, replyToMessageId_);
@@ -162,8 +162,7 @@ void ChatWidget::sendMessage() {
     } else {
         // 无 controller 时的 fallback（向后兼容）
         core::Message message;
-        message.id =
-            "msg_" + std::to_string(QDateTime::currentMSecsSinceEpoch());
+        message.id = QDateTime::currentMSecsSinceEpoch();
         message.senderId = currentUser_.id;
         message.chatId = "chat_" + currentUser_.id + "_" + chatPartner_.id;
         message.timestamp = QDateTime::currentMSecsSinceEpoch();
@@ -185,12 +184,12 @@ void ChatWidget::sendMessage() {
 
 // ── Controller 事件回调 ──
 
-void ChatWidget::onMessageSent(QString /*clientTempId*/,
+void ChatWidget::onMessageSent(int64_t /*clientTempId*/,
                                 core::Message serverMessage) {
     messageListView_->addMessage(serverMessage, currentUser_);
 }
 
-void ChatWidget::onMessageSendFailed(QString /*clientTempId*/,
+void ChatWidget::onMessageSendFailed(int64_t /*clientTempId*/,
                                       QString reason) {
     // 简单处理：在标题栏短暂提示失败信息
     if (titleLabel_) {
@@ -262,7 +261,7 @@ void ChatWidget::onRevokeRequested(core::Message const &message) {
 }
 
 void ChatWidget::cancelReply() {
-    replyToMessageId_.clear();
+    replyToMessageId_ = 0;
     replyIndicator_->hide();
 }
 

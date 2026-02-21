@@ -20,10 +20,10 @@ std::string const &ChatManager::currentUserId() const { return userId_; }
 
 void ChatManager::openChat(std::string const &chatId) {
     activeChatId_ = chatId;
-    if (lastSyncTs_.find(chatId) == lastSyncTs_.end()) {
-        lastSyncTs_[chatId] = 0;
+    if (cursors_.find(chatId) == cursors_.end()) {
+        cursors_[chatId] = SyncCursor{};
     }
-    // 首次同步：拉取已有消息
+    // 首次同步：拉取最新消息
     pollMessages();
 }
 
@@ -31,14 +31,14 @@ std::string const &ChatManager::activeChatId() const { return activeChatId_; }
 
 // ── 发送 ──
 
-std::string ChatManager::sendTextMessage(std::string const &text) {
+int64_t ChatManager::sendTextMessage(std::string const &text) {
     core::TextContent tc;
     tc.text = text;
     return sendMessage({tc});
 }
 
-std::string ChatManager::sendMessage(core::MessageContent const &content,
-                                     std::string const &replyTo) {
+int64_t ChatManager::sendMessage(core::MessageContent const &content,
+                                     int64_t replyTo) {
     auto tempId = generateTempId();
 
     auto result =
@@ -46,9 +46,13 @@ std::string ChatManager::sendMessage(core::MessageContent const &content,
 
     if (result.ok()) {
         auto &msg = result.value();
-        // 推进同步游标，避免下次 poll 重复拉到自己发的消息
-        if (msg.timestamp > lastSyncTs_[activeChatId_]) {
-            lastSyncTs_[activeChatId_] = msg.timestamp;
+        // 推进 end 游标，避免下次 poll 重复拉到自己发的消息
+        auto &cursor = cursors_[activeChatId_];
+        if (msg.id > cursor.end) {
+            cursor.end = msg.id;
+        }
+        if (cursor.start == 0) {
+            cursor.start = msg.id;
         }
         signals_->messageSent(tempId, result.value());
     } else {
@@ -66,14 +70,42 @@ void ChatManager::pollMessages() {
         return;
     }
 
-    int64_t sinceTs = lastSyncTs_[activeChatId_];
+    auto &cursor = cursors_[activeChatId_];
     auto result =
-        client_.chat().syncMessages(token_, activeChatId_, sinceTs, 50);
+        client_.chat().fetchAfter(token_, activeChatId_, cursor.end, 50);
 
     if (result.ok() && !result.value().messages.empty()) {
         auto &msgs = result.value().messages;
-        // 推进同步游标
-        lastSyncTs_[activeChatId_] = msgs.back().timestamp;
+        // 推进 end 游标
+        cursor.end = msgs.back().id;
+        // 如果 start 未初始化，设置为第一条消息的 ID
+        if (cursor.start == 0) {
+            cursor.start = msgs.front().id;
+        }
+
+        signals_->messagesReceived(activeChatId_, result.value().messages);
+    }
+}
+
+void ChatManager::loadHistory(int limit) {
+    if (activeChatId_.empty() || token_.empty()) {
+        return;
+    }
+
+    auto &cursor = cursors_[activeChatId_];
+    // start == 0 表示还没有任何消息，用 INT64_MAX 从最新开始
+    int64_t beforeId = cursor.start > 0 ? cursor.start : INT64_MAX;
+    auto result =
+        client_.chat().fetchBefore(token_, activeChatId_, beforeId, limit);
+
+    if (result.ok() && !result.value().messages.empty()) {
+        auto &msgs = result.value().messages;
+        // 推进 start 游标
+        cursor.start = msgs.front().id;
+        // 如果 end 未初始化，设置为最后一条消息的 ID
+        if (cursor.end == 0) {
+            cursor.end = msgs.back().id;
+        }
 
         signals_->messagesReceived(activeChatId_, result.value().messages);
     }
@@ -81,14 +113,14 @@ void ChatManager::pollMessages() {
 
 // ── 撤回 / 编辑 ──
 
-void ChatManager::revokeMessage(std::string const &messageId) {
+void ChatManager::revokeMessage(int64_t messageId) {
     auto result = client_.chat().revokeMessage(token_, messageId);
     if (result.ok()) {
         signals_->messageRevoked(messageId, activeChatId_);
     }
 }
 
-void ChatManager::editMessage(std::string const &messageId,
+void ChatManager::editMessage(int64_t messageId,
                                core::MessageContent const &newContent) {
     auto result = client_.chat().editMessage(token_, messageId, newContent);
     if (result.ok()) {
@@ -99,8 +131,8 @@ void ChatManager::editMessage(std::string const &messageId,
 
 // ── 内部 ──
 
-std::string ChatManager::generateTempId() {
-    return "tmp_" + std::to_string(++tempIdCounter_);
+int64_t ChatManager::generateTempId() {
+    return -(++tempIdCounter_);
 }
 
 } // namespace wechat::chat

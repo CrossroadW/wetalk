@@ -59,10 +59,10 @@ using MessageContent = std::vector<ContentBlock>;
 // ── 消息 ──
 
 struct Message {
-    std::string id;
+    int64_t id = 0;
     std::string senderId;
     std::string chatId;         // 始终是 Group.id
-    std::string replyTo;        // 引用消息 id，空则无引用
+    int64_t replyTo = 0;       // 引用消息 id，0 = 无引用
     MessageContent content;     // 内容块列表，支持图文混排
     int64_t timestamp;
     int64_t editedAt;           // 最后编辑时间，0 = 未编辑

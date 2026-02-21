@@ -17,10 +17,11 @@ public:
     MockDataStore();
 
     // ── 时间 ──
-    static int64_t now();
+     int64_t now();
 
     // ── ID 生成 ──
-    std::string nextId(const std::string& prefix);
+    /// 生成递增 ID（模拟 SQLite rowid）
+    int64_t nextId();
 
     // ── 用户 / 认证 ──
 
@@ -63,18 +64,22 @@ public:
 
     core::Message& addMessage(const std::string& senderId,
                               const std::string& chatId,
-                              const std::string& replyTo,
+                              int64_t replyTo,
                               const core::MessageContent& content);
-    core::Message* findMessage(const std::string& messageId);
-    std::vector<core::Message> getMessages(const std::string& chatId,
-                                           int64_t sinceTs, int limit);
+    core::Message* findMessage(int64_t messageId);
+    /// 获取 id > afterId 的消息（向下/新消息），按 ID 升序
+    std::vector<core::Message> getMessagesAfter(const std::string& chatId,
+                                                int64_t afterId, int limit);
+    /// 获取 id < beforeId 的消息（向上/历史），按 ID 降序返回
+    std::vector<core::Message> getMessagesBefore(const std::string& chatId,
+                                                 int64_t beforeId, int limit);
 
     // ── 朋友圈 ──
 
     Moment& addMoment(const std::string& authorId,
                       const std::string& text,
                       const std::vector<std::string>& imageIds);
-    Moment* findMoment(const std::string& momentId);
+    Moment* findMoment(int64_t momentId);
     std::vector<Moment> getMoments(const std::set<std::string>& visibleUserIds,
                                    int64_t beforeTs, int limit);
 
@@ -95,14 +100,14 @@ private:
     std::map<std::string, core::Group> groups;
 
     // messageId -> Message
-    std::map<std::string, core::Message> messages;
-    // chatId -> [messageId...] (按时间序)
-    std::map<std::string, std::vector<std::string>> chatMessages;
+    std::map<int64_t, core::Message> messages;
+    // chatId -> [messageId...] (按 ID 序)
+    std::map<std::string, std::vector<int64_t>> chatMessages;
 
     // momentId -> Moment
-    std::map<std::string, Moment> moments;
+    std::map<int64_t, Moment> moments;
     // 按时间倒序的 momentId 列表
-    std::vector<std::string> momentTimeline;
+    std::vector<int64_t> momentTimeline;
 
     static std::pair<std::string, std::string> ordered(
         const std::string& a, const std::string& b);

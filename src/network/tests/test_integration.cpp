@@ -39,10 +39,10 @@ TEST_F(IntegrationTest, EndToEndFlow) {
     auto chatId = group.value().id;
 
     auto msg1 = client->chat().sendMessage(
-        tokenA, chatId, "", MessageContent{TextContent{"hey bob"}});
+        tokenA, chatId, 0, MessageContent{TextContent{"hey bob"}});
     ASSERT_TRUE(msg1.ok());
 
-    auto sync = client->chat().syncMessages(tokenB, chatId, 0, 50);
+    auto sync = client->chat().fetchAfter(tokenB, chatId, 0, 50);
     ASSERT_TRUE(sync.ok());
     EXPECT_EQ(sync.value().messages.size(), 1u);
 
@@ -52,8 +52,8 @@ TEST_F(IntegrationTest, EndToEndFlow) {
     ASSERT_TRUE(msg2.ok());
     EXPECT_EQ(msg2.value().replyTo, msg1.value().id);
 
-    auto sync2 = client->chat().syncMessages(
-        tokenA, chatId, msg1.value().timestamp, 50);
+    auto sync2 = client->chat().fetchAfter(
+        tokenA, chatId, msg1.value().id, 50);
     ASSERT_TRUE(sync2.ok());
     EXPECT_EQ(sync2.value().messages.size(), 1u);
 
@@ -81,13 +81,13 @@ TEST_F(IntegrationTest, MultiUserGroupChat) {
 
     // alice 发消息
     client->chat().sendMessage(
-        regA.value().token, chatId, "", MessageContent{TextContent{"hello"}});
+        regA.value().token, chatId, 0, MessageContent{TextContent{"hello"}});
     // bob 回复
     client->chat().sendMessage(
-        regB.value().token, chatId, "", MessageContent{TextContent{"hi"}});
+        regB.value().token, chatId, 0, MessageContent{TextContent{"hi"}});
 
     // carol 同步两条消息
-    auto sync = client->chat().syncMessages(regC.value().token, chatId, 0, 50);
+    auto sync = client->chat().fetchAfter(regC.value().token, chatId, 0, 50);
     EXPECT_EQ(sync.value().messages.size(), 2u);
 }
 

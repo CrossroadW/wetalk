@@ -8,14 +8,14 @@ ChatController::ChatController(ChatManager &manager,
     : QObject(parent), manager_(manager), signals_(chatSignals) {
     // 订阅各个信号
     messageSentConnection_ = signals_->messageSent.connect(
-        [this](const std::string& clientTempId, const core::Message& msg) {
-            Q_EMIT messageSent(QString::fromStdString(clientTempId), msg);
+        [this](int64_t clientTempId, const core::Message& msg) {
+            Q_EMIT messageSent(clientTempId, msg);
         });
 
     messageSendFailedConnection_ = signals_->messageSendFailed.connect(
-        [this](const std::string& clientTempId, auto code,
+        [this](int64_t clientTempId, auto code,
                const std::string& reason) {
-            Q_EMIT messageSendFailed(QString::fromStdString(clientTempId),
+            Q_EMIT messageSendFailed(clientTempId,
                                      QString::fromStdString(reason));
         });
 
@@ -26,15 +26,14 @@ ChatController::ChatController(ChatManager &manager,
         });
 
     messageRevokedConnection_ = signals_->messageRevoked.connect(
-        [this](const std::string& messageId, const std::string& chatId) {
-            Q_EMIT messageRevoked(QString::fromStdString(messageId));
+        [this](int64_t messageId, const std::string& chatId) {
+            Q_EMIT messageRevoked(messageId);
         });
 
     messageEditedConnection_ = signals_->messageEdited.connect(
-        [this](const std::string& messageId, const std::string& chatId,
+        [this](int64_t messageId, const std::string& chatId,
                const core::Message& updatedMessage) {
-            Q_EMIT messageEdited(QString::fromStdString(messageId),
-                                 updatedMessage);
+            Q_EMIT messageEdited(messageId, updatedMessage);
         });
 
     connect(&pollTimer_, &QTimer::timeout, this,
