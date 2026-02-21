@@ -48,10 +48,13 @@ if(ENABLE_TESTING)
         gtest_discover_tests(test_chat)
     endif()
 
-    file(GLOB CHAT_SANDBOX_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.cpp)
+    file(GLOB CHAT_SANDBOX_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.h)
     if(CHAT_SANDBOX_SOURCES)
-        qt_add_executable(sandbox_chat ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/main.cpp)
+        qt_add_executable(sandbox_chat ${CHAT_SANDBOX_SOURCES})
         target_compile_definitions(sandbox_chat PRIVATE QT_NO_KEYWORDS)
+        set_target_properties(sandbox_chat PROPERTIES AUTOMOC ON)
         target_link_libraries(sandbox_chat PUBLIC wechat_chat Qt6::Widgets)
     endif()
 endif()

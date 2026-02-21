@@ -11,6 +11,7 @@
 
 #include "MessageListView.h"
 
+#include <string>
 #include <vector>
 
 namespace wechat {
@@ -32,6 +33,7 @@ public:
 
     void setCurrentUser(core::User const& user);
     void setChatPartner(core::User const& partner);
+    void setChatId(std::string const& chatId);
 
     /// 注入 ChatPresenter，ChatWidget 不拥有其生命周期
     void setPresenter(ChatPresenter* presenter);
@@ -66,6 +68,7 @@ private:
 
     core::User currentUser_;
     core::User chatPartner_;
+    std::string chatId_;
 
     ChatPresenter* presenter_ = nullptr;
 

@@ -128,6 +128,10 @@ void ChatWidget::setChatPartner(core::User const& partner) {
     }
 }
 
+void ChatWidget::setChatId(std::string const& chatId) {
+    chatId_ = chatId;
+}
+
 void ChatWidget::setPresenter(ChatPresenter* presenter) {
     presenter_ = presenter;
     if (presenter_) {
@@ -165,21 +169,29 @@ void ChatWidget::sendMessage() {
 
 // ── 模型变化回调 ──
 
-void ChatWidget::onMessagesInserted(QString /*chatId*/,
+void ChatWidget::onMessagesInserted(QString chatId,
                                      std::vector<core::Message> messages) {
+    if (!chatId_.empty() && chatId.toStdString() != chatId_) {
+        return;
+    }
     for (auto const& msg : messages) {
         messageListView_->addMessage(msg, currentUser_);
     }
 }
 
-void ChatWidget::onMessageUpdated(QString /*chatId*/,
+void ChatWidget::onMessageUpdated(QString chatId,
                                    core::Message message) {
+    if (!chatId_.empty() && chatId.toStdString() != chatId_) {
+        return;
+    }
     // TODO: 找到对应消息项，更新显示（撤回/编辑/已读）
-    // 目前简单实现：如果消息被撤回，可以在 MessageItemWidget 中处理
     Q_UNUSED(message);
 }
 
-void ChatWidget::onMessageRemoved(QString /*chatId*/, int64_t messageId) {
+void ChatWidget::onMessageRemoved(QString chatId, int64_t messageId) {
+    if (!chatId_.empty() && chatId.toStdString() != chatId_) {
+        return;
+    }
     // TODO: 从列表中移除对应消息项
     Q_UNUSED(messageId);
 }
