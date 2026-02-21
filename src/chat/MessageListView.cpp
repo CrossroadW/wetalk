@@ -78,7 +78,7 @@ void MessageListView::addMessage(core::Message const &message,
 
     // 获取widget的理想大小并设置给列表项
     QSize idealSize = messageWidget->sizeHint();
-    item->setSizeHint(QSize(idealSize.width(), idealSize.height()));
+    item->setSizeHint(idealSize);
 
     // 添加到列表
     addItem(item);
