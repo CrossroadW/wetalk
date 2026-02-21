@@ -4,15 +4,10 @@ namespace wechat::chat {
 
 ChatPresenter::ChatPresenter(network::NetworkClient& client, QObject* parent)
     : QObject(parent), client_(client) {
-    storedConn_ = client_.chat().onMessageStored.connect(
-        [this](const std::string& chatId) {
-            onNetworkMessageStored(chatId);
-        });
-
-    updatedConn_ = client_.chat().onMessageUpdated.connect(
-        [this](const std::string& chatId, int64_t messageId) {
-            onNetworkMessageUpdated(chatId, messageId);
-        });
+    connect(&client_.chat(), &network::ChatService::messageStored,
+            this, &ChatPresenter::onNetworkMessageStored);
+    connect(&client_.chat(), &network::ChatService::messageUpdated,
+            this, &ChatPresenter::onNetworkMessageUpdated);
 }
 
 ChatPresenter::~ChatPresenter() = default;
@@ -109,6 +104,8 @@ void ChatPresenter::onNetworkMessageStored(std::string const& chatId) {
     }
 
     auto& cursor = cursors_[chatId];
+    // cursor.end > 0: 正常增量拉取 id > end 的新消息
+    // cursor.end == 0: 聊天尚未 loadLatest，fetchAfter(0) 会返回最新消息作为 fallback
     auto result =
         client_.chat().fetchAfter(token_, chatId, cursor.end, 50);
 

@@ -29,7 +29,7 @@ Result<core::Message> MockChatService::sendMessage(
         return {ErrorCode::PermissionDenied, "not a member of this chat"};
 
     auto& msg = store->addMessage(userId, chatId, replyTo, content);
-    onMessageStored(chatId);
+    Q_EMIT messageStored(chatId);
     return msg;
 }
 
@@ -107,7 +107,7 @@ VoidResult MockChatService::revokeMessage(const std::string& token,
 
     msg->revoked = true;
     msg->updatedAt = store->now();
-    onMessageUpdated(msg->chatId, messageId);
+    Q_EMIT messageUpdated(msg->chatId, messageId);
     return success();
 }
 
@@ -132,7 +132,7 @@ VoidResult MockChatService::editMessage(
     msg->content = newContent;
     msg->editedAt = ts;
     msg->updatedAt = ts;
-    onMessageUpdated(msg->chatId, messageId);
+    Q_EMIT messageUpdated(msg->chatId, messageId);
     return success();
 }
 
@@ -149,7 +149,7 @@ VoidResult MockChatService::markRead(const std::string& token,
 
     msg->readCount++;
     msg->updatedAt = store->now();
-    onMessageUpdated(chatId, lastMessageId);
+    Q_EMIT messageUpdated(chatId, lastMessageId);
     return success();
 }
 

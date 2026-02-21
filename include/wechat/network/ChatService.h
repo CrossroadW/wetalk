@@ -1,9 +1,10 @@
 #pragma once
 
+#include <QObject>
+
 #include <wechat/core/Message.h>
 #include <wechat/network/NetworkTypes.h>
 
-#include <boost/signals2/signal.hpp>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -17,9 +18,12 @@ struct SyncMessagesResponse {
 };
 
 /// 聊天服务接口
-class ChatService {
+class ChatService : public QObject {
+    Q_OBJECT
+
 public:
-    virtual ~ChatService() = default;
+    explicit ChatService(QObject* parent = nullptr) : QObject(parent) {}
+    ~ChatService() override = default;
 
     /// 发送消息，返回服务端分配的完整 Message
     virtual Result<core::Message> sendMessage(
@@ -73,19 +77,12 @@ public:
         const std::string& chatId,
         int64_t lastMessageId) = 0;
 
-    // ── 推送通知（模拟 WebSocket）──
-
+Q_SIGNALS:
     /// 有新消息写入（发送/接收均触发）
-    /// @param chatId 哪个聊天有变化
-    boost::signals2::signal<void(const std::string& chatId)>
-        onMessageStored;
+    void messageStored(const std::string& chatId);
 
     /// 消息被修改（撤回/编辑/已读数变化）
-    /// @param chatId 哪个聊天有变化
-    /// @param messageId 哪条消息被修改
-    boost::signals2::signal<void(const std::string& chatId,
-                                  int64_t messageId)>
-        onMessageUpdated;
+    void messageUpdated(const std::string& chatId, int64_t messageId);
 };
 
 } // namespace wechat::network

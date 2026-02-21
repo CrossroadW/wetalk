@@ -15,7 +15,6 @@ target_compile_features(wechat_core PUBLIC cxx_std_23)
 target_link_libraries(wechat_core
     PUBLIC
         wechat_log
-        Boost::headers
         SQLiteCpp
 )
 

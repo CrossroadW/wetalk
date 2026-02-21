@@ -35,21 +35,21 @@
 UI 层 (Qt Widgets)       ChatWidget, MessageListView, MessageItemWidget
     ↕ Qt signals/slots (QueuedConnection)
 Presenter (QObject)      ChatPresenter — 网络通知 → 同步 → Qt signals
-    ↕ 同步调用 + Boost.Signals2 通知订阅
-服务层                   NetworkClient → ChatService, AuthService, ContactService...
+    ↕ Qt signals/slots
+服务层 (QObject)         NetworkClient → ChatService, AuthService, ContactService...
     ↕
 数据层                   MockDataStore (内存) / SQLite (计划中)
 ```
 
-发送: ChatWidget → ChatPresenter.sendMessage() → ChatService → onMessageStored → fetchAfter → Q_EMIT messagesInserted → ChatWidget
+发送: ChatWidget → ChatPresenter.sendMessage() → ChatService → Q_EMIT messageStored → fetchAfter → Q_EMIT messagesInserted → ChatWidget
 
-接收: ChatService.onMessageStored → ChatPresenter.fetchAfter → Q_EMIT messagesInserted → ChatWidget
+接收: ChatService Q_EMIT messageStored → ChatPresenter.fetchAfter → Q_EMIT messagesInserted → ChatWidget
 
-撤回/编辑: ChatPresenter → ChatService → onMessageUpdated → fetchMessage → Q_EMIT messageUpdated → ChatWidget
+撤回/编辑: ChatPresenter → ChatService → Q_EMIT messageUpdated → fetchMessage → Q_EMIT messageUpdated → ChatWidget
 
 ## 依赖与工具
 
-spdlog 1.17.0, gtest 1.17.0, boost 1.90.0 (Signals2), sqlitecpp 3.3.3, Qt6 (Core/Widgets/Network)
+spdlog 1.17.0, gtest 1.17.0, sqlitecpp 3.3.3, Qt6 (Core/Widgets/Network)
 
 C++23 / CMake 3.24+ / Conan 2.0+ / MSVC / Ninja Multi-Config / `ENABLE_TESTING=ON`
 

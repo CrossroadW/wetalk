@@ -22,6 +22,18 @@ target_link_libraries(wechat_network
     PUBLIC
         wechat_core
         wechat_log
+        Qt6::Core
+)
+
+target_compile_definitions(wechat_network PRIVATE
+        PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}"
+        QT_NO_KEYWORDS
+)
+
+set_target_properties(wechat_network PROPERTIES
+        AUTOMOC ON
+        AUTOUIC OFF
+        AUTORCC OFF
 )
 
 # ══════════════════════════════════════════════════

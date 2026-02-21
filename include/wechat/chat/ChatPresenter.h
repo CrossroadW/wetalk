@@ -5,7 +5,6 @@
 #include <wechat/core/Message.h>
 #include <wechat/network/NetworkClient.h>
 
-#include <boost/signals2/connection.hpp>
 #include <cstdint>
 #include <map>
 #include <string>
@@ -82,10 +81,6 @@ private:
         int64_t maxUpdatedAt = 0;
     };
     std::map<std::string, SyncCursor> cursors_;
-
-    // 网络层推送通知订阅
-    boost::signals2::scoped_connection storedConn_;
-    boost::signals2::scoped_connection updatedConn_;
 
     void onNetworkMessageStored(std::string const& chatId);
     void onNetworkMessageUpdated(std::string const& chatId,
