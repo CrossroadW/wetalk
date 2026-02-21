@@ -41,10 +41,11 @@ MessageListView::MessageListView(QWidget *parent) : QListWidget(parent) {
     setSelectionMode(QAbstractItemView::NoSelection);
     setFocusPolicy(Qt::NoFocus); // 完全禁用焦点
 
-    // 滚动到顶部检测
+    // 滚动到顶部检测（插入过程中抑制）
     connect(verticalScrollBar(), &QScrollBar::valueChanged,
             this, [this](int value) {
-                if (value == verticalScrollBar()->minimum() && count() > 0) {
+                if (!inserting_ &&
+                    value == verticalScrollBar()->minimum() && count() > 0) {
                     Q_EMIT reachedTop();
                 }
             });
@@ -102,9 +103,22 @@ void MessageListView::addMessage(core::Message const &message,
         }
     }
 
+    // 如果插入到顶部区域，保持滚动位置不跳动
+    bool insertingAbove = (insertRow == 0 && count() > 0);
+    QListWidgetItem* anchorItem = nullptr;
+    if (insertingAbove) {
+        anchorItem = this->item(0);
+    }
+
+    inserting_ = true;
     insertItem(insertRow, item);
     setItemWidget(item, messageWidget);
     itemById_[message.id] = item;
+
+    if (anchorItem) {
+        scrollToItem(anchorItem, QAbstractItemView::PositionAtTop);
+    }
+    inserting_ = false;
 
 
 }

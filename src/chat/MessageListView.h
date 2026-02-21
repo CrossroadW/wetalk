@@ -67,6 +67,9 @@ private:
 
     /// msg.id → QListWidgetItem*（用于 upsert 查找）
     std::map<int64_t, QListWidgetItem*> itemById_;
+
+    /// 插入过程中抑制 reachedTop 信号
+    bool inserting_ = false;
 };
 
 } // namespace chat

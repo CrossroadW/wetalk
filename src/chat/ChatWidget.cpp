@@ -180,7 +180,7 @@ void ChatWidget::sendMessage() {
             presenter_->sendTextMessage(chatId_, text.toStdString());
         }
     }
-
+    messageListView_->scrollToBottom();
     messageInput_->clear();
 }
 
