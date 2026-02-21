@@ -41,9 +41,18 @@ class MessageListView : public QListWidget {
 public:
     explicit MessageListView(QWidget *parent = nullptr);
 
-    /// upsert：不存在则创建，已存在则更新
+    /// upsert：不存在则创建，已存在则更新。不做任何滚动。
     void addMessage(core::Message const &message,
                     core::User const &currentUser);
+
+    /// 当前滚动条是否在底部附近（用于调用方判断是否需要 scrollToBottom）
+    bool isAtBottom() const;
+
+    /// 保存当前第一个可见 item 的锚点（用于加载历史后恢复位置）
+    void saveScrollAnchor();
+
+    /// 恢复到 saveScrollAnchor 保存的位置
+    void restoreScrollAnchor();
 
     // 获取当前选中的消息项
     MessageItemWidget *getSelectedItem() const {
@@ -70,6 +79,9 @@ private:
 
     /// 插入过程中抑制 reachedTop 信号
     bool inserting_ = false;
+
+    /// saveScrollAnchor 保存的锚点 item
+    QListWidgetItem* anchorItem_ = nullptr;
 };
 
 } // namespace chat

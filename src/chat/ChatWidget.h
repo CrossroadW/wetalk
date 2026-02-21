@@ -82,6 +82,7 @@ private:
     ChatPresenter* presenter_ = nullptr;
     bool initialized_ = false;
     bool loading_ = false;
+    bool loadingHistory_ = false;  // 区分"加载历史"和"收到新消息"
 
     // toast 提示
     QLabel* toastLabel_ = nullptr;

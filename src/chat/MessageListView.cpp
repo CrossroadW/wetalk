@@ -65,7 +65,7 @@ void MessageListView::addMessage(core::Message const &message,
         return;
     }
 
-    // ── 不存在 → 创建新 item ──
+    // ── 不存在 → 创建新 item（纯插入，不做任何滚动）──
     MessageItemWidget *messageWidget = new MessageItemWidget();
     messageWidget->setMessageData(message, currentUser);
 
@@ -92,10 +92,8 @@ void MessageListView::addMessage(core::Message const &message,
     item->setSizeHint(idealSize);
 
     // ── 按 id 排序插入 ──
-    // 找到第一个 id > message.id 的位置
-    int insertRow = count(); // 默认追加到末尾
+    int insertRow = count();
     for (auto jt = itemById_.upper_bound(message.id); jt != itemById_.end(); ++jt) {
-        // 找到该 item 在 list 中的 row
         int row = this->row(jt->second);
         if (row >= 0 && row < insertRow) {
             insertRow = row;
@@ -103,24 +101,29 @@ void MessageListView::addMessage(core::Message const &message,
         }
     }
 
-    // 如果插入到顶部区域，保持滚动位置不跳动
-    bool insertingAbove = (insertRow == 0 && count() > 0);
-    QListWidgetItem* anchorItem = nullptr;
-    if (insertingAbove) {
-        anchorItem = this->item(0);
-    }
-
     inserting_ = true;
     insertItem(insertRow, item);
     setItemWidget(item, messageWidget);
     itemById_[message.id] = item;
-
-    if (anchorItem) {
-        scrollToItem(anchorItem, QAbstractItemView::PositionAtTop);
-    }
     inserting_ = false;
+}
 
+bool MessageListView::isAtBottom() const {
+    auto* sb = verticalScrollBar();
+    return sb->value() >= sb->maximum() - 20;
+}
 
+void MessageListView::saveScrollAnchor() {
+    anchorItem_ = itemAt(QPoint(0, 0));
+}
+
+void MessageListView::restoreScrollAnchor() {
+    if (anchorItem_) {
+        inserting_ = true;  // 恢复位置时也抑制 reachedTop
+        scrollToItem(anchorItem_, QAbstractItemView::PositionAtTop);
+        inserting_ = false;
+        anchorItem_ = nullptr;
+    }
 }
 
 void MessageListView::setSelectedItem(MessageItemWidget *item) {

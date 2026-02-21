@@ -191,9 +191,25 @@ void ChatWidget::onMessagesInserted(QString chatId,
     if (!chatId_.empty() && chatId.toStdString() != chatId_) {
         return;
     }
+
+    // 插入前判断是否在底部（用于决定插入后是否自动滚到底）
+    bool wasAtBottom = messageListView_->isAtBottom();
+    bool wasEmpty = (messageListView_->count() == 0);
+
     for (auto const& msg : messages) {
         messageListView_->addMessage(msg, currentUser_);
     }
+
+    if (loadingHistory_) {
+        // 加载历史 → 恢复锚点位置
+        messageListView_->restoreScrollAnchor();
+        loadingHistory_ = false;
+    } else if (wasEmpty || wasAtBottom) {
+        // 初始化 / 收到新消息且在底部 → 滚到底
+        messageListView_->scrollToBottom();
+    }
+    // 否则：用户在翻看中间消息，不动
+
     loading_ = false;
 }
 
@@ -230,12 +246,15 @@ void ChatWidget::onReachedTop() {
         return;
     }
     loading_ = true;
+    loadingHistory_ = true;
+
+    // 保存当前滚动锚点，加载完成后恢复
+    messageListView_->saveScrollAnchor();
 
     // 显示 toast
     if (toastLabel_) {
         toastLabel_->setText(tr("加载历史消息..."));
         toastLabel_->adjustSize();
-        // 居中于消息列表顶部
         int x = (messageListView_->width() - toastLabel_->width()) / 2;
         toastLabel_->move(x, 8);
         toastLabel_->show();
