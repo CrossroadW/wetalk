@@ -67,12 +67,18 @@ public:
                               int64_t replyTo,
                               const core::MessageContent& content);
     core::Message* findMessage(int64_t messageId);
-    /// 获取 id > afterId 的消息（向下/新消息），按 ID 升序
+    /// afterId=0 → 返回最新的 limit 条（从末尾倒数），升序返回
+    /// afterId>0 → 返回 id > afterId 的前 limit 条，升序返回
     std::vector<core::Message> getMessagesAfter(const std::string& chatId,
                                                 int64_t afterId, int limit);
-    /// 获取 id < beforeId 的消息（向上/历史），按 ID 降序返回
+    /// beforeId=0 → 返回最早的 limit 条（从头开始），升序返回
+    /// beforeId>0 → 返回 id < beforeId 的最后 limit 条，升序返回
     std::vector<core::Message> getMessagesBefore(const std::string& chatId,
                                                  int64_t beforeId, int limit);
+    /// 获取 chatId 中 id ∈ [startId, endId] 且 updated_at > updatedAt 的消息
+    std::vector<core::Message> getMessagesUpdatedAfter(const std::string& chatId,
+                                                       int64_t startId, int64_t endId,
+                                                       int64_t updatedAt, int limit);
 
     // ── 朋友圈 ──
 

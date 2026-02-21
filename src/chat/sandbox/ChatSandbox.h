@@ -11,6 +11,7 @@
 #include <wechat/network/NetworkClient.h>
 
 #include "../ChatWidget.h"
+#include "../MockBackend.h"
 
 #include <map>
 #include <memory>
@@ -38,6 +39,7 @@ private:
         std::string peerId;
         std::string peerName;
         ChatWidget* widget = nullptr;
+        MockBackend* backend = nullptr;
     };
 
     void setupUI();

@@ -238,7 +238,7 @@ void ChatWidget::initChat() {
     }
     initialized_ = true;
     presenter_->openChat(chatId_);
-    presenter_->loadHistory(chatId_, 20);
+    presenter_->loadLatest(chatId_, 20);
 }
 
 void ChatWidget::onReachedTop() {

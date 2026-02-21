@@ -147,12 +147,20 @@ TEST_F(ChatTest, SyncMessagesPagination) {
             MessageContent{TextContent{"msg " + std::to_string(i)}});
     }
 
+    // fetchAfter(0) 返回最新 3 条（msg 2,3,4），hasMore=true
     auto sync = client->chat().fetchAfter(tokenA, chatId, 0, 3);
     ASSERT_TRUE(sync.ok());
     EXPECT_EQ(sync.value().messages.size(), 3u);
     EXPECT_TRUE(sync.value().hasMore);
 
-    auto lastId = sync.value().messages.back().id;
+    // fetchBefore(0) 返回最早 3 条（msg 0,1,2），hasMore=true
+    auto syncB = client->chat().fetchBefore(tokenA, chatId, 0, 3);
+    ASSERT_TRUE(syncB.ok());
+    EXPECT_EQ(syncB.value().messages.size(), 3u);
+    EXPECT_TRUE(syncB.value().hasMore);
+
+    // 从最早页的最后一条继续向后翻页
+    auto lastId = syncB.value().messages.back().id;
     auto sync2 = client->chat().fetchAfter(tokenA, chatId, lastId, 3);
     ASSERT_TRUE(sync2.ok());
     EXPECT_EQ(sync2.value().messages.size(), 2u);

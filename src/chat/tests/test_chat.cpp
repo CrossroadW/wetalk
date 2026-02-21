@@ -443,3 +443,172 @@ TEST_F(ChatPresenterTest, NotificationBeforeOpenChatStillProcessed) {
     presenter_->openChat(chatId_);
     EXPECT_EQ(spy.count(), 0);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// loadLatest 测试
+// ═══════════════════════════════════════════════════════════════
+
+TEST_F(ChatPresenterTest, LoadLatestReturnsMostRecentMessages) {
+    // 临时清除 session，防止 onMessageStored 自动同步
+    presenter_->setSession("", "");
+
+    // 预灌 30 条消息
+    for (int i = 0; i < 30; ++i) {
+        client_->chat().sendMessage(
+            tokenA_, chatId_, 0,
+            core::MessageContent{
+                core::TextContent{"msg " + std::to_string(i + 1)}});
+    }
+
+    // 恢复 session
+    presenter_->setSession(tokenA_, aliceId_);
+
+    QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
+
+    presenter_->openChat(chatId_);
+    presenter_->loadLatest(chatId_, 10);
+
+    // 应返回最新的 10 条（msg 21 ~ msg 30）
+    ASSERT_EQ(spy.count(), 1);
+    auto messages = spy.at(0).at(1).value<std::vector<core::Message>>();
+    ASSERT_EQ(messages.size(), 10u);
+
+    // 验证是最新的消息
+    auto* firstText = std::get_if<core::TextContent>(&messages[0].content[0]);
+    ASSERT_NE(firstText, nullptr);
+    EXPECT_EQ(firstText->text, "msg 21");
+
+    auto* lastText = std::get_if<core::TextContent>(&messages[9].content[0]);
+    ASSERT_NE(lastText, nullptr);
+    EXPECT_EQ(lastText->text, "msg 30");
+}
+
+TEST_F(ChatPresenterTest, LoadLatestThenLoadHistory) {
+    // 临时清除 session
+    presenter_->setSession("", "");
+
+    // 预灌 30 条消息
+    for (int i = 0; i < 30; ++i) {
+        client_->chat().sendMessage(
+            tokenA_, chatId_, 0,
+            core::MessageContent{
+                core::TextContent{"msg " + std::to_string(i + 1)}});
+    }
+
+    presenter_->setSession(tokenA_, aliceId_);
+
+    QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
+
+    presenter_->openChat(chatId_);
+    presenter_->loadLatest(chatId_, 10);
+
+    ASSERT_EQ(spy.count(), 1);
+    auto latest = spy.at(0).at(1).value<std::vector<core::Message>>();
+    ASSERT_EQ(latest.size(), 10u);
+
+    // loadHistory 应返回 start 之前的消息
+    spy.clear();
+    presenter_->loadHistory(chatId_, 10);
+
+    ASSERT_EQ(spy.count(), 1);
+    auto history = spy.at(0).at(1).value<std::vector<core::Message>>();
+    ASSERT_EQ(history.size(), 10u);
+
+    // 历史消息应比最新消息更早
+    EXPECT_LT(history.back().id, latest.front().id);
+
+    auto* histText = std::get_if<core::TextContent>(&history[0].content[0]);
+    ASSERT_NE(histText, nullptr);
+    EXPECT_EQ(histText->text, "msg 11");
+}
+
+// ═══════════════════════════════════════════════════════════════
+// fetchUpdated / syncUpdated 测试
+// ═══════════════════════════════════════════════════════════════
+
+TEST_F(ChatPresenterTest, FetchUpdatedReturnsModifiedMessages) {
+    // 发 3 条消息
+    presenter_->openChat(chatId_);
+    presenter_->sendTextMessage(chatId_, "msg1");
+    presenter_->sendTextMessage(chatId_, "msg2");
+    presenter_->sendTextMessage(chatId_, "msg3");
+
+    // 获取消息 ID
+    auto sync = client_->chat().fetchAfter(tokenA_, chatId_, 0, 50);
+    auto& msgs = sync.value().messages;
+    ASSERT_EQ(msgs.size(), 3u);
+    auto msg2Id = msgs[1].id;
+
+    // 编辑 msg2（触发 updatedAt 变化）
+    QSignalSpy updatedSpy(presenter_.get(), &chat::ChatPresenter::messageUpdated);
+
+    presenter_->editMessage(
+        msg2Id, core::MessageContent{core::TextContent{"msg2 edited"}});
+
+    // onMessageUpdated 应触发 messageUpdated 信号
+    ASSERT_EQ(updatedSpy.count(), 1);
+    auto updated = updatedSpy.at(0).at(1).value<core::Message>();
+    EXPECT_EQ(updated.id, msg2Id);
+
+    auto* text = std::get_if<core::TextContent>(&updated.content[0]);
+    ASSERT_NE(text, nullptr);
+    EXPECT_EQ(text->text, "msg2 edited");
+}
+
+TEST_F(ChatPresenterTest, FetchAfterZeroReturnsLatest) {
+    // 直接测试 ChatService 的 fetchAfter(0) 语义
+    presenter_->setSession("", "");
+
+    for (int i = 0; i < 20; ++i) {
+        client_->chat().sendMessage(
+            tokenA_, chatId_, 0,
+            core::MessageContent{
+                core::TextContent{"msg " + std::to_string(i + 1)}});
+    }
+
+    presenter_->setSession(tokenA_, aliceId_);
+
+    auto result = client_->chat().fetchAfter(tokenA_, chatId_, 0, 5);
+    ASSERT_TRUE(result.ok());
+    auto& msgs = result.value().messages;
+
+    // afterId=0 应返回最新的 5 条
+    ASSERT_EQ(msgs.size(), 5u);
+
+    auto* firstText = std::get_if<core::TextContent>(&msgs[0].content[0]);
+    ASSERT_NE(firstText, nullptr);
+    EXPECT_EQ(firstText->text, "msg 16");
+
+    auto* lastText = std::get_if<core::TextContent>(&msgs[4].content[0]);
+    ASSERT_NE(lastText, nullptr);
+    EXPECT_EQ(lastText->text, "msg 20");
+}
+
+TEST_F(ChatPresenterTest, FetchBeforeZeroReturnsEarliest) {
+    // 直接测试 ChatService 的 fetchBefore(0) 语义
+    presenter_->setSession("", "");
+
+    for (int i = 0; i < 20; ++i) {
+        client_->chat().sendMessage(
+            tokenA_, chatId_, 0,
+            core::MessageContent{
+                core::TextContent{"msg " + std::to_string(i + 1)}});
+    }
+
+    presenter_->setSession(tokenA_, aliceId_);
+
+    auto result = client_->chat().fetchBefore(tokenA_, chatId_, 0, 5);
+    ASSERT_TRUE(result.ok());
+    auto& msgs = result.value().messages;
+
+    // beforeId=0 应返回最早的 5 条
+    ASSERT_EQ(msgs.size(), 5u);
+
+    auto* firstText = std::get_if<core::TextContent>(&msgs[0].content[0]);
+    ASSERT_NE(firstText, nullptr);
+    EXPECT_EQ(firstText->text, "msg 1");
+
+    auto* lastText = std::get_if<core::TextContent>(&msgs[4].content[0]);
+    ASSERT_NE(lastText, nullptr);
+    EXPECT_EQ(lastText->text, "msg 5");
+}

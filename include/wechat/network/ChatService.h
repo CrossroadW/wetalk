@@ -29,7 +29,8 @@ public:
         const core::MessageContent& content) = 0;
 
     /// 向下同步（新消息）：获取 chatId 中 id > afterId 的消息
-    /// afterId = 0 表示从头开始
+    /// afterId = 0 → 返回最新的 limit 条（从末尾倒数）
+    /// afterId > 0 → 返回 id > afterId 的前 limit 条（升序）
     virtual Result<SyncMessagesResponse> fetchAfter(
         const std::string& token,
         const std::string& chatId,
@@ -37,11 +38,22 @@ public:
         int limit) = 0;
 
     /// 向上同步（历史消息）：获取 chatId 中 id < beforeId 的消息
-    /// beforeId = INT64_MAX 表示从最新开始
+    /// beforeId = 0 → 返回最早的 limit 条（从头开始）
+    /// beforeId > 0 → 返回 id < beforeId 的最后 limit 条（升序返回）
     virtual Result<SyncMessagesResponse> fetchBefore(
         const std::string& token,
         const std::string& chatId,
         int64_t beforeId,
+        int limit) = 0;
+
+    /// 增量更新：获取 chatId 中 id ∈ [startId, endId] 且 updated_at > updatedAt 的消息
+    /// updatedAt = 0 → 返回所有有更新的已缓存消息
+    virtual Result<SyncMessagesResponse> fetchUpdated(
+        const std::string& token,
+        const std::string& chatId,
+        int64_t startId,
+        int64_t endId,
+        int64_t updatedAt,
         int limit) = 0;
 
     /// 撤回消息

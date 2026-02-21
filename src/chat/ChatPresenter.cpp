@@ -1,7 +1,5 @@
 #include <wechat/chat/ChatPresenter.h>
 
-#include <climits>
-
 namespace wechat::chat {
 
 ChatPresenter::ChatPresenter(network::NetworkClient& client, QObject* parent)
@@ -58,7 +56,7 @@ void ChatPresenter::loadHistory(std::string const& chatId, int limit) {
     }
 
     auto& cursor = cursors_[chatId];
-    int64_t beforeId = cursor.start > 0 ? cursor.start : INT64_MAX;
+    int64_t beforeId = cursor.start > 0 ? cursor.start : 0;
     auto result =
         client_.chat().fetchBefore(token_, chatId, beforeId, limit);
 
@@ -68,7 +66,29 @@ void ChatPresenter::loadHistory(std::string const& chatId, int limit) {
         if (cursor.end == 0) {
             cursor.end = msgs.back().id;
         }
+        updateMaxUpdatedAt(cursor, msgs);
         Q_EMIT messagesInserted(QString::fromStdString(chatId), msgs);
+        syncUpdated(chatId);
+    }
+}
+
+void ChatPresenter::loadLatest(std::string const& chatId, int limit) {
+    if (chatId.empty() || token_.empty()) {
+        return;
+    }
+
+    auto& cursor = cursors_[chatId];
+    // afterId=0 → 返回最新 limit 条
+    auto result =
+        client_.chat().fetchAfter(token_, chatId, 0, limit);
+
+    if (result.ok() && !result.value().messages.empty()) {
+        auto& msgs = result.value().messages;
+        cursor.start = msgs.front().id;
+        cursor.end = msgs.back().id;
+        updateMaxUpdatedAt(cursor, msgs);
+        Q_EMIT messagesInserted(QString::fromStdString(chatId), msgs);
+        syncUpdated(chatId);
     }
 }
 
@@ -98,6 +118,7 @@ void ChatPresenter::onNetworkMessageStored(std::string const& chatId) {
         if (cursor.start == 0) {
             cursor.start = msgs.front().id;
         }
+        updateMaxUpdatedAt(cursor, msgs);
         Q_EMIT messagesInserted(QString::fromStdString(chatId), msgs);
     }
 }
@@ -114,7 +135,45 @@ void ChatPresenter::onNetworkMessageUpdated(std::string const& chatId,
     if (result.ok() && !result.value().messages.empty()) {
         auto& msg = result.value().messages[0];
         if (msg.id == messageId) {
+            auto& cursor = cursors_[chatId];
+            if (msg.updatedAt > cursor.maxUpdatedAt) {
+                cursor.maxUpdatedAt = msg.updatedAt;
+            }
             Q_EMIT messageUpdated(QString::fromStdString(chatId), msg);
+        }
+    }
+}
+
+// ── 增量同步 ──
+
+void ChatPresenter::syncUpdated(std::string const& chatId) {
+    if (chatId.empty() || token_.empty()) {
+        return;
+    }
+
+    auto& cursor = cursors_[chatId];
+    if (cursor.start == 0 || cursor.end == 0) {
+        return;
+    }
+
+    auto result = client_.chat().fetchUpdated(
+        token_, chatId, cursor.start, cursor.end,
+        cursor.maxUpdatedAt, 100);
+
+    if (result.ok() && !result.value().messages.empty()) {
+        auto& msgs = result.value().messages;
+        updateMaxUpdatedAt(cursor, msgs);
+        for (auto const& msg : msgs) {
+            Q_EMIT messageUpdated(QString::fromStdString(chatId), msg);
+        }
+    }
+}
+
+void ChatPresenter::updateMaxUpdatedAt(
+    SyncCursor& cursor, std::vector<core::Message> const& msgs) {
+    for (auto const& msg : msgs) {
+        if (msg.updatedAt > cursor.maxUpdatedAt) {
+            cursor.maxUpdatedAt = msg.updatedAt;
         }
     }
 }

@@ -42,7 +42,6 @@ public:
     // ── 聊天初始化 ──
 
     /// 确保 chatId 的同步游标存在（不 fetch、不 emit）
-    /// ChatWidget 首次显示时应调用此方法，然后通过 loadHistory 拉取初始数据
     void openChat(std::string const& chatId);
 
     // ── 操作（均需显式传 chatId）──
@@ -52,6 +51,9 @@ public:
                      int64_t replyTo = 0);
     void sendTextMessage(std::string const& chatId,
                          std::string const& text);
+    /// 打开聊天时调用，fetchAfter(0) 加载最新消息
+    void loadLatest(std::string const& chatId, int limit = 20);
+    /// 向上翻页，fetchBefore(start) 加载历史消息
     void loadHistory(std::string const& chatId, int limit = 20);
     void revokeMessage(int64_t messageId);
     void editMessage(int64_t messageId,
@@ -77,6 +79,7 @@ private:
     struct SyncCursor {
         int64_t start = 0;
         int64_t end = 0;
+        int64_t maxUpdatedAt = 0;
     };
     std::map<std::string, SyncCursor> cursors_;
 
@@ -87,6 +90,9 @@ private:
     void onNetworkMessageStored(std::string const& chatId);
     void onNetworkMessageUpdated(std::string const& chatId,
                                   int64_t messageId);
+    void syncUpdated(std::string const& chatId);
+    void updateMaxUpdatedAt(SyncCursor& cursor,
+                            std::vector<core::Message> const& msgs);
 };
 
 } // namespace chat

@@ -42,7 +42,15 @@ Result<SyncMessagesResponse> MockChatService::fetchAfter(
 
     auto msgs = store->getMessagesAfter(chatId, afterId, limit + 1);
     bool hasMore = static_cast<int>(msgs.size()) > limit;
-    if (hasMore) msgs.pop_back();
+    if (hasMore) {
+        if (afterId == 0) {
+            // 取最新 N 条：多出来的是最旧的，从前面删
+            msgs.erase(msgs.begin());
+        } else {
+            // 取 afterId 之后 N 条：多出来的是最新的，从后面删
+            msgs.pop_back();
+        }
+    }
 
     return SyncMessagesResponse{std::move(msgs), hasMore};
 }
@@ -56,7 +64,30 @@ Result<SyncMessagesResponse> MockChatService::fetchBefore(
 
     auto msgs = store->getMessagesBefore(chatId, beforeId, limit + 1);
     bool hasMore = static_cast<int>(msgs.size()) > limit;
-    if (hasMore) msgs.erase(msgs.begin());
+    if (hasMore) {
+        if (beforeId == 0) {
+            // 取最早 N 条：多出来的是最新的，从后面删
+            msgs.pop_back();
+        } else {
+            // 取 beforeId 之前 N 条：多出来的是最旧的，从前面删
+            msgs.erase(msgs.begin());
+        }
+    }
+
+    return SyncMessagesResponse{std::move(msgs), hasMore};
+}
+
+Result<SyncMessagesResponse> MockChatService::fetchUpdated(
+    const std::string& token, const std::string& chatId,
+    int64_t startId, int64_t endId,
+    int64_t updatedAt, int limit) {
+    auto userId = store->resolveToken(token);
+    if (userId.empty())
+        return {ErrorCode::Unauthorized, "invalid token"};
+
+    auto msgs = store->getMessagesUpdatedAfter(chatId, startId, endId, updatedAt, limit + 1);
+    bool hasMore = static_cast<int>(msgs.size()) > limit;
+    if (hasMore) msgs.pop_back();
 
     return SyncMessagesResponse{std::move(msgs), hasMore};
 }

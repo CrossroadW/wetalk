@@ -153,8 +153,6 @@ CREATE TABLE messages (
     chat_id TEXT NOT NULL,
     reply_to INTEGER DEFAULT 0, -- 引用消息 id，0 = 无引用
     content_data TEXT NOT NULL, -- 序列化的内容块列表
-    timestamp INTEGER NOT NULL,
-    edited_at INTEGER DEFAULT 0,
     revoked INTEGER DEFAULT 0,
     read_count INTEGER DEFAULT 0,
     updated_at INTEGER DEFAULT 0 -- 编辑/撤回时更新，用于增量同步
@@ -164,7 +162,6 @@ CREATE TABLE moments (
     id INTEGER PRIMARY KEY,
     author_id TEXT NOT NULL,
     text TEXT NOT NULL DEFAULT '',
-    timestamp INTEGER NOT NULL,
     updated_at INTEGER DEFAULT 0
 );
 
@@ -178,7 +175,6 @@ CREATE TABLE moment_images (
 CREATE TABLE moment_likes (
     moment_id INTEGER NOT NULL,
     user_id TEXT NOT NULL,
-    timestamp INTEGER NOT NULL,
     PRIMARY KEY (moment_id, user_id)
 );
 
@@ -187,16 +183,13 @@ CREATE TABLE moment_comments (
     moment_id INTEGER NOT NULL,
     author_id TEXT NOT NULL,
     text TEXT NOT NULL,
-    timestamp INTEGER NOT NULL
 );
 
 CREATE INDEX idx_group_members_user ON group_members(user_id);
 
-CREATE INDEX idx_messages_chat ON messages(chat_id, timestamp);
 CREATE INDEX idx_messages_reply ON messages(reply_to);
 CREATE INDEX idx_messages_updated ON messages(chat_id, updated_at);
 
-CREATE INDEX idx_moments_author ON moments(author_id, timestamp);
 CREATE INDEX idx_moment_comments_moment ON moment_comments(moment_id);
 ```
 

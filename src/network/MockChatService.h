@@ -21,6 +21,10 @@ public:
     Result<SyncMessagesResponse> fetchBefore(
         const std::string& token, const std::string& chatId,
         int64_t beforeId, int limit) override;
+    Result<SyncMessagesResponse> fetchUpdated(
+        const std::string& token, const std::string& chatId,
+        int64_t startId, int64_t endId,
+        int64_t updatedAt, int limit) override;
     VoidResult revokeMessage(
         const std::string& token, int64_t messageId) override;
     VoidResult editMessage(

@@ -169,7 +169,21 @@ std::vector<core::Message> MockDataStore::getMessagesAfter(std::string const &ch
         return result;
     }
 
-    for (auto &msgId: it->second) {
+    auto &ids = it->second;
+
+    if (afterId == 0) {
+        // afterId=0 → 返回最新的 limit 条（从末尾倒数），升序返回
+        int start = std::max(0, static_cast<int>(ids.size()) - limit);
+        for (int i = start; i < static_cast<int>(ids.size()); ++i) {
+            auto msgIt = messages.find(ids[i]);
+            if (msgIt != messages.end()) {
+                result.push_back(msgIt->second);
+            }
+        }
+        return result;
+    }
+
+    for (auto &msgId: ids) {
         if (msgId > afterId) {
             auto msgIt = messages.find(msgId);
             if (msgIt != messages.end()) {
@@ -192,8 +206,20 @@ std::vector<core::Message> MockDataStore::getMessagesBefore(std::string const &c
         return result;
     }
 
-    // 从后往前遍历，找 id < beforeId 的消息
     auto &ids = it->second;
+
+    if (beforeId == 0) {
+        // beforeId=0 → 返回最早的 limit 条（从头开始），升序返回
+        for (int i = 0; i < static_cast<int>(ids.size()) && i < limit; ++i) {
+            auto msgIt = messages.find(ids[i]);
+            if (msgIt != messages.end()) {
+                result.push_back(msgIt->second);
+            }
+        }
+        return result;
+    }
+
+    // 从后往前遍历，找 id < beforeId 的消息
     for (auto rit = ids.rbegin(); rit != ids.rend(); ++rit) {
         if (*rit < beforeId) {
             auto msgIt = messages.find(*rit);
@@ -207,6 +233,29 @@ std::vector<core::Message> MockDataStore::getMessagesBefore(std::string const &c
     }
     // 反转为 ID 升序
     std::reverse(result.begin(), result.end());
+    return result;
+}
+
+std::vector<core::Message> MockDataStore::getMessagesUpdatedAfter(
+    std::string const &chatId, int64_t startId, int64_t endId,
+    int64_t updatedAt, int limit) {
+    std::vector<core::Message> result;
+    auto it = chatMessages.find(chatId);
+    if (it == chatMessages.end()) {
+        return result;
+    }
+
+    for (auto &msgId : it->second) {
+        if (msgId < startId) continue;
+        if (msgId > endId) break;
+        auto msgIt = messages.find(msgId);
+        if (msgIt != messages.end() && msgIt->second.updatedAt > updatedAt) {
+            result.push_back(msgIt->second);
+            if (static_cast<int>(result.size()) >= limit) {
+                break;
+            }
+        }
+    }
     return result;
 }
 

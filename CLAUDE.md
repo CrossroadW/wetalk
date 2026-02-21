@@ -51,3 +51,5 @@ Presenter (QObject)      ChatPresenter — 网络通知 → 同步 → Qt signal
 spdlog 1.17.0, gtest 1.17.0, boost 1.90.0 (Signals2), sqlitecpp 3.3.3, Qt6 (Core/Widgets/Network)
 
 C++23 / CMake 3.24+ / Conan 2.0+ / MSVC / Ninja Multi-Config / `ENABLE_TESTING=ON`
+
+
