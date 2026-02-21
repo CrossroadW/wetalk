@@ -33,7 +33,21 @@ std::string const& ChatPresenter::currentUserId() const { return userId_; }
 
 void ChatPresenter::openChat(std::string const& chatId) {
     activeChatId_ = chatId;
-    if (cursors_.find(chatId) == cursors_.end()) {
+
+    auto it = cursors_.find(chatId);
+    if (it != cursors_.end() && it->second.end > 0) {
+        // 该聊天已被后台同步过 → 重新拉已有消息给 UI
+        auto result = client_.chat().fetchBefore(
+            token_, chatId, it->second.end + 1, 500);
+        if (result.ok() && !result.value().messages.empty()) {
+            Q_EMIT messagesInserted(QString::fromStdString(chatId),
+                                    result.value().messages);
+        }
+        return;
+    }
+
+    // 首次打开，尚无 cursor → 创建并做增量同步
+    if (it == cursors_.end()) {
         cursors_[chatId] = SyncCursor{};
     }
     onNetworkMessageStored(chatId);
@@ -92,12 +106,7 @@ void ChatPresenter::onNetworkMessageStored(std::string const& chatId) {
         return;
     }
 
-    // 只处理已打开过的聊天；未打开的聊天由 openChat() 做首次同步
-    auto it = cursors_.find(chatId);
-    if (it == cursors_.end()) {
-        return;
-    }
-    auto& cursor = it->second;
+    auto& cursor = cursors_[chatId];
     auto result =
         client_.chat().fetchAfter(token_, chatId, cursor.end, 50);
 

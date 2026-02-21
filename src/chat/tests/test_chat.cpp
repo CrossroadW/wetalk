@@ -425,7 +425,7 @@ TEST_F(ChatPresenterTest, MessageUpdatedNotFiredOnSend) {
     EXPECT_EQ(removedSpy.count(), 0);
 }
 
-TEST_F(ChatPresenterTest, OtherChatNotificationIgnoredBeforeOpen) {
+TEST_F(ChatPresenterTest, NotificationBeforeOpenChatStillProcessed) {
     // 不 openChat，Bob 发消息
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
@@ -433,11 +433,11 @@ TEST_F(ChatPresenterTest, OtherChatNotificationIgnoredBeforeOpen) {
         tokenB_, chatId_, 0,
         core::MessageContent{core::TextContent{"hello"}});
 
-    // Presenter 收到 onMessageStored 通知，但该聊天尚未 openChat，
-    // 应忽略通知，不触发信号（由 openChat 做首次同步）
-    ASSERT_EQ(spy.count(), 0);
+    // Presenter 收到 onMessageStored 通知，即使未 openChat 也应处理
+    ASSERT_EQ(spy.count(), 1);
 
-    // openChat 后才应拿到消息
+    // openChat 时应重新推送已同步的消息给 UI
+    spy.clear();
     presenter_->openChat(chatId_);
     ASSERT_EQ(spy.count(), 1);
 }
