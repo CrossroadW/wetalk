@@ -106,10 +106,7 @@ void MessageListView::addMessage(core::Message const &message,
     setItemWidget(item, messageWidget);
     itemById_[message.id] = item;
 
-    // 如果插入到末尾，滚动到底部
-    if (insertRow == count() - 1) {
-        scrollToBottom();
-    }
+
 }
 
 void MessageListView::setSelectedItem(MessageItemWidget *item) {

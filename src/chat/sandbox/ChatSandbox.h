@@ -11,7 +11,6 @@
 #include <wechat/network/NetworkClient.h>
 
 #include "../ChatWidget.h"
-#include "../MockAutoResponder.h"
 
 #include <map>
 #include <memory>
@@ -39,7 +38,6 @@ private:
         std::string peerId;
         std::string peerName;
         ChatWidget* widget = nullptr;
-        std::unique_ptr<MockAutoResponder> responder;
     };
 
     void setupUI();

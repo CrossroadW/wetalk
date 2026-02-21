@@ -4,9 +4,21 @@
 #include <QSplitter>
 #include <QVBoxLayout>
 
+#include <wechat/core/Message.h>
+
 #include <spdlog/spdlog.h>
 
+#include <array>
+
 namespace wechat::chat {
+
+static constexpr std::array kSampleMessages = {
+    "你好呀 👋", "今天天气不错", "在忙什么呢？", "哈哈哈 😂",
+    "好的，收到", "等一下，我看看", "这个问题我想想", "没问题！",
+    "晚点再聊", "刚吃完饭 🍜", "周末有空吗？", "发个红包来 🧧",
+    "收到收到 ✅", "了解了", "明天见！", "这也太搞笑了吧",
+    "我觉得可以", "再说吧", "好久不见啊", "最近怎么样？",
+};
 
 ChatSandbox::ChatSandbox(QWidget* parent) : QWidget(parent) {
     // 1. 创建 Mock 网络客户端 & 注册当前用户
@@ -99,7 +111,29 @@ void ChatSandbox::onAddChat() {
     }
     auto chatId = group.value().id;
 
-    // 创建 ChatWidget
+    // ── 预灌 100 条历史消息 ──
+    // 临时清除 Presenter session，防止 onMessageStored 自动同步 cursor
+    // 灌完后恢复，这样 initChat → loadHistory 才能按需分页加载
+    presenter_->setSession("", "");
+
+    for (int i = 0; i < 100; ++i) {
+        auto const& tmpl = kSampleMessages[i % kSampleMessages.size()];
+        std::string text = "[" + std::to_string(i + 1) + "] " + tmpl;
+
+        core::TextContent tc;
+        tc.text = text;
+
+        // 交替使用双方 token 发送，模拟真实对话
+        auto const& token = (i % 3 == 0) ? myToken_ : peerToken;
+        client_->chat().sendMessage(token, chatId, 0, {tc});
+    }
+
+    // 恢复 session
+    presenter_->setSession(myToken_, myUserId_);
+
+    spdlog::info("Pre-filled 100 messages in chat {}", chatId);
+
+    // 创建 ChatWidget（setPresenter 会触发 initChat → loadHistory(20)）
     auto* widget = new ChatWidget();
     widget->setCurrentUser(core::User{myUserId_});
     widget->setChatPartner(core::User{peerId});
@@ -107,18 +141,12 @@ void ChatSandbox::onAddChat() {
     widget->setPresenter(presenter_.get());
     chatStack_->addWidget(widget);
 
-    // 创建 MockAutoResponder（自动 echo 回复）
-    auto responder = std::make_unique<MockAutoResponder>(*client_);
-    responder->setResponderSession(peerToken, peerId);
-    responder->setChatId(chatId);
-
     // 记录
     ChatEntry entry;
     entry.chatId = chatId;
     entry.peerId = peerId;
     entry.peerName = peerName;
     entry.widget = widget;
-    entry.responder = std::move(responder);
     chats_[chatId] = std::move(entry);
 
     // 添加到联系人列表
@@ -130,7 +158,8 @@ void ChatSandbox::onAddChat() {
     contactList_->setCurrentItem(item);
     switchToChat(chatId);
 
-    spdlog::info("New chat created: {} <-> {}", myUserId_, peerName);
+    spdlog::info("New chat created: {} <-> {} (100 messages pre-filled)",
+                 myUserId_, peerName);
 }
 
 void ChatSandbox::onContactClicked(QListWidgetItem* item) {
