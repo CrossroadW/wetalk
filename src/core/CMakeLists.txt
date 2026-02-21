@@ -1,12 +1,9 @@
 add_library(wechat_core STATIC)
 
-file(GLOB_RECURSE CORE_SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
-)
-list(FILTER CORE_SOURCES EXCLUDE REGEX ".*/tests/.*")
-list(FILTER CORE_SOURCES EXCLUDE REGEX ".*/sandbox/.*")
+file(GLOB CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB CORE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
-target_sources(wechat_core PRIVATE ${CORE_SOURCES})
+target_sources(wechat_core PRIVATE ${CORE_SOURCES} ${CORE_HEADERS})
 
 target_include_directories(wechat_core
     PRIVATE
@@ -24,7 +21,7 @@ target_link_libraries(wechat_core
 
 # Unit tests
 if(ENABLE_TESTING)
-    file(GLOB_RECURSE CORE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+    file(GLOB CORE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
     if(CORE_TEST_SOURCES)
         add_executable(test_core ${CORE_TEST_SOURCES})
         target_link_libraries(test_core PUBLIC wechat_core GTest::gtest_main)

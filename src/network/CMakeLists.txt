@@ -4,12 +4,13 @@
 
 add_library(wechat_network STATIC)
 
-file(GLOB_RECURSE NETWORK_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-list(FILTER NETWORK_SOURCES EXCLUDE REGEX ".*/tests/.*")
+file(GLOB NETWORK_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB NETWORK_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 target_sources(wechat_network
     PRIVATE
         ${NETWORK_SOURCES}
+        ${NETWORK_HEADERS}
 )
 
 target_include_directories(wechat_network
@@ -28,7 +29,7 @@ target_link_libraries(wechat_network
 # ══════════════════════════════════════════════════
 
 if(ENABLE_TESTING)
-    file(GLOB_RECURSE NETWORK_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+    file(GLOB NETWORK_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
     if(NETWORK_TEST_SOURCES)
         add_executable(test_network ${NETWORK_TEST_SOURCES})
         target_include_directories(test_network PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

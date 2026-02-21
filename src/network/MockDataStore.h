@@ -17,7 +17,7 @@ public:
     MockDataStore();
 
     // ── 时间 ──
-    int64_t now();
+    static int64_t now();
 
     // ── ID 生成 ──
     std::string nextId(const std::string& prefix);
@@ -79,7 +79,6 @@ public:
                                    int64_t beforeTs, int limit);
 
 private:
-    int64_t clock;
     int64_t idCounter;
 
     // username -> UserRecord

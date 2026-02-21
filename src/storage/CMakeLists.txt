@@ -1,9 +1,9 @@
 add_library(wechat_storage STATIC)
 
-file(GLOB_RECURSE STORAGE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-list(FILTER STORAGE_SOURCES EXCLUDE REGEX ".*/tests/.*")
+file(GLOB STORAGE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB STORAGE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
-target_sources(wechat_storage PRIVATE ${STORAGE_SOURCES})
+target_sources(wechat_storage PRIVATE ${STORAGE_SOURCES} ${STORAGE_HEADERS})
 
 target_include_directories(wechat_storage
     PRIVATE
@@ -19,7 +19,7 @@ target_link_libraries(wechat_storage
 )
 
 if(ENABLE_TESTING)
-    file(GLOB_RECURSE STORAGE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+    file(GLOB STORAGE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
     if(STORAGE_TEST_SOURCES)
         add_executable(test_storage ${STORAGE_TEST_SOURCES})
         target_link_libraries(test_storage PUBLIC wechat_storage GTest::gtest_main)

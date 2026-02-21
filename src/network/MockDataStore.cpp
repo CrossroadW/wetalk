@@ -1,13 +1,16 @@
 #include "MockDataStore.h"
 
 #include <algorithm>
+#include <chrono>
 
 namespace wechat::network {
 
-MockDataStore::MockDataStore() : clock(1'000'000), idCounter(0) {}
+MockDataStore::MockDataStore() : idCounter(0) {}
 
 int64_t MockDataStore::now() {
-    return ++clock;
+    return std::chrono::duration_cast<std::chrono::microseconds>(
+               std::chrono::system_clock::now().time_since_epoch())
+        .count();
 }
 
 std::string MockDataStore::nextId(std::string const &prefix) {
@@ -144,7 +147,7 @@ core::Message &MockDataStore::addMessage(std::string const &senderId,
                                          std::string const &replyTo,
                                          core::MessageContent const &content) {
     auto id = "m" + std::to_string(++idCounter);
-    auto ts = ++clock;
+    auto ts = now();
     core::Message msg{id, senderId, chatId, replyTo, content,
                       ts, 0,        false,  0,       0};
     auto [it, _] = messages.emplace(id, std::move(msg));
@@ -184,7 +187,7 @@ Moment &MockDataStore::addMoment(std::string const &authorId,
                                  std::string const &text,
                                  std::vector<std::string> const &imageIds) {
     auto id = "mo" + std::to_string(++idCounter);
-    auto ts = ++clock;
+    auto ts = now();
     Moment moment{id, authorId, text, imageIds, ts, {}, {}};
     auto [it, _] = moments.emplace(id, std::move(moment));
     momentTimeline.insert(momentTimeline.begin(), id);

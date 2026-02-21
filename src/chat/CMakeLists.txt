@@ -1,18 +1,7 @@
 add_library(wechat_chat STATIC)
 
-file(GLOB_RECURSE CHAT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-list(FILTER CHAT_SOURCES EXCLUDE REGEX ".*/tests/.*")
-list(FILTER CHAT_SOURCES EXCLUDE REGEX ".*/sandbox/.*")
-
-# 分别列出头文件，以确保 AUTOMOC 正确处理
-set(CHAT_HEADERS
-    ${CMAKE_CURRENT_SOURCE_DIR}/MessageListView.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/MessageItemWidget.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/MessageUtils.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/ChatWidget.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/ChatController.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/MockAutoResponder.h
-)
+file(GLOB CHAT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB CHAT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 target_sources(wechat_chat PRIVATE
     ${CHAT_SOURCES}
@@ -47,14 +36,14 @@ target_link_libraries(wechat_chat
 )
 
 if(ENABLE_TESTING)
-    file(GLOB_RECURSE CHAT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+    file(GLOB CHAT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
     if(CHAT_TEST_SOURCES)
         add_executable(test_chat ${CHAT_TEST_SOURCES})
         target_link_libraries(test_chat PUBLIC wechat_chat GTest::gtest_main)
         gtest_discover_tests(test_chat)
     endif()
 
-    file(GLOB_RECURSE CHAT_SANDBOX_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.cpp)
+    file(GLOB CHAT_SANDBOX_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.cpp)
     if(CHAT_SANDBOX_SOURCES)
         qt_add_executable(sandbox_chat ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/main.cpp)
         target_compile_definitions(sandbox_chat PRIVATE QT_NO_KEYWORDS)

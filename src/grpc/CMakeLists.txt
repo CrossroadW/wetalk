@@ -65,12 +65,13 @@ add_custom_command(
 
 add_library(wechat_grpc STATIC)
 
-file(GLOB_RECURSE GRPC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
-list(FILTER GRPC_SOURCES EXCLUDE REGEX ".*/tests/.*")
+file(GLOB GRPC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+file(GLOB GRPC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 target_sources(wechat_grpc
     PRIVATE
         ${GRPC_SOURCES}
+        ${GRPC_HEADERS}
         ${AUTH_PROTO_SRCS}
         ${AUTH_GRPC_SRCS}
 )
@@ -96,7 +97,7 @@ target_link_libraries(wechat_grpc
 # ══════════════════════════════════════════════════
 
 if(ENABLE_TESTING)
-    file(GLOB_RECURSE GRPC_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
+    file(GLOB GRPC_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
     if(GRPC_TEST_SOURCES)
         add_executable(test_grpc ${GRPC_TEST_SOURCES})
         target_include_directories(test_grpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
