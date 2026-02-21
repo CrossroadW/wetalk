@@ -25,7 +25,7 @@ class ChatPresenter;
  * 纯展示层，不做任何数据操作。
  * 通过 ChatPresenter 的 3 个信号保持 UI 与数据模型一致。
  *
- * 首次显示时通过 initChat() 调用 openChat + loadHistory 拉取初始数据。
+ * 首次显示时通过 initChat() 调用 openChat + loadLatest 拉取最新数据。
  * 滚动到顶部时自动触发 loadHistory 加载更早的历史消息。
  */
 class ChatWidget : public QWidget {
@@ -67,7 +67,7 @@ private:
     void setupUI();
     void setupConnections();
 
-    /// 首次初始化：openChat + loadHistory（仅执行一次）
+    /// 首次初始化：openChat + loadLatest（仅执行一次）
     void initChat();
 
     MessageListView* messageListView_;

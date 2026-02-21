@@ -129,8 +129,10 @@ void ChatPresenter::onNetworkMessageUpdated(std::string const& chatId,
         return;
     }
 
+    // 用 fetchBefore(messageId+1, 1) 精确拉取该条消息
+    // 避免 fetchAfter(messageId-1) 在 messageId==1 时触发 afterId=0 的"最新"语义
     auto result =
-        client_.chat().fetchAfter(token_, chatId, messageId - 1, 1);
+        client_.chat().fetchBefore(token_, chatId, messageId + 1, 1);
 
     if (result.ok() && !result.value().messages.empty()) {
         auto& msg = result.value().messages[0];

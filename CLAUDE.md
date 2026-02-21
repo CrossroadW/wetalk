@@ -9,7 +9,8 @@
 - `docs/conventions.md` — 编码规范（命名、目录结构、CMake、include 顺序等）
 - `docs/constraints.md` — 项目约束（CMake、Qt、Pimpl、命名空间、模块化）
 - `docs/data-models.md` — 数据模型定义、数据库表结构、类型映射
-- `docs/data-cache-mechanism.md` — 客户端增量缓存机制设计
+- `docs/data-cache-mechanism.md` — 客户端增量缓存机制设计（两个数据库 + 两个同步）
+- `docs/plan-cache-refactor.md` — 缓存同步重构方案（当前阶段实施计划）
 
 ## 关键目录
 
@@ -25,7 +26,7 @@
 - `include/wechat/network/NetworkClient.h` — 网络客户端抽象工厂
 - `include/wechat/network/ChatService.h` — 聊天服务接口（发送/同步/撤回/编辑 + 推送通知信号）
 - `src/chat/ChatWidget.h` — 主聊天界面（MVP View）
-- `src/chat/MockAutoResponder.h` — 模拟对方用户发消息
+- `src/chat/MockBackend.h` — 模拟后端（预灌数据 + 定时脚本测试）
 - `src/network/MockDataStore.h` — 内存数据存储（Mock 后端）
 
 ## 架构

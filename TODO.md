@@ -6,10 +6,13 @@
 - [x] 右键菜单（复制、回复、转发、撤回）
 - [x] 使用标准 Qt 控件替代自绘实现
 - [x] 接入 Network 层实现消息收发（ChatPresenter 信号驱动）
-- [x] 模拟对方消息（MockAutoResponder）
+- [x] 模拟后端测试（MockBackend：预灌数据 + 定时脚本）
 - [x] 回复功能（带回复指示器 UI）
+- [x] 懒加载（loadLatest + 滚动到顶部 loadHistory + toast）
+- [x] upsert 语义（addMessage 创建或更新，支持撤回/编辑）
+- [x] fetchUpdated 增量同步已缓存消息
 - [ ] 转发功能 — 需要选择目标聊天的 UI
-- [ ] 撤回后 UI 刷新（显示"消息已撤回"）
+- [ ] 撤回后 UI 刷新（显示"消息已撤回"占位）
 - [ ] 链接识别和点击跳转
 - [ ] 富文本功能
 
