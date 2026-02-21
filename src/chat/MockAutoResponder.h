@@ -2,18 +2,17 @@
 
 #include <QObject>
 
-#include <wechat/core/Message.h>
 #include <wechat/network/NetworkClient.h>
 
+#include <boost/signals2/connection.hpp>
 #include <string>
 
 namespace wechat::chat {
 
-/// 模拟对方用户发送消息
+/// 模拟对方用户自动回复
 ///
-/// 通过 NetworkClient 以另一个用户的身份发送消息。
-/// 消息写入后 ChatService 自动触发 onMessageStored 通知，
-/// ChatPresenter 会通过同步机制感知到新消息。
+/// 订阅 ChatService.onMessageStored，当检测到目标聊天中有非自己发的消息时，
+/// 自动以 echo 方式回复。回复走完整的网络层路径，ChatPresenter 会正常感知。
 class MockAutoResponder : public QObject {
     Q_OBJECT
 
@@ -25,17 +24,20 @@ public:
     void setResponderSession(std::string const& token,
                              std::string const& userId);
 
-    /// 设置回复的目标聊天
+    /// 设置监听的目标聊天
     void setChatId(std::string const& chatId);
 
-    /// 立即以模拟用户身份发送一条消息
-    void sendMessage(std::string const& text);
-
 private:
+    void onMessageStored(std::string const& chatId);
+
     network::NetworkClient& client_;
     std::string token_;
     std::string userId_;
     std::string chatId_;
+    int64_t lastSeenId_ = 0;
+    bool responding_ = false;
+
+    boost::signals2::scoped_connection conn_;
 };
 
 } // namespace wechat::chat

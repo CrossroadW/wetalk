@@ -107,13 +107,10 @@ void ChatSandbox::onAddChat() {
     widget->setPresenter(presenter_.get());
     chatStack_->addWidget(widget);
 
-    // 创建 MockAutoResponder
+    // 创建 MockAutoResponder（自动 echo 回复）
     auto responder = std::make_unique<MockAutoResponder>(*client_);
     responder->setResponderSession(peerToken, peerId);
     responder->setChatId(chatId);
-
-    // 对方先打个招呼
-    responder->sendMessage("Hi! I'm " + peerName + " 👋");
 
     // 记录
     ChatEntry entry;
