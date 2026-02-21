@@ -1,5 +1,6 @@
 #include "ChatWidget.h"
-#include "ChatController.h"
+
+#include <wechat/chat/ChatPresenter.h>
 
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -15,7 +16,7 @@
 namespace wechat {
 namespace chat {
 
-ChatWidget::ChatWidget(QWidget *parent)
+ChatWidget::ChatWidget(QWidget* parent)
     : QWidget(parent),
       messageListView_(nullptr),
       messageInput_(nullptr),
@@ -26,10 +27,10 @@ ChatWidget::ChatWidget(QWidget *parent)
 }
 
 void ChatWidget::setupUI() {
-    auto *mainLayout = new QVBoxLayout(this);
+    auto* mainLayout = new QVBoxLayout(this);
 
     // 标题栏
-    auto *titleBar = new QHBoxLayout();
+    auto* titleBar = new QHBoxLayout();
     titleLabel_ = new QLabel(tr("聊天"));
     titleLabel_->setStyleSheet(
         "font-size: 18px; font-weight: bold; margin: 10px;");
@@ -47,7 +48,7 @@ void ChatWidget::setupUI() {
 
     // 回复指示器（默认隐藏）
     replyIndicator_ = new QWidget();
-    auto *replyLayout = new QHBoxLayout(replyIndicator_);
+    auto* replyLayout = new QHBoxLayout(replyIndicator_);
     replyLayout->setContentsMargins(10, 5, 10, 5);
     replyLabel_ = new QLabel();
     replyLabel_->setStyleSheet("color: #666; font-size: 12px;");
@@ -65,7 +66,7 @@ void ChatWidget::setupUI() {
     mainLayout->addWidget(replyIndicator_);
 
     // 输入区域
-    auto *inputArea = new QHBoxLayout();
+    auto* inputArea = new QHBoxLayout();
     messageInput_ = new QLineEdit();
     messageInput_->setPlaceholderText(tr("输入消息..."));
     messageInput_->setStyleSheet("QLineEdit {"
@@ -93,15 +94,12 @@ void ChatWidget::setupUI() {
     inputArea->addWidget(sendButton_);
     mainLayout->addLayout(inputArea);
 
-    // 设置主窗口属性
     setWindowTitle("Chat Window");
     resize(600, 800);
 }
 
 void ChatWidget::setupConnections() {
     connect(sendButton_, &QPushButton::clicked, this, &ChatWidget::sendMessage);
-
-    // 回车发送消息
     connect(messageInput_, &QLineEdit::returnPressed, this,
             &ChatWidget::sendMessage);
 
@@ -118,11 +116,11 @@ void ChatWidget::setupConnections() {
             &ChatWidget::cancelReply);
 }
 
-void ChatWidget::setCurrentUser(core::User const &user) {
+void ChatWidget::setCurrentUser(core::User const& user) {
     currentUser_ = user;
 }
 
-void ChatWidget::setChatPartner(core::User const &partner) {
+void ChatWidget::setChatPartner(core::User const& partner) {
     chatPartner_ = partner;
     if (titleLabel_) {
         titleLabel_->setText(
@@ -130,15 +128,18 @@ void ChatWidget::setChatPartner(core::User const &partner) {
     }
 }
 
-void ChatWidget::setController(ChatController *controller) {
-    controller_ = controller;
-    if (controller_) {
-        connect(controller_, &ChatController::messageSent,
-                this, &ChatWidget::onMessageSent);
-        connect(controller_, &ChatController::messageSendFailed,
-                this, &ChatWidget::onMessageSendFailed);
-        connect(controller_, &ChatController::messagesReceived,
-                this, &ChatWidget::onMessagesReceived);
+void ChatWidget::setPresenter(ChatPresenter* presenter) {
+    presenter_ = presenter;
+    if (presenter_) {
+        connect(presenter_, &ChatPresenter::messagesInserted,
+                this, &ChatWidget::onMessagesInserted,
+                Qt::QueuedConnection);
+        connect(presenter_, &ChatPresenter::messageUpdated,
+                this, &ChatWidget::onMessageUpdated,
+                Qt::QueuedConnection);
+        connect(presenter_, &ChatPresenter::messageRemoved,
+                this, &ChatWidget::onMessageRemoved,
+                Qt::QueuedConnection);
     }
 }
 
@@ -148,79 +149,50 @@ void ChatWidget::sendMessage() {
         return;
     }
 
-    if (controller_) {
-        // 委托给 controller → ChatManager → NetworkClient
-        // 如果有回复目标，通过 manager 发送带 replyTo 的消息
+    if (presenter_) {
         if (replyToMessageId_ != 0) {
             core::TextContent tc;
             tc.text = text.toStdString();
-            controller_->manager().sendMessage({tc}, replyToMessageId_);
+            presenter_->sendMessage({tc}, replyToMessageId_);
             cancelReply();
         } else {
-            controller_->onSendText(text);
+            presenter_->sendTextMessage(text.toStdString());
         }
-    } else {
-        // 无 controller 时的 fallback（向后兼容）
-        core::Message message;
-        message.id = QDateTime::currentMSecsSinceEpoch();
-        message.senderId = currentUser_.id;
-        message.chatId = "chat_" + currentUser_.id + "_" + chatPartner_.id;
-        message.timestamp = QDateTime::currentMSecsSinceEpoch();
-        message.updatedAt = 0;
-        message.revoked = false;
-        message.readCount = 0;
-        message.replyTo = replyToMessageId_;
-
-        core::TextContent textContent;
-        textContent.text = text.toStdString();
-        message.content = {textContent};
-
-        messageListView_->addMessage(message, currentUser_);
-        cancelReply();
     }
 
     messageInput_->clear();
 }
 
-// ── Controller 事件回调 ──
+// ── 模型变化回调 ──
 
-void ChatWidget::onMessageSent(int64_t /*clientTempId*/,
-                                core::Message serverMessage) {
-    messageListView_->addMessage(serverMessage, currentUser_);
-}
-
-void ChatWidget::onMessageSendFailed(int64_t /*clientTempId*/,
-                                      QString reason) {
-    // 简单处理：在标题栏短暂提示失败信息
-    if (titleLabel_) {
-        auto original = titleLabel_->text();
-        titleLabel_->setText(tr("发送失败: ") + reason);
-        // 3 秒后恢复
-        QTimer::singleShot(3000, this, [this, original]() {
-            if (titleLabel_) {
-                titleLabel_->setText(original);
-            }
-        });
-    }
-}
-
-void ChatWidget::onMessagesReceived(QString /*chatId*/,
+void ChatWidget::onMessagesInserted(QString /*chatId*/,
                                      std::vector<core::Message> messages) {
-    for (auto const &msg : messages) {
+    for (auto const& msg : messages) {
         messageListView_->addMessage(msg, currentUser_);
     }
 }
 
+void ChatWidget::onMessageUpdated(QString /*chatId*/,
+                                   core::Message message) {
+    // TODO: 找到对应消息项，更新显示（撤回/编辑/已读）
+    // 目前简单实现：如果消息被撤回，可以在 MessageItemWidget 中处理
+    Q_UNUSED(message);
+}
+
+void ChatWidget::onMessageRemoved(QString /*chatId*/, int64_t messageId) {
+    // TODO: 从列表中移除对应消息项
+    Q_UNUSED(messageId);
+}
+
 // ── 右键菜单处理 ──
 
-void ChatWidget::onReplyRequested(core::Message const &message) {
+void ChatWidget::onReplyRequested(core::Message const& message) {
     replyToMessageId_ = message.id;
 
-    // 提取消息预览文本
     QString preview;
-    for (auto const &block : message.content) {
+    for (auto const& block : message.content) {
         std::visit(
-            [&preview](auto const &content) {
+            [&preview](auto const& content) {
                 using T = std::decay_t<decltype(content)>;
                 if constexpr (std::is_same_v<T, core::TextContent>) {
                     preview = QString::fromStdString(content.text);
@@ -240,8 +212,8 @@ void ChatWidget::onReplyRequested(core::Message const &message) {
     messageInput_->setFocus();
 }
 
-void ChatWidget::onForwardRequested(core::Message const & /*message*/) {
-    // TODO: 实现转发功能 - 需要选择目标聊天
+void ChatWidget::onForwardRequested(core::Message const& /*message*/) {
+    // TODO: 实现转发功能
     if (titleLabel_) {
         auto original = titleLabel_->text();
         titleLabel_->setText(tr("转发功能开发中..."));
@@ -253,10 +225,9 @@ void ChatWidget::onForwardRequested(core::Message const & /*message*/) {
     }
 }
 
-void ChatWidget::onRevokeRequested(core::Message const &message) {
-    if (controller_) {
-        controller_->manager().revokeMessage(message.id);
-        // TODO: 刷新消息显示（撤回后显示"消息已撤回"）
+void ChatWidget::onRevokeRequested(core::Message const& message) {
+    if (presenter_) {
+        presenter_->revokeMessage(message.id);
     }
 }
 

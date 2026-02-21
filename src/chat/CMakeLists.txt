@@ -2,10 +2,12 @@ add_library(wechat_chat STATIC)
 
 file(GLOB CHAT_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB CHAT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file(GLOB CHAT_PUBLIC_HEADERS ${CMAKE_SOURCE_DIR}/include/wechat/chat/*.h)
 
 target_sources(wechat_chat PRIVATE
     ${CHAT_SOURCES}
     ${CHAT_HEADERS}
+    ${CHAT_PUBLIC_HEADERS}
 )
 
 target_include_directories(wechat_chat

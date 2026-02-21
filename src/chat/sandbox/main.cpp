@@ -3,19 +3,17 @@
 
 #include <wechat/log/Log.h>
 #include <wechat/core/User.h>
-#include <wechat/chat/ChatManager.h>
-#include <wechat/chat/ChatSignals.h>
+#include <wechat/chat/ChatPresenter.h>
 #include <wechat/network/NetworkClient.h>
 
 #include "../ChatWidget.h"
-#include "../ChatController.h"
 #include "../MockAutoResponder.h"
 
 #include <memory>
 
 using namespace wechat;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     log::init();
 
@@ -36,35 +34,30 @@ int main(int argc, char *argv[]) {
         networkClient->groups().createGroup(tokenAlice, {aliceId, bobId});
     auto chatId = groupResult.value().id;
 
-    // 4. 创建 ChatSignals + ChatManager
-    auto chatSignals = std::make_shared<chat::ChatSignals>();
-    chat::ChatManager manager(*networkClient, chatSignals);
-    manager.setSession(tokenAlice, aliceId);
+    // 4. 创建 ChatPresenter（MVP 唯一中间层）
+    chat::ChatPresenter presenter(*networkClient);
+    presenter.setSession(tokenAlice, aliceId);
 
-    // 5. 创建 ChatController（Qt 桥接层）
-    chat::ChatController controller(manager, chatSignals);
-
-    // 6. 创建 ChatWidget 并注入 controller
+    // 5. 创建 ChatWidget（View）并注入 presenter
     chat::ChatWidget chatWidget;
     chatWidget.setCurrentUser(core::User{aliceId});
     chatWidget.setChatPartner(core::User{bobId});
-    chatWidget.setController(&controller);
+    chatWidget.setPresenter(&presenter);
 
-    // 7. 模拟对方用户（Bob）
+    // 6. 模拟对方用户（Bob）发消息
     chat::MockAutoResponder responder(*networkClient);
     responder.setResponderSession(tokenBob, bobId);
     responder.setChatId(chatId);
 
-    // Bob 预设几条消息，模拟聊天场景
-    responder.scheduleMessage("Hey Alice! How are you?", 3000);
-    responder.scheduleMessage("I just saw the news, pretty exciting!", 8000);
+    // Bob 立即发几条消息（通过网络层推送通知自动同步到 UI）
+    responder.sendMessage("Hey Alice! How are you?");
+    responder.sendMessage("I just saw the news, pretty exciting!");
 
-    // 8. 打开聊天并启动轮询
-    controller.onOpenChat(QString::fromStdString(chatId));
-    controller.startPolling(2000); // 每 2 秒轮询一次
+    // 7. 打开聊天（触发首次同步）
+    presenter.openChat(chatId);
 
     chatWidget.show();
 
-    spdlog::info("Chat sandbox started — alice <-> bob, polling every 2s");
+    spdlog::info("Chat sandbox started — alice <-> bob, signal-driven");
     return app.exec();
 }

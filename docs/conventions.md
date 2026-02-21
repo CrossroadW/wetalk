@@ -282,26 +282,23 @@ target_link_libraries(wechat_foo
 **示例**：
 
 ```cpp
-class ChatController : public QObject {
+class ChatPresenter : public QObject {
     Q_OBJECT    // 必须有这个宏
 
 public:
-    explicit ChatController(/* ... */);
+    explicit ChatPresenter(/* ... */);
 
 Q_SIGNALS:
-    void messageSent(QString id, Message msg);
-    void messageFailed(QString reason);
-
-Q_SLOTS:
-    void onSendMessage(const QString& text);
+    void messagesInserted(QString chatId, std::vector<core::Message> messages);
+    void messageUpdated(QString chatId, core::Message message);
 
 private Q_SLOTS:
     void onSignalReceived();
 };
 
 // 实现文件中
-void ChatController::someMethod() {
-    Q_EMIT messageSent(id, msg);  // 发出信号
+void ChatPresenter::someMethod() {
+    Q_EMIT messagesInserted(chatId, msgs);  // 发出信号
 }
 ```
 

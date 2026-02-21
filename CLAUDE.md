@@ -20,14 +20,11 @@
 
 ## 关键文件
 
-- `include/wechat/core/Event.h` — 事件类型定义（MessageSent/SendFailed/Received/Revoked/Edited）
-- `include/wechat/core/EventBus.h` — 发布-订阅事件总线（Boost.Signals2）
 - `include/wechat/core/Message.h` — 消息数据结构（variant 内容块，支持图文混排）
-- `include/wechat/chat/ChatManager.h` — 聊天业务逻辑（纯 C++，不依赖 Qt）
+- `include/wechat/chat/ChatPresenter.h` — 聊天 MVP Presenter（QObject，合并业务逻辑+信号）
 - `include/wechat/network/NetworkClient.h` — 网络客户端抽象工厂
-- `include/wechat/network/ChatService.h` — 聊天服务接口（发送/同步/撤回/编辑）
-- `src/chat/ChatController.h` — Qt 桥接层（EventBus 事件 → Qt signals + QTimer 轮询）
-- `src/chat/ChatWidget.h` — 主聊天界面
+- `include/wechat/network/ChatService.h` — 聊天服务接口（发送/同步/撤回/编辑 + 推送通知信号）
+- `src/chat/ChatWidget.h` — 主聊天界面（MVP View）
 - `src/chat/MockAutoResponder.h` — 模拟对方用户发消息
 - `src/network/MockDataStore.h` — 内存数据存储（Mock 后端）
 
@@ -35,19 +32,19 @@
 
 ```
 UI 层 (Qt Widgets)       ChatWidget, MessageListView, MessageItemWidget
-    ↕ Qt signals/slots
-桥接层 (QObject)         ChatController — EventBus 事件转 Qt signals + QTimer 轮询
-    ↕ EventBus
-业务层 (纯 C++)          ChatManager — 发送/同步/撤回/编辑
-    ↕ 同步调用
+    ↕ Qt signals/slots (QueuedConnection)
+Presenter (QObject)      ChatPresenter — 网络通知 → 同步 → Qt signals
+    ↕ 同步调用 + Boost.Signals2 通知订阅
 服务层                   NetworkClient → ChatService, AuthService, ContactService...
     ↕
 数据层                   MockDataStore (内存) / SQLite (计划中)
 ```
 
-发送: ChatWidget → ChatController → ChatManager → ChatService.sendMessage() → EventBus(MessageSentEvent) → ChatController → ChatWidget
+发送: ChatWidget → ChatPresenter.sendMessage() → ChatService → onMessageStored → fetchAfter → Q_EMIT messagesInserted → ChatWidget
 
-接收: QTimer → ChatManager.pollMessages() → syncMessages() → EventBus(MessagesReceivedEvent) → ChatController → ChatWidget
+接收: ChatService.onMessageStored → ChatPresenter.fetchAfter → Q_EMIT messagesInserted → ChatWidget
+
+撤回/编辑: ChatPresenter → ChatService → onMessageUpdated → fetchMessage → Q_EMIT messageUpdated → ChatWidget
 
 ## 依赖与工具
 

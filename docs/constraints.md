@@ -19,11 +19,11 @@ src/core、src/log、src/storage、src/network、src/auth、src/chat、src/conta
 
 ## Qt 使用约束
 
-- **非界面代码禁止使用 Qt 信号槽**
-- Qt 信号槽仅用于 UI 层（Widget、View 等可见组件）
-- 模块间通信、事件系统、业务逻辑层使用纯 C++ 实现（EventBus / Boost.Signals2）
+- **非界面代码禁止使用 Qt 信号槽**（core、network、storage 等纯 C++ 模块）
+- Qt 信号槽仅用于 UI 层（Widget、View）和 Presenter 层（如 ChatPresenter）
+- 模块间通信使用 Boost.Signals2 信号注入
 - core、network、storage、auth 等非 UI 模块不依赖 Qt 信号槽
-- UI 模块中的业务逻辑类（如 ChatManager）同样不依赖 Qt，通过 Controller 桥接
+- Presenter 层（如 ChatPresenter）作为 QObject，订阅 Boost.Signals2 网络通知并转为 Qt signals 供 View 使用
 
 ## Pimpl 约束
 

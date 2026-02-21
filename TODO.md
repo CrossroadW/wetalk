@@ -5,7 +5,7 @@
 - [x] 图片交互功能
 - [x] 右键菜单（复制、回复、转发、撤回）
 - [x] 使用标准 Qt 控件替代自绘实现
-- [x] 接入 Network 层实现消息收发（ChatManager + ChatController）
+- [x] 接入 Network 层实现消息收发（ChatPresenter 信号驱动）
 - [x] 模拟对方消息（MockAutoResponder）
 - [x] 回复功能（带回复指示器 UI）
 - [ ] 转发功能 — 需要选择目标聊天的 UI

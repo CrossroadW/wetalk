@@ -3,6 +3,7 @@
 #include <wechat/core/Message.h>
 #include <wechat/network/NetworkTypes.h>
 
+#include <boost/signals2/signal.hpp>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -59,6 +60,20 @@ public:
         const std::string& token,
         const std::string& chatId,
         int64_t lastMessageId) = 0;
+
+    // ── 推送通知（模拟 WebSocket）──
+
+    /// 有新消息写入（发送/接收均触发）
+    /// @param chatId 哪个聊天有变化
+    boost::signals2::signal<void(const std::string& chatId)>
+        onMessageStored;
+
+    /// 消息被修改（撤回/编辑/已读数变化）
+    /// @param chatId 哪个聊天有变化
+    /// @param messageId 哪条消息被修改
+    boost::signals2::signal<void(const std::string& chatId,
+                                  int64_t messageId)>
+        onMessageUpdated;
 };
 
 } // namespace wechat::network
