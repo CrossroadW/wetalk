@@ -143,7 +143,6 @@ void ChatSandbox::switchToChat(std::string const& chatId) {
     if (it == chats_.end()) {
         return;
     }
-    presenter_->openChat(chatId);
     chatStack_->setCurrentWidget(it->second.widget);
 }
 

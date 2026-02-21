@@ -40,28 +40,41 @@ MessageListView::MessageListView(QWidget *parent) : QListWidget(parent) {
     // 禁用默认选择行为，因为我们有自己的选择机制
     setSelectionMode(QAbstractItemView::NoSelection);
     setFocusPolicy(Qt::NoFocus); // 完全禁用焦点
+
+    // 滚动到顶部检测
+    connect(verticalScrollBar(), &QScrollBar::valueChanged,
+            this, [this](int value) {
+                if (value == verticalScrollBar()->minimum() && count() > 0) {
+                    Q_EMIT reachedTop();
+                }
+            });
 }
 
 void MessageListView::addMessage(core::Message const &message,
                                  core::User const &currentUser) {
-    // 创建自定义的消息项
-    MessageItemWidget *messageWidget = new MessageItemWidget();
+    // ── upsert：已存在则更新 ──
+    auto it = itemById_.find(message.id);
+    if (it != itemById_.end()) {
+        auto* widget = qobject_cast<MessageItemWidget*>(
+            itemWidget(it->second));
+        if (widget) {
+            widget->updateMessage(message);
+            it->second->setSizeHint(widget->sizeHint());
+        }
+        return;
+    }
 
-    // 先设置数据，这样sizeHint可以基于内容计算
+    // ── 不存在 → 创建新 item ──
+    MessageItemWidget *messageWidget = new MessageItemWidget();
     messageWidget->setMessageData(message, currentUser);
 
     // 连接点击信号
     connect(messageWidget, &MessageItemWidget::clicked, this,
             [this, messageWidget](core::Message const &msg) {
-                // 实现单选功能：点击一个消息时，取消之前选中的消息
                 if (selectedItem_ && selectedItem_ != messageWidget) {
                     selectedItem_->setSelected(false);
                 }
-
-                // 设置新的选中项
                 setSelectedItem(messageWidget);
-
-                // 发出消息选中信号
                 Q_EMIT messageSelected(msg);
             });
 
@@ -73,30 +86,37 @@ void MessageListView::addMessage(core::Message const &message,
     connect(messageWidget, &MessageItemWidget::revokeRequested, this,
             &MessageListView::revokeRequested);
 
-    // 创建列表项
     QListWidgetItem *item = new QListWidgetItem();
-
-    // 获取widget的理想大小并设置给列表项
     QSize idealSize = messageWidget->sizeHint();
     item->setSizeHint(idealSize);
 
-    // 添加到列表
-    addItem(item);
-    setItemWidget(item, messageWidget);
+    // ── 按 id 排序插入 ──
+    // 找到第一个 id > message.id 的位置
+    int insertRow = count(); // 默认追加到末尾
+    for (auto jt = itemById_.upper_bound(message.id); jt != itemById_.end(); ++jt) {
+        // 找到该 item 在 list 中的 row
+        int row = this->row(jt->second);
+        if (row >= 0 && row < insertRow) {
+            insertRow = row;
+            break;
+        }
+    }
 
-    // 滚动到底部
-    scrollToBottom();
+    insertItem(insertRow, item);
+    setItemWidget(item, messageWidget);
+    itemById_[message.id] = item;
+
+    // 如果插入到末尾，滚动到底部
+    if (insertRow == count() - 1) {
+        scrollToBottom();
+    }
 }
 
 void MessageListView::setSelectedItem(MessageItemWidget *item) {
-    // 取消之前选中的项
     if (selectedItem_ && selectedItem_ != item) {
         selectedItem_->setSelected(false);
     }
-
-    // 设置新选中的项
     selectedItem_ = item;
-
     if (item) {
         item->setSelected(true);
     }

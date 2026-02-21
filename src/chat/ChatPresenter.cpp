@@ -32,23 +32,9 @@ std::string const& ChatPresenter::currentUserId() const { return userId_; }
 // ── 聊天初始化 ──
 
 void ChatPresenter::openChat(std::string const& chatId) {
-    auto it = cursors_.find(chatId);
-    if (it != cursors_.end() && it->second.end > 0) {
-        // 该聊天已被后台同步过 → 重新拉已有消息给 UI
-        auto result = client_.chat().fetchBefore(
-            token_, chatId, it->second.end + 1, 500);
-        if (result.ok() && !result.value().messages.empty()) {
-            Q_EMIT messagesInserted(QString::fromStdString(chatId),
-                                    result.value().messages);
-        }
-        return;
-    }
-
-    // 首次打开，尚无 cursor → 创建并做增量同步
-    if (it == cursors_.end()) {
+    if (cursors_.find(chatId) == cursors_.end()) {
         cursors_[chatId] = SyncCursor{};
     }
-    onNetworkMessageStored(chatId);
 }
 
 // ── 操作 ──

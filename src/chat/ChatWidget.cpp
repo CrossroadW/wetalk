@@ -46,6 +46,18 @@ void ChatWidget::setupUI() {
                                     "}");
     mainLayout->addWidget(messageListView_);
 
+    // toast 提示（覆盖在消息列表顶部，默认隐藏）
+    toastLabel_ = new QLabel(messageListView_);
+    toastLabel_->setAlignment(Qt::AlignCenter);
+    toastLabel_->setStyleSheet(
+        "QLabel {"
+        "    background-color: rgba(0,0,0,0.6); color: white;"
+        "    border-radius: 10px; padding: 6px 16px;"
+        "    font-size: 12px;"
+        "}");
+    toastLabel_->setFixedHeight(30);
+    toastLabel_->hide();
+
     // 回复指示器（默认隐藏）
     replyIndicator_ = new QWidget();
     auto* replyLayout = new QHBoxLayout(replyIndicator_);
@@ -111,6 +123,10 @@ void ChatWidget::setupConnections() {
     connect(messageListView_, &MessageListView::revokeRequested, this,
             &ChatWidget::onRevokeRequested);
 
+    // 滚动到顶部 → 加载历史
+    connect(messageListView_, &MessageListView::reachedTop, this,
+            &ChatWidget::onReachedTop);
+
     // 取消回复
     connect(cancelReplyButton_, &QPushButton::clicked, this,
             &ChatWidget::cancelReply);
@@ -145,6 +161,7 @@ void ChatWidget::setPresenter(ChatPresenter* presenter) {
                 this, &ChatWidget::onMessageRemoved,
                 static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
     }
+    initChat();
 }
 
 void ChatWidget::sendMessage() {
@@ -177,6 +194,7 @@ void ChatWidget::onMessagesInserted(QString chatId,
     for (auto const& msg : messages) {
         messageListView_->addMessage(msg, currentUser_);
     }
+    loading_ = false;
 }
 
 void ChatWidget::onMessageUpdated(QString chatId,
@@ -184,8 +202,8 @@ void ChatWidget::onMessageUpdated(QString chatId,
     if (!chatId_.empty() && chatId.toStdString() != chatId_) {
         return;
     }
-    // TODO: 找到对应消息项，更新显示（撤回/编辑/已读）
-    Q_UNUSED(message);
+    // upsert 语义：addMessage 会更新已有消息
+    messageListView_->addMessage(message, currentUser_);
 }
 
 void ChatWidget::onMessageRemoved(QString chatId, int64_t messageId) {
@@ -194,6 +212,41 @@ void ChatWidget::onMessageRemoved(QString chatId, int64_t messageId) {
     }
     // TODO: 从列表中移除对应消息项
     Q_UNUSED(messageId);
+}
+
+// ── 初始化 & 懒加载 ──
+
+void ChatWidget::initChat() {
+    if (!presenter_ || chatId_.empty() || initialized_) {
+        return;
+    }
+    initialized_ = true;
+    presenter_->openChat(chatId_);
+    presenter_->loadHistory(chatId_, 20);
+}
+
+void ChatWidget::onReachedTop() {
+    if (!presenter_ || chatId_.empty() || loading_) {
+        return;
+    }
+    loading_ = true;
+
+    // 显示 toast
+    if (toastLabel_) {
+        toastLabel_->setText(tr("加载历史消息..."));
+        toastLabel_->adjustSize();
+        // 居中于消息列表顶部
+        int x = (messageListView_->width() - toastLabel_->width()) / 2;
+        toastLabel_->move(x, 8);
+        toastLabel_->show();
+        QTimer::singleShot(1500, this, [this]() {
+            if (toastLabel_) {
+                toastLabel_->hide();
+            }
+        });
+    }
+
+    presenter_->loadHistory(chatId_, 20);
 }
 
 // ── 右键菜单处理 ──

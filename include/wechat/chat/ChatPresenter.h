@@ -41,7 +41,8 @@ public:
 
     // ── 聊天初始化 ──
 
-    /// 初始化聊天：若已有后台同步的消息则重新推送给 UI，否则做首次增量同步
+    /// 确保 chatId 的同步游标存在（不 fetch、不 emit）
+    /// ChatWidget 首次显示时应调用此方法，然后通过 loadHistory 拉取初始数据
     void openChat(std::string const& chatId);
 
     // ── 操作（均需显式传 chatId）──

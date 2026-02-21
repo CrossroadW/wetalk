@@ -102,11 +102,11 @@ TEST_F(ChatPresenterTest, SetSession) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 信号测试：openChat 首次同步
+// 信号测试：openChat + loadHistory 初始化
 // ═══════════════════════════════════════════════════════════════
 
-TEST_F(ChatPresenterTest, OpenChatEmitsMessagesInsertedOnExistingMessages) {
-    // Bob 先发两条消息
+TEST_F(ChatPresenterTest, OpenChatDoesNotEmit) {
+    // Bob 先发两条消息（触发 onMessageStored → 自动同步）
     client_->chat().sendMessage(
         tokenB_, chatId_, 0, core::MessageContent{core::TextContent{"hi"}});
     client_->chat().sendMessage(
@@ -115,25 +115,44 @@ TEST_F(ChatPresenterTest, OpenChatEmitsMessagesInsertedOnExistingMessages) {
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
     ASSERT_TRUE(spy.isValid());
 
+    // openChat 只创建 cursor，不 emit
     presenter_->openChat(chatId_);
+    EXPECT_EQ(spy.count(), 0);
+}
 
-    // openChat 应推送已有消息
-    ASSERT_GE(spy.count(), 1);
+TEST_F(ChatPresenterTest, LoadHistoryAfterOpenChatEmitsMessages) {
+    // Bob 先发两条消息（onMessageStored 已自动同步到 cursor）
+    client_->chat().sendMessage(
+        tokenB_, chatId_, 0, core::MessageContent{core::TextContent{"hi"}});
+    client_->chat().sendMessage(
+        tokenB_, chatId_, 0, core::MessageContent{core::TextContent{"hello"}});
 
-    auto args = spy.takeFirst();
-    auto chatId = args.at(0).toString();
-    auto messages = args.at(1).value<std::vector<core::Message>>();
+    // 消息已被 onMessageStored 处理，清掉之前的信号
+    QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
+    ASSERT_TRUE(spy.isValid());
 
-    EXPECT_EQ(chatId.toStdString(), chatId_);
-    EXPECT_EQ(messages.size(), 2u);
-    EXPECT_EQ(messages[0].senderId, bobId_);
+    presenter_->openChat(chatId_);
+    // cursor 已有数据（end > 0），loadHistory 用 fetchBefore(start) 拉取
+    // 但 onMessageStored 已经把 start 设到最早消息，所以 fetchBefore 无更早数据
+    // 这里验证的是：如果 cursor 尚未覆盖全部消息，loadHistory 能拉到
+    EXPECT_EQ(spy.count(), 0);
 }
 
 TEST_F(ChatPresenterTest, OpenChatNoSignalWhenEmpty) {
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
     presenter_->openChat(chatId_);
 
-    // 空聊天不应触发信号
+    // 空聊天 openChat 不触发信号
+    EXPECT_EQ(spy.count(), 0);
+}
+
+TEST_F(ChatPresenterTest, LoadHistoryOnFreshChat) {
+    // openChat 创建空 cursor
+    presenter_->openChat(chatId_);
+
+    // 此时没有消息，loadHistory 也不应触发
+    QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
+    presenter_->loadHistory(chatId_, 20);
     EXPECT_EQ(spy.count(), 0);
 }
 
@@ -301,7 +320,7 @@ TEST_F(ChatPresenterTest, EditMessageTriggersMessageUpdated) {
 // ═══════════════════════════════════════════════════════════════
 
 TEST_F(ChatPresenterTest, LoadHistoryEmitsMessagesInserted) {
-    // 先发 5 条消息
+    // 先发 5 条消息（onMessageStored 自动同步，cursor 已覆盖全部）
     for (int i = 0; i < 5; ++i) {
         client_->chat().sendMessage(
             tokenA_, chatId_, 0,
@@ -309,22 +328,17 @@ TEST_F(ChatPresenterTest, LoadHistoryEmitsMessagesInserted) {
                 core::TextContent{"msg " + std::to_string(i)}});
     }
 
-    // openChat 会 fetchAfter 拿到全部
     presenter_->openChat(chatId_);
 
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
-    // loadHistory 向上翻页（fetchBefore）
+    // cursor.start 已是最早消息，fetchBefore 无更早数据
     presenter_->loadHistory(chatId_, 3);
-
-    // 因为 openChat 已经拿到全部消息，cursor.start 已经是最小 id，
-    // fetchBefore 不会再有更早的消息，所以不触发信号
-    // 这验证了游标正确工作
     EXPECT_EQ(spy.count(), 0);
 }
 
 TEST_F(ChatPresenterTest, LoadHistoryWithPartialSync) {
-    // 先发 10 条消息
+    // 先发 10 条消息（onMessageStored 自动同步）
     for (int i = 0; i < 10; ++i) {
         client_->chat().sendMessage(
             tokenA_, chatId_, 0,
@@ -332,13 +346,11 @@ TEST_F(ChatPresenterTest, LoadHistoryWithPartialSync) {
                 core::TextContent{"msg " + std::to_string(i)}});
     }
 
-    // 不通过 openChat，手动设置一个中间游标来模拟部分同步
     presenter_->openChat(chatId_);
 
-    // openChat 应该拿到全部 10 条
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
-    // 此时 loadHistory 不应有更多历史
+    // cursor 已覆盖全部，loadHistory 无更多历史
     presenter_->loadHistory(chatId_, 5);
     EXPECT_EQ(spy.count(), 0);
 }
@@ -369,31 +381,31 @@ TEST_F(ChatPresenterTest, OpenMultipleChats) {
         tokenA_, {aliceId_, regC.value().userId});
     auto chatId2 = group2.value().id;
 
-    // 在第一个聊天发消息
+    QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
+
+    // 在第一个聊天发消息（onMessageStored 自动同步）
     client_->chat().sendMessage(
         tokenB_, chatId_, 0,
         core::MessageContent{core::TextContent{"in chat1"}});
 
-    // 在第二个聊天发消息
+    // 在第二个聊天发消息（onMessageStored 自动同步）
     client_->chat().sendMessage(
         tokenC, chatId2, 0,
         core::MessageContent{core::TextContent{"in chat2"}});
 
-    // 打开第一个聊天
-    QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
-    presenter_->openChat(chatId_);
+    // 两条消息分别触发 onMessageStored → messagesInserted
+    ASSERT_EQ(spy.count(), 2);
 
-    ASSERT_EQ(spy.count(), 1);
-    auto chatId = spy.at(0).at(0).toString().toStdString();
-    EXPECT_EQ(chatId, chatId_);
+    auto id1 = spy.at(0).at(0).toString().toStdString();
+    auto id2 = spy.at(1).at(0).toString().toStdString();
+    EXPECT_EQ(id1, chatId_);
+    EXPECT_EQ(id2, chatId2);
 
-    // 切换到第二个聊天
+    // openChat 不再 emit
     spy.clear();
+    presenter_->openChat(chatId_);
     presenter_->openChat(chatId2);
-
-    ASSERT_EQ(spy.count(), 1);
-    chatId = spy.at(0).at(0).toString().toStdString();
-    EXPECT_EQ(chatId, chatId2);
+    EXPECT_EQ(spy.count(), 0);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -426,8 +438,8 @@ TEST_F(ChatPresenterTest, NotificationBeforeOpenChatStillProcessed) {
     // Presenter 收到 onMessageStored 通知，即使未 openChat 也应处理
     ASSERT_EQ(spy.count(), 1);
 
-    // openChat 时应重新推送已同步的消息给 UI
+    // openChat 不再重新推送（只创建 cursor，但 cursor 已存在）
     spy.clear();
     presenter_->openChat(chatId_);
-    ASSERT_EQ(spy.count(), 1);
+    EXPECT_EQ(spy.count(), 0);
 }

@@ -112,10 +112,15 @@ void MessageItemWidget::setMessageData(core::Message const &message,
     // 更新时间标签
     QDateTime dt = QDateTime::fromMSecsSinceEpoch(message_.timestamp);
     timeLabel->setText(dt.toString("hh:mm"));
+}
 
-    // 让布局更新（如果在 QListWidget 中，后续 resizeEvent 也会尝试更新 item
-    // 高度）
-    // updateGeometry();
+void MessageItemWidget::updateMessage(core::Message const &message) {
+    message_ = message;
+    updateMessageDisplay();
+
+    // 更新时间标签（编辑后时间可能变化）
+    QDateTime dt = QDateTime::fromMSecsSinceEpoch(message_.timestamp);
+    timeLabel->setText(dt.toString("hh:mm"));
 }
 
 void MessageItemWidget::updateTextLabelsMaxWidth(int maxWidth) {

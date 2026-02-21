@@ -53,6 +53,9 @@ public:
     void setMessageData(core::Message const &message,
                         core::User const &currentUser);
 
+    /// 就地更新消息内容（撤回/编辑），保留 currentUser_ 和布局
+    void updateMessage(core::Message const &message);
+
     core::Message const &getMessage() const {
         return message_;
     }
