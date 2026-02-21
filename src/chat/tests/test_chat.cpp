@@ -101,11 +101,6 @@ TEST_F(ChatPresenterTest, SetSession) {
     EXPECT_EQ(presenter_->currentUserId(), aliceId_);
 }
 
-TEST_F(ChatPresenterTest, OpenChatSetsActiveId) {
-    presenter_->openChat(chatId_);
-    EXPECT_EQ(presenter_->activeChatId(), chatId_);
-}
-
 // ═══════════════════════════════════════════════════════════════
 // 信号测试：openChat 首次同步
 // ═══════════════════════════════════════════════════════════════
@@ -122,7 +117,7 @@ TEST_F(ChatPresenterTest, OpenChatEmitsMessagesInsertedOnExistingMessages) {
 
     presenter_->openChat(chatId_);
 
-    // openChat 应触发 fetchAfter 同步已有消息
+    // openChat 应推送已有消息
     ASSERT_GE(spy.count(), 1);
 
     auto args = spy.takeFirst();
@@ -152,7 +147,7 @@ TEST_F(ChatPresenterTest, SendMessageTriggersMessagesInserted) {
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
     ASSERT_TRUE(spy.isValid());
 
-    presenter_->sendTextMessage("hello bob!");
+    presenter_->sendTextMessage(chatId_, "hello bob!");
 
     // sendMessage → ChatService → onMessageStored → fetchAfter → messagesInserted
     ASSERT_EQ(spy.count(), 1);
@@ -170,7 +165,7 @@ TEST_F(ChatPresenterTest, SendMessageWithReply) {
     presenter_->openChat(chatId_);
 
     // 先发一条消息
-    presenter_->sendTextMessage("original");
+    presenter_->sendTextMessage(chatId_, "original");
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
     // 获取第一条消息的 id（通过网络层查询）
@@ -179,7 +174,7 @@ TEST_F(ChatPresenterTest, SendMessageWithReply) {
 
     // 发送回复
     presenter_->sendMessage(
-        core::MessageContent{core::TextContent{"reply"}}, originalId);
+        chatId_, core::MessageContent{core::TextContent{"reply"}}, originalId);
 
     ASSERT_EQ(spy.count(), 1);
     auto messages = spy.at(0).at(1).value<std::vector<core::Message>>();
@@ -191,9 +186,9 @@ TEST_F(ChatPresenterTest, SendMultipleMessages) {
 
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
-    presenter_->sendTextMessage("msg1");
-    presenter_->sendTextMessage("msg2");
-    presenter_->sendTextMessage("msg3");
+    presenter_->sendTextMessage(chatId_, "msg1");
+    presenter_->sendTextMessage(chatId_, "msg2");
+    presenter_->sendTextMessage(chatId_, "msg3");
 
     // 每次 sendMessage 都会触发一次 onMessageStored → messagesInserted
     ASSERT_EQ(spy.count(), 3);
@@ -238,7 +233,7 @@ TEST_F(ChatPresenterTest, SelfAndOtherMessagesSamePath) {
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
     // Alice 发
-    presenter_->sendTextMessage("from alice");
+    presenter_->sendTextMessage(chatId_, "from alice");
     // Bob 发
     client_->chat().sendMessage(
         tokenB_, chatId_, 0,
@@ -258,7 +253,7 @@ TEST_F(ChatPresenterTest, SelfAndOtherMessagesSamePath) {
 
 TEST_F(ChatPresenterTest, RevokeMessageTriggersMessageUpdated) {
     presenter_->openChat(chatId_);
-    presenter_->sendTextMessage("oops");
+    presenter_->sendTextMessage(chatId_, "oops");
 
     // 获取消息 id
     auto sync = client_->chat().fetchAfter(tokenA_, chatId_, 0, 50);
@@ -281,7 +276,7 @@ TEST_F(ChatPresenterTest, RevokeMessageTriggersMessageUpdated) {
 
 TEST_F(ChatPresenterTest, EditMessageTriggersMessageUpdated) {
     presenter_->openChat(chatId_);
-    presenter_->sendTextMessage("typo");
+    presenter_->sendTextMessage(chatId_, "typo");
 
     auto sync = client_->chat().fetchAfter(tokenA_, chatId_, 0, 50);
     auto msgId = sync.value().messages[0].id;
@@ -320,7 +315,7 @@ TEST_F(ChatPresenterTest, LoadHistoryEmitsMessagesInserted) {
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
     // loadHistory 向上翻页（fetchBefore）
-    presenter_->loadHistory(3);
+    presenter_->loadHistory(chatId_, 3);
 
     // 因为 openChat 已经拿到全部消息，cursor.start 已经是最小 id，
     // fetchBefore 不会再有更早的消息，所以不触发信号
@@ -344,7 +339,7 @@ TEST_F(ChatPresenterTest, LoadHistoryWithPartialSync) {
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
     // 此时 loadHistory 不应有更多历史
-    presenter_->loadHistory(5);
+    presenter_->loadHistory(chatId_, 5);
     EXPECT_EQ(spy.count(), 0);
 }
 
@@ -352,20 +347,16 @@ TEST_F(ChatPresenterTest, LoadHistoryWithPartialSync) {
 // 边界条件测试
 // ═══════════════════════════════════════════════════════════════
 
-TEST_F(ChatPresenterTest, SendBeforeOpenChatUsesEmptyActiveChatId) {
-    // 未 openChat 就发消息，activeChatId 为空
-    EXPECT_TRUE(presenter_->activeChatId().empty());
-
-    // sendMessage 会调用网络层，但 chatId 为空应该失败（不崩溃）
-    presenter_->sendTextMessage("orphan");
-    // 不崩溃即通过
+TEST_F(ChatPresenterTest, SendToEmptyChatIdDoesNotCrash) {
+    // 传空 chatId 发消息，不崩溃即通过
+    presenter_->sendTextMessage("", "orphan");
 }
 
-TEST_F(ChatPresenterTest, LoadHistoryBeforeOpenChat) {
+TEST_F(ChatPresenterTest, LoadHistoryWithEmptyChatId) {
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
-    // 未 openChat 就 loadHistory，应该安全返回
-    presenter_->loadHistory();
+    // 空 chatId loadHistory，应安全返回
+    presenter_->loadHistory("", 20);
     EXPECT_EQ(spy.count(), 0);
 }
 
@@ -403,7 +394,6 @@ TEST_F(ChatPresenterTest, OpenMultipleChats) {
     ASSERT_EQ(spy.count(), 1);
     chatId = spy.at(0).at(0).toString().toStdString();
     EXPECT_EQ(chatId, chatId2);
-    EXPECT_EQ(presenter_->activeChatId(), chatId2);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -418,7 +408,7 @@ TEST_F(ChatPresenterTest, MessageUpdatedNotFiredOnSend) {
     QSignalSpy removedSpy(presenter_.get(),
                            &chat::ChatPresenter::messageRemoved);
 
-    presenter_->sendTextMessage("hello");
+    presenter_->sendTextMessage(chatId_, "hello");
 
     // 发送消息只应触发 messagesInserted，不应触发 updated 或 removed
     EXPECT_EQ(updatedSpy.count(), 0);

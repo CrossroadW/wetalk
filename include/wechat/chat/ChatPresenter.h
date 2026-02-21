@@ -16,14 +16,16 @@ namespace chat {
 
 /// 聊天模块的 Presenter（MVP 中唯一的中间层）
 ///
-/// 合并了原 ChatManager（业务逻辑）+ ChatController（Qt 桥接）+ ChatSignals（信号集合）。
 /// 职责：
-///   1. 管理会话和同步游标
+///   1. 管理同步游标（每个聊天独立）
 ///   2. 调用网络层执行操作（发送/撤回/编辑）
 ///   3. 订阅网络层推送通知，同步后直接发出 Qt signals
 ///
-/// 所有数据变更必须经过网络层确认，自己发消息和收到别人消息走同一路径：
-///   sendMessage() → ChatService → onMessageStored → fetchAfter → messagesInserted
+/// 不持有"当前聊天"概念，所有操作显式传 chatId。
+/// 多个 ChatWidget 共享同一个 Presenter，各自按 chatId 过滤信号。
+///
+/// 发送路径：
+///   sendMessage(chatId) → ChatService → onMessageStored → fetchAfter → messagesInserted
 class ChatPresenter : public QObject {
     Q_OBJECT
 
@@ -37,17 +39,19 @@ public:
     void setSession(std::string const& token, std::string const& userId);
     [[nodiscard]] std::string const& currentUserId() const;
 
-    // ── 当前聊天 ──
+    // ── 聊天初始化 ──
 
+    /// 初始化聊天：若已有后台同步的消息则重新推送给 UI，否则做首次增量同步
     void openChat(std::string const& chatId);
-    [[nodiscard]] std::string const& activeChatId() const;
 
-    // ── 操作 ──
+    // ── 操作（均需显式传 chatId）──
 
-    void sendMessage(core::MessageContent const& content,
+    void sendMessage(std::string const& chatId,
+                     core::MessageContent const& content,
                      int64_t replyTo = 0);
-    void sendTextMessage(std::string const& text);
-    void loadHistory(int limit = 20);
+    void sendTextMessage(std::string const& chatId,
+                         std::string const& text);
+    void loadHistory(std::string const& chatId, int limit = 20);
     void revokeMessage(int64_t messageId);
     void editMessage(int64_t messageId,
                      core::MessageContent const& newContent);
@@ -68,7 +72,6 @@ private:
 
     std::string token_;
     std::string userId_;
-    std::string activeChatId_;
 
     struct SyncCursor {
         int64_t start = 0;

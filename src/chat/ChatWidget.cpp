@@ -137,13 +137,13 @@ void ChatWidget::setPresenter(ChatPresenter* presenter) {
     if (presenter_) {
         connect(presenter_, &ChatPresenter::messagesInserted,
                 this, &ChatWidget::onMessagesInserted,
-                Qt::QueuedConnection);
+                static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
         connect(presenter_, &ChatPresenter::messageUpdated,
                 this, &ChatWidget::onMessageUpdated,
-                Qt::QueuedConnection);
+                static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
         connect(presenter_, &ChatPresenter::messageRemoved,
                 this, &ChatWidget::onMessageRemoved,
-                Qt::QueuedConnection);
+                static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
     }
 }
 
@@ -157,10 +157,10 @@ void ChatWidget::sendMessage() {
         if (replyToMessageId_ != 0) {
             core::TextContent tc;
             tc.text = text.toStdString();
-            presenter_->sendMessage({tc}, replyToMessageId_);
+            presenter_->sendMessage(chatId_, {tc}, replyToMessageId_);
             cancelReply();
         } else {
-            presenter_->sendTextMessage(text.toStdString());
+            presenter_->sendTextMessage(chatId_, text.toStdString());
         }
     }
 

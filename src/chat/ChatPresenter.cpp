@@ -29,11 +29,9 @@ void ChatPresenter::setSession(std::string const& token,
 
 std::string const& ChatPresenter::currentUserId() const { return userId_; }
 
-// ── 当前聊天 ──
+// ── 聊天初始化 ──
 
 void ChatPresenter::openChat(std::string const& chatId) {
-    activeChatId_ = chatId;
-
     auto it = cursors_.find(chatId);
     if (it != cursors_.end() && it->second.end > 0) {
         // 该聊天已被后台同步过 → 重新拉已有消息给 UI
@@ -53,32 +51,30 @@ void ChatPresenter::openChat(std::string const& chatId) {
     onNetworkMessageStored(chatId);
 }
 
-std::string const& ChatPresenter::activeChatId() const {
-    return activeChatId_;
-}
-
 // ── 操作 ──
 
-void ChatPresenter::sendTextMessage(std::string const& text) {
+void ChatPresenter::sendTextMessage(std::string const& chatId,
+                                     std::string const& text) {
     core::TextContent tc;
     tc.text = text;
-    sendMessage({tc});
+    sendMessage(chatId, {tc});
 }
 
-void ChatPresenter::sendMessage(core::MessageContent const& content,
+void ChatPresenter::sendMessage(std::string const& chatId,
+                                 core::MessageContent const& content,
                                  int64_t replyTo) {
-    client_.chat().sendMessage(token_, activeChatId_, replyTo, content);
+    client_.chat().sendMessage(token_, chatId, replyTo, content);
 }
 
-void ChatPresenter::loadHistory(int limit) {
-    if (activeChatId_.empty() || token_.empty()) {
+void ChatPresenter::loadHistory(std::string const& chatId, int limit) {
+    if (chatId.empty() || token_.empty()) {
         return;
     }
 
-    auto& cursor = cursors_[activeChatId_];
+    auto& cursor = cursors_[chatId];
     int64_t beforeId = cursor.start > 0 ? cursor.start : INT64_MAX;
     auto result =
-        client_.chat().fetchBefore(token_, activeChatId_, beforeId, limit);
+        client_.chat().fetchBefore(token_, chatId, beforeId, limit);
 
     if (result.ok() && !result.value().messages.empty()) {
         auto& msgs = result.value().messages;
@@ -86,7 +82,7 @@ void ChatPresenter::loadHistory(int limit) {
         if (cursor.end == 0) {
             cursor.end = msgs.back().id;
         }
-        Q_EMIT messagesInserted(QString::fromStdString(activeChatId_), msgs);
+        Q_EMIT messagesInserted(QString::fromStdString(chatId), msgs);
     }
 }
 
