@@ -40,7 +40,7 @@ void DatabaseManager::initSchema() {
         );
 
         CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
             sender_id INTEGER,
             chat_id INTEGER NOT NULL,
             reply_to INTEGER DEFAULT 0,

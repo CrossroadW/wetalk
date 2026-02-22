@@ -27,10 +27,6 @@ public:
     // ── 时间 ──
      int64_t now();
 
-    // ── ID 生成 ──
-    /// 生成递增 ID（模拟 SQLite rowid）
-    int64_t nextId();
-
     // ── 用户 / 认证 ──
 
     /// 注册，返回 userId
@@ -97,8 +93,6 @@ public:
                                    int64_t beforeTs, int limit);
 
 private:
-    int64_t idCounter;
-
     // ── SQLite 存储 ──
     storage::DatabaseManager dbm_;
     storage::UserDao userDao_;

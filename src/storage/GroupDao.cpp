@@ -7,18 +7,19 @@ GroupDao::GroupDao(SQLite::Database& db) : db_(db) {}
 
 // ── groups_ 表 ──
 
-void GroupDao::insertGroup(const core::Group& group, int64_t now) {
+int64_t GroupDao::insertGroup(const core::Group& group, int64_t now) {
     SQLite::Statement stmt(db_,
-        "INSERT OR REPLACE INTO groups_ (id, owner_id, updated_at) VALUES (?, ?, ?)");
-    stmt.bind(1, group.id);
-    stmt.bind(2, group.ownerId);
-    stmt.bind(3, now);
+        "INSERT INTO groups_ (owner_id, updated_at) VALUES (?, ?)");
+    stmt.bind(1, group.ownerId);
+    stmt.bind(2, now);
     stmt.exec();
+    auto id = db_.getLastInsertRowid();
 
     // 同时插入成员
     for (auto uid : group.memberIds) {
-        addMember(group.id, uid, now);
+        addMember(id, uid, now);
     }
+    return id;
 }
 
 void GroupDao::updateOwner(int64_t groupId, int64_t ownerId, int64_t now) {

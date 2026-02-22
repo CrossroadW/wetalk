@@ -14,7 +14,8 @@ public:
     explicit GroupDao(SQLite::Database& db);
 
     // ── groups_ 表 ──
-    void insertGroup(const core::Group& group, int64_t now);
+    /// 插入群组，返回自增 ID
+    int64_t insertGroup(const core::Group& group, int64_t now);
     void updateOwner(int64_t groupId, int64_t ownerId, int64_t now);
     void removeGroup(int64_t groupId);
     std::optional<core::Group> findGroupById(int64_t id);

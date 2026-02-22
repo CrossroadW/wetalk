@@ -13,7 +13,8 @@ class UserDao {
 public:
     explicit UserDao(SQLite::Database& db);
 
-    void insert(const core::User& user);
+    /// 插入用户，返回自增 ID
+    int64_t insert(const core::User& user);
     void remove(int64_t id);
     std::optional<core::User> findById(int64_t id);
     std::vector<core::User> findAll();

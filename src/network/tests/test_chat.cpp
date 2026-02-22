@@ -187,9 +187,10 @@ TEST_F(ChatTest, SendMessageReplyTo) {
 }
 
 TEST_F(ChatTest, SendEmptyMessage) {
-    auto token = registerAndLogin("alice", "p");
+    auto reg = client->auth().registerUser("alice", "p");
+    auto token = reg.value().token;
 
-    auto group = client->groups().createGroup(token, {regA.value().userId});
+    auto group = client->groups().createGroup(token, {reg.value().userId});
     auto chatId = group.value().id;
 
     MessageContent content;

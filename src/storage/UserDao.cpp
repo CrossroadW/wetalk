@@ -5,18 +5,10 @@ namespace storage {
 
 UserDao::UserDao(SQLite::Database& db) : db_(db) {}
 
-void UserDao::insert(const core::User& user) {
-    if (user.id == 0) {
-        // 自增插入
-        SQLite::Statement stmt(db_, "INSERT INTO users DEFAULT VALUES");
-        stmt.exec();
-    } else {
-        // 指定 id 插入
-        SQLite::Statement stmt(db_,
-            "INSERT OR REPLACE INTO users (id) VALUES (?)");
-        stmt.bind(1, user.id);
-        stmt.exec();
-    }
+int64_t UserDao::insert(const core::User& user) {
+    SQLite::Statement stmt(db_, "INSERT INTO users DEFAULT VALUES");
+    stmt.exec();
+    return db_.getLastInsertRowid();
 }
 
 void UserDao::remove(int64_t id) {

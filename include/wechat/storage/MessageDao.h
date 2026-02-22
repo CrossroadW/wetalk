@@ -18,7 +18,8 @@ class MessageDao {
 public:
     explicit MessageDao(SQLite::Database& db);
 
-    void insert(const core::Message& msg);
+    /// 插入消息，返回自增 ID
+    int64_t insert(const core::Message& msg);
     void update(const core::Message& msg);
     void remove(int64_t id);
     std::optional<core::Message> findById(int64_t id);

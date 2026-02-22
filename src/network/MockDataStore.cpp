@@ -6,8 +6,7 @@
 namespace wechat::network {
 
 MockDataStore::MockDataStore()
-    : idCounter(0),
-      dbm_(":memory:"),
+    : dbm_(":memory:"),
       userDao_(dbm_.db()),
       friendshipDao_(dbm_.db()),
       groupDao_(dbm_.db()),
@@ -21,17 +20,12 @@ int64_t MockDataStore::now() {
         .count();
 }
 
-int64_t MockDataStore::nextId() {
-    return ++idCounter;
-}
-
 // ── 用户 / 认证 ──
 
 int64_t MockDataStore::addUser(std::string const &username,
                                std::string const &password) {
-    auto id = nextId();
-    core::User user{id};
-    userDao_.insert(user);
+    core::User user{};
+    auto id = userDao_.insert(user);
     passwords_[username] = password;
     userIdToName_[id] = username;
     return id;
@@ -50,7 +44,8 @@ int64_t MockDataStore::authenticate(std::string const &username,
 }
 
 std::string MockDataStore::createToken(int64_t userId) {
-    auto token = "tok_" + std::to_string(nextId());
+    static int64_t tokenCounter = 0;
+    auto token = "tok_" + std::to_string(++tokenCounter);
     tokens_[token] = userId;
     return token;
 }
@@ -110,9 +105,9 @@ MockDataStore::getFriendIds(int64_t userId) {
 core::Group &
 MockDataStore::createGroup(int64_t ownerId,
                            std::vector<int64_t> const &memberIds) {
-    auto id = nextId();
-    core::Group group{id, ownerId, memberIds};
-    groupDao_.insertGroup(group, now());
+    core::Group group{0, ownerId, memberIds};
+    auto id = groupDao_.insertGroup(group, now());
+    group.id = id;
     groupCache_[id] = group;
     return groupCache_[id];
 }
@@ -158,11 +153,11 @@ core::Message &MockDataStore::addMessage(int64_t senderId,
                                          int64_t chatId,
                                          int64_t replyTo,
                                          core::MessageContent const &content) {
-    auto id = nextId();
     auto ts = now();
-    core::Message msg{id, senderId, chatId, replyTo, content,
+    core::Message msg{0, senderId, chatId, replyTo, content,
                       ts, 0,        false,  0,       0};
-    messageDao_.insert(msg);
+    auto id = messageDao_.insert(msg);
+    msg.id = id;
     messageCache_[id] = msg;
     return messageCache_[id];
 }
@@ -201,7 +196,8 @@ std::vector<core::Message> MockDataStore::getMessagesUpdatedAfter(
 Moment &MockDataStore::addMoment(int64_t authorId,
                                  std::string const &text,
                                  std::vector<std::string> const &imageIds) {
-    auto id = nextId();
+    static int64_t momentCounter = 0;
+    auto id = ++momentCounter;
     auto ts = now();
     Moment moment{id, authorId, text, imageIds, ts, {}, {}};
     auto [it, _] = moments_.emplace(id, std::move(moment));

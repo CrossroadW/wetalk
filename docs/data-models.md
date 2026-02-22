@@ -148,7 +148,7 @@ CREATE TABLE friendships (
 );
 
 CREATE TABLE messages (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     sender_id INTEGER,
     chat_id INTEGER NOT NULL,
     reply_to INTEGER DEFAULT 0, -- 引用消息 id，0 = 无引用

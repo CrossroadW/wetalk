@@ -79,24 +79,24 @@ core::MessageContent deserializeContent(const std::string& str) {
 
 MessageDao::MessageDao(SQLite::Database& db) : db_(db) {}
 
-void MessageDao::insert(const core::Message& msg) {
+int64_t MessageDao::insert(const core::Message& msg) {
     SQLite::Statement stmt(db_, R"(
-        INSERT OR REPLACE INTO messages
-        (id, sender_id, chat_id, reply_to, content_data, timestamp,
+        INSERT INTO messages
+        (sender_id, chat_id, reply_to, content_data, timestamp,
          edited_at, revoked, read_count, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     )");
-    stmt.bind(1, msg.id);
-    stmt.bind(2, msg.senderId);
-    stmt.bind(3, msg.chatId);
-    stmt.bind(4, msg.replyTo);
-    stmt.bind(5, serializeContent(msg.content));
-    stmt.bind(6, msg.timestamp);
-    stmt.bind(7, msg.editedAt);
-    stmt.bind(8, msg.revoked ? 1 : 0);
-    stmt.bind(9, static_cast<int>(msg.readCount));
-    stmt.bind(10, msg.updatedAt);
+    stmt.bind(1, msg.senderId);
+    stmt.bind(2, msg.chatId);
+    stmt.bind(3, msg.replyTo);
+    stmt.bind(4, serializeContent(msg.content));
+    stmt.bind(5, msg.timestamp);
+    stmt.bind(6, msg.editedAt);
+    stmt.bind(7, msg.revoked ? 1 : 0);
+    stmt.bind(8, static_cast<int>(msg.readCount));
+    stmt.bind(9, msg.updatedAt);
     stmt.exec();
+    return db_.getLastInsertRowid();
 }
 
 void MessageDao::update(const core::Message& msg) {
