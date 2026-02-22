@@ -123,7 +123,14 @@ struct Moment {
 
 ```sql
 CREATE TABLE users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL
+);
+
+CREATE TABLE tokens (
+    token TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL
 );
 
 CREATE TABLE groups_ (

@@ -6,7 +6,6 @@
 #include <wechat/network/MomentService.h>
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <cstdint>
-#include <map>
 #include <optional>
 #include <set>
 #include <string>
@@ -91,10 +90,6 @@ private:
     core::Message rowToMessage(SQLite::Statement& stmt);
     Moment loadMoment(int64_t momentId);
 
-    // ── 内存辅助（认证）──
-    std::map<std::string, std::string> passwords_;
-    std::map<int64_t, std::string> userIdToName_;
-    std::map<std::string, int64_t> tokens_;
 };
 
 } } // namespace wechat::network

@@ -93,7 +93,14 @@ MockDataStore::MockDataStore()
 void MockDataStore::initSchema() {
     db_.exec(R"(
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS tokens (
+            token TEXT PRIMARY KEY,
+            user_id INTEGER NOT NULL
         );
 
         CREATE TABLE IF NOT EXISTS groups_ (
@@ -189,40 +196,47 @@ std::pair<int64_t, int64_t> MockDataStore::orderedPair(int64_t a, int64_t b) {
 
 int64_t MockDataStore::addUser(std::string const &username,
                                std::string const &password) {
-    SQLite::Statement stmt(db_, "INSERT INTO users DEFAULT VALUES");
+    SQLite::Statement stmt(db_,
+        "INSERT INTO users (username, password) VALUES (?, ?)");
+    stmt.bind(1, username);
+    stmt.bind(2, password);
     stmt.exec();
-    auto id = db_.getLastInsertRowid();
-    passwords_[username] = password;
-    userIdToName_[id] = username;
-    return id;
+    return db_.getLastInsertRowid();
 }
 
 int64_t MockDataStore::authenticate(std::string const &username,
                                     std::string const &password) {
-    auto it = passwords_.find(username);
-    if (it == passwords_.end() || it->second != password) {
-        return 0;
-    }
-    for (auto &[uid, name] : userIdToName_) {
-        if (name == username) return uid;
-    }
-    return 0;
+    SQLite::Statement stmt(db_,
+        "SELECT id FROM users WHERE username = ? AND password = ?");
+    stmt.bind(1, username);
+    stmt.bind(2, password);
+    if (!stmt.executeStep()) return 0;
+    return stmt.getColumn(0).getInt64();
 }
 
 std::string MockDataStore::createToken(int64_t userId) {
     static int64_t tokenCounter = 0;
     auto token = "tok_" + std::to_string(++tokenCounter);
-    tokens_[token] = userId;
+    SQLite::Statement stmt(db_,
+        "INSERT INTO tokens (token, user_id) VALUES (?, ?)");
+    stmt.bind(1, token);
+    stmt.bind(2, userId);
+    stmt.exec();
     return token;
 }
 
 int64_t MockDataStore::resolveToken(std::string const &token) {
-    auto it = tokens_.find(token);
-    return it != tokens_.end() ? it->second : 0;
+    SQLite::Statement stmt(db_,
+        "SELECT user_id FROM tokens WHERE token = ?");
+    stmt.bind(1, token);
+    if (!stmt.executeStep()) return 0;
+    return stmt.getColumn(0).getInt64();
 }
 
 void MockDataStore::removeToken(std::string const &token) {
-    tokens_.erase(token);
+    SQLite::Statement stmt(db_, "DELETE FROM tokens WHERE token = ?");
+    stmt.bind(1, token);
+    stmt.exec();
 }
 
 std::optional<core::User> MockDataStore::findUser(int64_t userId) {
@@ -233,17 +247,14 @@ std::optional<core::User> MockDataStore::findUser(int64_t userId) {
 }
 
 std::vector<core::User> MockDataStore::searchUsers(std::string const &keyword) {
-    SQLite::Statement stmt(db_, "SELECT id FROM users");
+    SQLite::Statement stmt(db_,
+        "SELECT id, username FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?");
+    auto pattern = "%" + keyword + "%";
+    stmt.bind(1, pattern);
+    stmt.bind(2, pattern);
     std::vector<core::User> result;
     while (stmt.executeStep()) {
-        auto id = stmt.getColumn(0).getInt64();
-        auto nameIt = userIdToName_.find(id);
-        std::string name = nameIt != userIdToName_.end() ? nameIt->second : "";
-        auto idStr = std::to_string(id);
-        if (name.find(keyword) != std::string::npos ||
-            idStr.find(keyword) != std::string::npos) {
-            result.push_back(core::User{id});
-        }
+        result.push_back(core::User{stmt.getColumn(0).getInt64()});
     }
     return result;
 }
