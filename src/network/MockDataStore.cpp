@@ -196,40 +196,128 @@ std::vector<core::Message> MockDataStore::getMessagesUpdatedAfter(
 Moment &MockDataStore::addMoment(int64_t authorId,
                                  std::string const &text,
                                  std::vector<std::string> const &imageIds) {
-    static int64_t momentCounter = 0;
-    auto id = ++momentCounter;
     auto ts = now();
-    Moment moment{id, authorId, text, imageIds, ts, {}, {}};
-    auto [it, _] = moments_.emplace(id, std::move(moment));
-    momentTimeline_.insert(momentTimeline_.begin(), id);
-    return it->second;
+    // 插入 moments 表
+    SQLite::Statement stmt(dbm_.db(),
+        "INSERT INTO moments (author_id, text, timestamp) VALUES (?, ?, ?)");
+    stmt.bind(1, authorId);
+    stmt.bind(2, text);
+    stmt.bind(3, ts);
+    stmt.exec();
+    auto id = dbm_.db().getLastInsertRowid();
+
+    // 插入 moment_images
+    for (int i = 0; i < static_cast<int>(imageIds.size()); ++i) {
+        SQLite::Statement imgStmt(dbm_.db(),
+            "INSERT INTO moment_images (moment_id, image_id, sort_order) VALUES (?, ?, ?)");
+        imgStmt.bind(1, id);
+        imgStmt.bind(2, imageIds[i]);
+        imgStmt.bind(3, i);
+        imgStmt.exec();
+    }
+
+    momentCache_[id] = Moment{id, authorId, text, imageIds, ts, {}, {}};
+    return momentCache_[id];
+}
+
+Moment MockDataStore::loadMoment(int64_t momentId) {
+    Moment m;
+    m.id = momentId;
+
+    // 基本信息
+    SQLite::Statement stmt(dbm_.db(),
+        "SELECT author_id, text, timestamp FROM moments WHERE id = ?");
+    stmt.bind(1, momentId);
+    if (!stmt.executeStep()) return m;
+    m.authorId = stmt.getColumn(0).getInt64();
+    m.text = stmt.getColumn(1).getString();
+    m.timestamp = stmt.getColumn(2).getInt64();
+
+    // images
+    SQLite::Statement imgStmt(dbm_.db(),
+        "SELECT image_id FROM moment_images WHERE moment_id = ? ORDER BY sort_order");
+    imgStmt.bind(1, momentId);
+    while (imgStmt.executeStep()) {
+        m.imageIds.push_back(imgStmt.getColumn(0).getString());
+    }
+
+    // likes
+    SQLite::Statement likeStmt(dbm_.db(),
+        "SELECT user_id FROM moment_likes WHERE moment_id = ?");
+    likeStmt.bind(1, momentId);
+    while (likeStmt.executeStep()) {
+        m.likedBy.push_back(likeStmt.getColumn(0).getInt64());
+    }
+
+    // comments
+    SQLite::Statement cmtStmt(dbm_.db(),
+        "SELECT id, author_id, text, timestamp FROM moment_comments WHERE moment_id = ? ORDER BY id");
+    cmtStmt.bind(1, momentId);
+    while (cmtStmt.executeStep()) {
+        m.comments.push_back({
+            cmtStmt.getColumn(0).getInt64(),
+            cmtStmt.getColumn(1).getInt64(),
+            cmtStmt.getColumn(2).getString(),
+            cmtStmt.getColumn(3).getInt64()
+        });
+    }
+
+    return m;
 }
 
 Moment *MockDataStore::findMoment(int64_t momentId) {
-    auto it = moments_.find(momentId);
-    return it != moments_.end() ? &it->second : nullptr;
+    // 从 SQLite 加载到缓存
+    SQLite::Statement stmt(dbm_.db(),
+        "SELECT id FROM moments WHERE id = ?");
+    stmt.bind(1, momentId);
+    if (!stmt.executeStep()) return nullptr;
+    momentCache_[momentId] = loadMoment(momentId);
+    return &momentCache_[momentId];
+}
+
+bool MockDataStore::hasLiked(int64_t momentId, int64_t userId) {
+    SQLite::Statement stmt(dbm_.db(),
+        "SELECT 1 FROM moment_likes WHERE moment_id = ? AND user_id = ?");
+    stmt.bind(1, momentId);
+    stmt.bind(2, userId);
+    return stmt.executeStep();
+}
+
+void MockDataStore::addLike(int64_t momentId, int64_t userId) {
+    SQLite::Statement stmt(dbm_.db(),
+        "INSERT OR IGNORE INTO moment_likes (moment_id, user_id) VALUES (?, ?)");
+    stmt.bind(1, momentId);
+    stmt.bind(2, userId);
+    stmt.exec();
+}
+
+int64_t MockDataStore::addComment(int64_t momentId, int64_t authorId,
+                                  const std::string& text) {
+    auto ts = now();
+    SQLite::Statement stmt(dbm_.db(),
+        "INSERT INTO moment_comments (moment_id, author_id, text, timestamp) VALUES (?, ?, ?, ?)");
+    stmt.bind(1, momentId);
+    stmt.bind(2, authorId);
+    stmt.bind(3, text);
+    stmt.bind(4, ts);
+    stmt.exec();
+    return dbm_.db().getLastInsertRowid();
 }
 
 std::vector<Moment>
 MockDataStore::getMoments(std::set<int64_t> const &visibleUserIds,
                           int64_t beforeTs, int limit) {
+    // 查询可见用户的动态，按时间倒序
     std::vector<Moment> result;
-    for (auto &id: momentTimeline_) {
-        auto it = moments_.find(id);
-        if (it == moments_.end()) {
-            continue;
-        }
-        auto &m = it->second;
-        if (m.timestamp >= beforeTs) {
-            continue;
-        }
-        if (!visibleUserIds.contains(m.authorId)) {
-            continue;
-        }
-        result.push_back(m);
-        if (static_cast<int>(result.size()) >= limit) {
-            break;
-        }
+    SQLite::Statement stmt(dbm_.db(),
+        "SELECT id FROM moments WHERE timestamp < ? ORDER BY timestamp DESC");
+    stmt.bind(1, beforeTs);
+    while (stmt.executeStep()) {
+        auto id = stmt.getColumn(0).getInt64();
+        auto m = loadMoment(id);
+        if (!visibleUserIds.contains(m.authorId)) continue;
+        result.push_back(std::move(m));
+        if (static_cast<int>(result.size()) >= limit) break;
     }
     return result;
 }

@@ -49,11 +49,10 @@ VoidResult MockMomentService::likeMoment(const std::string& token,
     if (!moment)
         return {ErrorCode::NotFound, "moment not found"};
 
-    auto& likes = moment->likedBy;
-    if (std::find(likes.begin(), likes.end(), userId) != likes.end())
+    if (store->hasLiked(momentId, userId))
         return {ErrorCode::AlreadyExists, "already liked"};
 
-    likes.push_back(userId);
+    store->addLike(momentId, userId);
     return success();
 }
 
@@ -71,12 +70,13 @@ Result<Moment::Comment> MockMomentService::commentMoment(
     if (text.empty())
         return {ErrorCode::InvalidArgument, "comment text required"};
 
-    static int64_t commentCounter = 0;
-    auto commentId = ++commentCounter;
-    auto ts = store->now();
-    Moment::Comment comment{commentId, userId, text, ts};
-    moment->comments.push_back(comment);
-    return comment;
+    auto commentId = store->addComment(momentId, userId, text);
+    // 重新加载获取完整 comment（含数据库生成的 timestamp）
+    auto* updated = store->findMoment(momentId);
+    for (auto const& c : updated->comments) {
+        if (c.id == commentId) return c;
+    }
+    return Moment::Comment{commentId, userId, text, store->now()};
 }
 
 } // namespace network

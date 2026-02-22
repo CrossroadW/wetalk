@@ -89,6 +89,10 @@ public:
                       const std::string& text,
                       const std::vector<std::string>& imageIds);
     Moment* findMoment(int64_t momentId);
+    bool hasLiked(int64_t momentId, int64_t userId);
+    void addLike(int64_t momentId, int64_t userId);
+    int64_t addComment(int64_t momentId, int64_t authorId,
+                       const std::string& text);
     std::vector<Moment> getMoments(const std::set<int64_t>& visibleUserIds,
                                    int64_t beforeTs, int limit);
 
@@ -114,9 +118,11 @@ private:
     // findMessage / addMessage 返回指针/引用需要稳定地址
     std::map<int64_t, core::Message> messageCache_;
 
-    // ── 朋友圈（无 DAO，纯内存）──
-    std::map<int64_t, Moment> moments_;
-    std::vector<int64_t> momentTimeline_;
+    // ── 朋友圈（SQLite 存储，缓存用于返回指针/引用）──
+    std::map<int64_t, Moment> momentCache_;
+
+    // ── 内部辅助 ──
+    Moment loadMoment(int64_t momentId);
 };
 
 } } // namespace wechat::network

@@ -159,9 +159,10 @@ CREATE TABLE messages (
 );
 
 CREATE TABLE moments (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     author_id INTEGER NOT NULL,
     text TEXT NOT NULL DEFAULT '',
+    timestamp INTEGER NOT NULL,
     updated_at INTEGER DEFAULT 0
 );
 
@@ -179,10 +180,11 @@ CREATE TABLE moment_likes (
 );
 
 CREATE TABLE moment_comments (
-    id INTEGER PRIMARY KEY,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     moment_id INTEGER NOT NULL,
     author_id INTEGER NOT NULL,
     text TEXT NOT NULL,
+    timestamp INTEGER NOT NULL
 );
 
 CREATE INDEX idx_group_members_user ON group_members(user_id);
@@ -191,6 +193,7 @@ CREATE INDEX idx_messages_chat ON messages(chat_id, id);
 CREATE INDEX idx_messages_reply ON messages(reply_to);
 CREATE INDEX idx_messages_updated ON messages(chat_id, updated_at);
 
+CREATE INDEX idx_moments_author ON moments(author_id);
 CREATE INDEX idx_moment_comments_moment ON moment_comments(moment_id);
 ```
 

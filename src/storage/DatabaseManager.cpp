@@ -60,6 +60,40 @@ void DatabaseManager::initSchema() {
             ON messages(reply_to);
         CREATE INDEX IF NOT EXISTS idx_messages_updated
             ON messages(chat_id, updated_at);
+
+        CREATE TABLE IF NOT EXISTS moments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            author_id INTEGER NOT NULL,
+            text TEXT NOT NULL DEFAULT '',
+            timestamp INTEGER NOT NULL,
+            updated_at INTEGER DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS moment_images (
+            moment_id INTEGER NOT NULL,
+            image_id TEXT NOT NULL,
+            sort_order INTEGER DEFAULT 0,
+            PRIMARY KEY (moment_id, image_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS moment_likes (
+            moment_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            PRIMARY KEY (moment_id, user_id)
+        );
+
+        CREATE TABLE IF NOT EXISTS moment_comments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            moment_id INTEGER NOT NULL,
+            author_id INTEGER NOT NULL,
+            text TEXT NOT NULL,
+            timestamp INTEGER NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_moments_author
+            ON moments(author_id);
+        CREATE INDEX IF NOT EXISTS idx_moment_comments_moment
+            ON moment_comments(moment_id);
     )");
 }
 
