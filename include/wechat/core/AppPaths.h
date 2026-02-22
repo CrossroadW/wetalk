@@ -30,6 +30,10 @@ public:
 
     /// 配置目录: {dataDir}/config/
     static std::string configDir();
+
+    /// 根据文件内容生成资源 ID: {md5_of_content}.{ext}
+    /// 同一文件内容始终生成相同 ID（内容寻址）
+    static std::string generateResourceId(std::string const& filePath);
 };
 
 } // namespace core
