@@ -2,8 +2,6 @@
 
 #include <wechat/core/AppPaths.h>
 
-#include <QFileInfo>
-
 namespace wechat {
 namespace chat {
 
@@ -39,23 +37,10 @@ QString extractTextFromContent(core::MessageContent const &content) {
 
 // 辅助函数：获取资源路径
 QString getResourcePath(core::ResourceContent const &resource) {
-    auto resourceId = resource.resourceId;
-    if (resourceId.empty()) return {};
-
-    // 如果 resourceId 已经是绝对路径，直接返回
-    if (resourceId[0] == '/' || resourceId.find(":/") != std::string::npos ||
-        resourceId.find(":\\") != std::string::npos) {
-        return QString::fromStdString(resourceId);
-    }
-
-    // 通过 AppPaths 拼接: {dataDir}/resources/{resourceId}
-    auto path = QString::fromStdString(core::AppPaths::resourcePath(resourceId));
-    if (QFileInfo::exists(path)) {
-        return path;
-    }
-
-    // fallback: 返回原始 resourceId
-    return QString::fromStdString(resourceId);
+    return QString::fromStdString(
+        core::AppPaths::resourcePath(
+            resource.resourceId,
+            core::toExtension(resource.subtype)));
 }
 
 } // namespace chat

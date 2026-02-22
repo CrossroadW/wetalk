@@ -1,4 +1,5 @@
 #include <wechat/core/AppPaths.h>
+#include <wechat/core/Message.h>
 
 #include <filesystem>
 #include <iostream>
@@ -24,12 +25,21 @@ int main() {
         if (!entry.is_regular_file()) continue;
 
         auto oldPath = entry.path();
-        auto expectedName = AppPaths::generateResourceId(oldPath.string());
-        if (expectedName.empty()) {
+
+        // 生成纯 MD5 哈希
+        auto hash = AppPaths::generateResourceId(oldPath.string());
+        if (hash.empty()) {
             std::cerr << "  SKIP (cannot read): " << oldPath.filename() << "\n";
             ++skipped;
             continue;
         }
+
+        // 通过 subtypeFromExtension → toExtension 规范化扩展名
+        // 例如 .jpeg → .jpg
+        auto subtype = wechat::core::subtypeFromExtension(
+            oldPath.extension().string());
+        auto canonicalExt = wechat::core::toExtension(subtype);
+        auto expectedName = hash + std::string(canonicalExt);
 
         if (oldPath.filename().string() == expectedName) {
             std::cout << "  OK     " << oldPath.filename() << "\n";
@@ -40,7 +50,8 @@ int main() {
         auto newPath = oldPath.parent_path() / expectedName;
         if (fs::exists(newPath)) {
             std::cout << "  DUP    " << oldPath.filename()
-                      << " -> " << expectedName << " (already exists, removing)\n";
+                      << " -> " << expectedName
+                      << " (already exists, removing)\n";
             fs::remove(oldPath);
             ++renamed;
             continue;

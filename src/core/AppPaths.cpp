@@ -22,8 +22,11 @@ std::string AppPaths::dataDir() {
     return dataDir_.string();
 }
 
-std::string AppPaths::resourcePath(std::string const& resourceId) {
-    return (dataDir_ / "data" / "resources" / resourceId).string();
+std::string AppPaths::resourcePath(std::string const& resourceId,
+                                   std::string_view extension) {
+    return (dataDir_ / "data" / "resources" /
+            (resourceId + std::string(extension)))
+        .string();
 }
 
 std::string AppPaths::cacheDir() {
@@ -35,8 +38,6 @@ std::string AppPaths::configDir() {
 }
 
 std::string AppPaths::generateResourceId(std::string const& filePath) {
-    namespace fs = std::filesystem;
-
     std::ifstream file(filePath, std::ios::binary);
     if (!file) return {};
 
@@ -57,9 +58,7 @@ std::string AppPaths::generateResourceId(std::string const& filePath) {
            << static_cast<int>(bytes[i]);
     }
 
-    // 拼接原扩展名: {md5}.{ext}
-    auto ext = fs::path(filePath).extension().string();
-    return ss.str() + ext;
+    return ss.str();
 }
 
 } // namespace core
