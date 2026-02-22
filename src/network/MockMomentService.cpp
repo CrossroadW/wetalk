@@ -71,7 +71,8 @@ Result<Moment::Comment> MockMomentService::commentMoment(
     if (text.empty())
         return {ErrorCode::InvalidArgument, "comment text required"};
 
-    auto commentId = store->nextId();
+    static int64_t commentCounter = 0;
+    auto commentId = ++commentCounter;
     auto ts = store->now();
     Moment::Comment comment{commentId, userId, text, ts};
     moment->comments.push_back(comment);
