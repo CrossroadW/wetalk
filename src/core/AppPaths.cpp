@@ -6,35 +6,27 @@ namespace wechat {
 namespace core {
 
 namespace {
-std::string dataDir_;
+std::filesystem::path dataDir_;
 } // namespace
 
 void AppPaths::setDataDir(std::string const& dir) {
-    dataDir_ = dir;
-    // 去除末尾分隔符
-    while (!dataDir_.empty() &&
-           (dataDir_.back() == '/' || dataDir_.back() == '\\')) {
-        dataDir_.pop_back();
-    }
+    dataDir_ = std::filesystem::path(dir).lexically_normal();
 }
 
 std::string AppPaths::dataDir() {
-    return dataDir_;
+    return dataDir_.string();
 }
 
 std::string AppPaths::resourcePath(std::string const& resourceId) {
-    namespace fs = std::filesystem;
-    return (fs::path(dataDir_) / "resources" / resourceId).string();
+    return (dataDir_ / "data" / "resources" / resourceId).string();
 }
 
 std::string AppPaths::cacheDir() {
-    namespace fs = std::filesystem;
-    return (fs::path(dataDir_) / "cache").string();
+    return (dataDir_ / "data" / "cache").string();
 }
 
 std::string AppPaths::configDir() {
-    namespace fs = std::filesystem;
-    return (fs::path(dataDir_) / "config").string();
+    return (dataDir_ / "data" / "config").string();
 }
 
 } // namespace core

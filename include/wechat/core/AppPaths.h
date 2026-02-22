@@ -7,12 +7,12 @@ namespace core {
 
 /// 统一的应用目录管理
 ///
-/// 所有路径基于一个 dataDir 根目录：
-///   {dataDir}/resources/   — 资源文件（图片/视频/音频/文件）
-///   {dataDir}/cache/       — 临时缓存（缩略图等）
-///   {dataDir}/config/      — 配置文件
+/// 所有数据收在 {rootDir}/data/ 下：
+///   {rootDir}/data/resources/   — 资源文件（图片/视频/音频/文件）
+///   {rootDir}/data/cache/       — 临时缓存（缩略图等）
+///   {rootDir}/data/config/      — 配置文件
 ///
-/// 当前阶段 dataDir = 项目根目录（PROJECT_ROOT_PATH），
+/// 当前阶段 rootDir = 项目根目录（PROJECT_ROOT_PATH），
 /// 后期有后端后改为 exe 同目录。
 class AppPaths {
 public:
