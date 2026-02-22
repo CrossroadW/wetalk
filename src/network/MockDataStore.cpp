@@ -5,7 +5,15 @@
 
 namespace wechat::network {
 
-MockDataStore::MockDataStore() : idCounter(0) {}
+MockDataStore::MockDataStore()
+    : idCounter(0),
+      dbm_(":memory:"),
+      userDao_(dbm_.db()),
+      friendshipDao_(dbm_.db()),
+      groupDao_(dbm_.db()),
+      messageDao_(dbm_.db()) {
+    dbm_.initSchema();
+}
 
 int64_t MockDataStore::now() {
     return std::chrono::duration_cast<std::chrono::microseconds>(
@@ -23,53 +31,57 @@ std::string MockDataStore::addUser(std::string const &username,
                                    std::string const &password) {
     auto id = std::to_string(nextId());
     core::User user{id};
-    usersByName[username] = UserRecord{user, password};
-    userIdToName[id] = username;
+    userDao_.insert(user);
+    passwords_[username] = password;
+    userIdToName_[id] = username;
     return id;
 }
 
 std::string MockDataStore::authenticate(std::string const &username,
                                         std::string const &password) {
-    auto it = usersByName.find(username);
-    if (it == usersByName.end() || it->second.password != password) {
+    auto it = passwords_.find(username);
+    if (it == passwords_.end() || it->second != password) {
         return {};
     }
-    return it->second.user.id;
+    // 找到 username 对应的 userId
+    for (auto &[uid, name] : userIdToName_) {
+        if (name == username) return uid;
+    }
+    return {};
 }
 
 std::string MockDataStore::createToken(std::string const &userId) {
     auto token = "tok_" + std::to_string(nextId());
-    tokens[token] = userId;
+    tokens_[token] = userId;
     return token;
 }
 
 std::string MockDataStore::resolveToken(std::string const &token) {
-    auto it = tokens.find(token);
-    return it != tokens.end() ? it->second : std::string{};
+    auto it = tokens_.find(token);
+    return it != tokens_.end() ? it->second : std::string{};
 }
 
 void MockDataStore::removeToken(std::string const &token) {
-    tokens.erase(token);
+    tokens_.erase(token);
 }
 
 core::User *MockDataStore::findUser(std::string const &userId) {
-    auto nameIt = userIdToName.find(userId);
-    if (nameIt == userIdToName.end()) {
-        return nullptr;
-    }
-    auto it = usersByName.find(nameIt->second);
-    if (it == usersByName.end()) {
-        return nullptr;
-    }
-    return &it->second.user;
+    auto opt = userDao_.findById(userId);
+    if (!opt) return nullptr;
+    userCache_[userId] = *opt;
+    return &userCache_[userId];
 }
 
 std::vector<core::User> MockDataStore::searchUsers(std::string const &keyword) {
+    auto all = userDao_.findAll();
     std::vector<core::User> result;
-    for (auto &[name, record]: usersByName) {
+    for (auto &u : all) {
+        // 搜索 userId 或 username
+        auto nameIt = userIdToName_.find(u.id);
+        std::string name = nameIt != userIdToName_.end() ? nameIt->second : "";
         if (name.find(keyword) != std::string::npos ||
-            record.user.id.find(keyword) != std::string::npos) {
-            result.push_back(record.user);
+            u.id.find(keyword) != std::string::npos) {
+            result.push_back(u);
         }
     }
     return result;
@@ -77,35 +89,22 @@ std::vector<core::User> MockDataStore::searchUsers(std::string const &keyword) {
 
 // ── 好友 ──
 
-std::pair<std::string, std::string>
-MockDataStore::ordered(std::string const &a, std::string const &b) {
-    return a < b ? std::make_pair(a, b) : std::make_pair(b, a);
-}
-
 void MockDataStore::addFriendship(std::string const &a, std::string const &b) {
-    friendships.insert(ordered(a, b));
+    friendshipDao_.add(a, b);
 }
 
 void MockDataStore::removeFriendship(std::string const &a,
                                      std::string const &b) {
-    friendships.erase(ordered(a, b));
+    friendshipDao_.remove(a, b);
 }
 
 bool MockDataStore::areFriends(std::string const &a, std::string const &b) {
-    return friendships.contains(ordered(a, b));
+    return friendshipDao_.isFriend(a, b);
 }
 
 std::vector<std::string>
 MockDataStore::getFriendIds(std::string const &userId) {
-    std::vector<std::string> result;
-    for (auto &[a, b]: friendships) {
-        if (a == userId) {
-            result.push_back(b);
-        } else if (b == userId) {
-            result.push_back(a);
-        }
-    }
-    return result;
+    return friendshipDao_.findFriends(userId);
 }
 
 // ── 群组 ──
@@ -115,26 +114,45 @@ MockDataStore::createGroup(std::string const &ownerId,
                            std::vector<std::string> const &memberIds) {
     auto id = std::to_string(nextId());
     core::Group group{id, ownerId, memberIds};
-    auto [it, _] = groups.emplace(id, std::move(group));
-    return it->second;
+    groupDao_.insertGroup(group, now());
+    // 缓存以保证返回引用稳定
+    groupCache_[id] = group;
+    return groupCache_[id];
 }
 
 core::Group *MockDataStore::findGroup(std::string const &groupId) {
-    auto it = groups.find(groupId);
-    return it != groups.end() ? &it->second : nullptr;
+    auto opt = groupDao_.findGroupById(groupId);
+    if (!opt) return nullptr;
+    // 加载成员列表
+    opt->memberIds = groupDao_.findMemberIds(groupId);
+    groupCache_[groupId] = *opt;
+    return &groupCache_[groupId];
+}
+
+void MockDataStore::addGroupMember(std::string const &groupId,
+                                   std::string const &userId) {
+    groupDao_.addMember(groupId, userId, now());
+}
+
+void MockDataStore::removeGroupMember(std::string const &groupId,
+                                      std::string const &userId) {
+    groupDao_.removeMember(groupId, userId, now());
 }
 
 void MockDataStore::removeGroup(std::string const &groupId) {
-    groups.erase(groupId);
+    groupDao_.removeGroup(groupId);
+    groupCache_.erase(groupId);
 }
 
 std::vector<core::Group>
 MockDataStore::getGroupsByUser(std::string const &userId) {
+    auto groupIds = groupDao_.findGroupIdsByUser(userId);
     std::vector<core::Group> result;
-    for (auto &[_, g]: groups) {
-        auto &m = g.memberIds;
-        if (std::find(m.begin(), m.end(), userId) != m.end()) {
-            result.push_back(g);
+    for (auto &gid : groupIds) {
+        auto opt = groupDao_.findGroupById(gid);
+        if (opt) {
+            opt->memberIds = groupDao_.findMemberIds(gid);
+            result.push_back(*opt);
         }
     }
     return result;
@@ -150,113 +168,38 @@ core::Message &MockDataStore::addMessage(std::string const &senderId,
     auto ts = now();
     core::Message msg{id, senderId, chatId, replyTo, content,
                       ts, 0,        false,  0,       0};
-    auto [it, _] = messages.emplace(id, std::move(msg));
-    chatMessages[chatId].push_back(id);
-    return it->second;
+    messageDao_.insert(msg);
+    messageCache_[id] = msg;
+    return messageCache_[id];
 }
 
 core::Message *MockDataStore::findMessage(int64_t messageId) {
-    auto it = messages.find(messageId);
-    return it != messages.end() ? &it->second : nullptr;
+    auto opt = messageDao_.findById(messageId);
+    if (!opt) return nullptr;
+    messageCache_[messageId] = *opt;
+    return &messageCache_[messageId];
+}
+
+void MockDataStore::saveMessage(const core::Message& msg) {
+    messageDao_.update(msg);
 }
 
 std::vector<core::Message> MockDataStore::getMessagesAfter(std::string const &chatId,
                                                            int64_t afterId,
                                                            int limit) {
-    std::vector<core::Message> result;
-    auto it = chatMessages.find(chatId);
-    if (it == chatMessages.end()) {
-        return result;
-    }
-
-    auto &ids = it->second;
-
-    if (afterId == 0) {
-        // afterId=0 → 返回最新的 limit 条（从末尾倒数），升序返回
-        int start = std::max(0, static_cast<int>(ids.size()) - limit);
-        for (int i = start; i < static_cast<int>(ids.size()); ++i) {
-            auto msgIt = messages.find(ids[i]);
-            if (msgIt != messages.end()) {
-                result.push_back(msgIt->second);
-            }
-        }
-        return result;
-    }
-
-    for (auto &msgId: ids) {
-        if (msgId > afterId) {
-            auto msgIt = messages.find(msgId);
-            if (msgIt != messages.end()) {
-                result.push_back(msgIt->second);
-                if (static_cast<int>(result.size()) >= limit) {
-                    break;
-                }
-            }
-        }
-    }
-    return result;
+    return messageDao_.findAfter(chatId, afterId, limit);
 }
 
 std::vector<core::Message> MockDataStore::getMessagesBefore(std::string const &chatId,
                                                             int64_t beforeId,
                                                             int limit) {
-    std::vector<core::Message> result;
-    auto it = chatMessages.find(chatId);
-    if (it == chatMessages.end()) {
-        return result;
-    }
-
-    auto &ids = it->second;
-
-    if (beforeId == 0) {
-        // beforeId=0 → 返回最早的 limit 条（从头开始），升序返回
-        for (int i = 0; i < static_cast<int>(ids.size()) && i < limit; ++i) {
-            auto msgIt = messages.find(ids[i]);
-            if (msgIt != messages.end()) {
-                result.push_back(msgIt->second);
-            }
-        }
-        return result;
-    }
-
-    // 从后往前遍历，找 id < beforeId 的消息
-    for (auto rit = ids.rbegin(); rit != ids.rend(); ++rit) {
-        if (*rit < beforeId) {
-            auto msgIt = messages.find(*rit);
-            if (msgIt != messages.end()) {
-                result.push_back(msgIt->second);
-                if (static_cast<int>(result.size()) >= limit) {
-                    break;
-                }
-            }
-        }
-    }
-    // 反转为 ID 升序
-    std::reverse(result.begin(), result.end());
-    return result;
+    return messageDao_.findBefore(chatId, beforeId, limit);
 }
 
 std::vector<core::Message> MockDataStore::getMessagesUpdatedAfter(
     std::string const &chatId, int64_t startId, int64_t endId,
     int64_t updatedAt, int limit) {
-    std::vector<core::Message> result;
-    auto it = chatMessages.find(chatId);
-    if (it == chatMessages.end()) {
-        return result;
-    }
-
-    for (auto &msgId : it->second) {
-        if (msgId < startId) continue;
-        if (msgId > endId) break;
-        auto msgIt = messages.find(msgId);
-        if (msgIt != messages.end() && msgIt->second.updatedAt > updatedAt) {
-            result.push_back(msgIt->second);
-            if (static_cast<int>(result.size()) >= limit) {
-                break;
-            }
-        }
-    }
-    return result;
+    return messageDao_.findUpdatedAfter(chatId, startId, endId, updatedAt, limit);
 }
 
 // ── 朋友圈 ──
@@ -267,23 +210,23 @@ Moment &MockDataStore::addMoment(std::string const &authorId,
     auto id = nextId();
     auto ts = now();
     Moment moment{id, authorId, text, imageIds, ts, {}, {}};
-    auto [it, _] = moments.emplace(id, std::move(moment));
-    momentTimeline.insert(momentTimeline.begin(), id);
+    auto [it, _] = moments_.emplace(id, std::move(moment));
+    momentTimeline_.insert(momentTimeline_.begin(), id);
     return it->second;
 }
 
 Moment *MockDataStore::findMoment(int64_t momentId) {
-    auto it = moments.find(momentId);
-    return it != moments.end() ? &it->second : nullptr;
+    auto it = moments_.find(momentId);
+    return it != moments_.end() ? &it->second : nullptr;
 }
 
 std::vector<Moment>
 MockDataStore::getMoments(std::set<std::string> const &visibleUserIds,
                           int64_t beforeTs, int limit) {
     std::vector<Moment> result;
-    for (auto &id: momentTimeline) {
-        auto it = moments.find(id);
-        if (it == moments.end()) {
+    for (auto &id: momentTimeline_) {
+        auto it = moments_.find(id);
+        if (it == moments_.end()) {
             continue;
         }
         auto &m = it->second;

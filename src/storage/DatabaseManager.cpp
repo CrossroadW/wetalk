@@ -55,7 +55,7 @@ void DatabaseManager::initSchema() {
         CREATE INDEX IF NOT EXISTS idx_group_members_user
             ON group_members(user_id);
         CREATE INDEX IF NOT EXISTS idx_messages_chat
-            ON messages(chat_id, timestamp);
+            ON messages(chat_id, id);
         CREATE INDEX IF NOT EXISTS idx_messages_reply
             ON messages(reply_to);
         CREATE INDEX IF NOT EXISTS idx_messages_updated

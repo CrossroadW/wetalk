@@ -2,8 +2,9 @@ add_library(wechat_storage STATIC)
 
 file(GLOB STORAGE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB STORAGE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file(GLOB CHAT_PUBLIC_HEADERS ${CMAKE_SOURCE_DIR}/include/wechat/storage/*.h)
 
-target_sources(wechat_storage PRIVATE ${STORAGE_SOURCES} ${STORAGE_HEADERS})
+target_sources(wechat_storage PRIVATE ${STORAGE_SOURCES} ${STORAGE_HEADERS} ${CHAT_PUBLIC_HEADERS})
 
 target_include_directories(wechat_storage
     PRIVATE

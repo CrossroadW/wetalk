@@ -187,6 +187,7 @@ CREATE TABLE moment_comments (
 
 CREATE INDEX idx_group_members_user ON group_members(user_id);
 
+CREATE INDEX idx_messages_chat ON messages(chat_id, id);
 CREATE INDEX idx_messages_reply ON messages(reply_to);
 CREATE INDEX idx_messages_updated ON messages(chat_id, updated_at);
 

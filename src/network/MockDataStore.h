@@ -4,13 +4,21 @@
 #include <wechat/core/Message.h>
 #include <wechat/core/User.h>
 #include <wechat/network/MomentService.h>
+#include <wechat/storage/DatabaseManager.h>
+#include <wechat/storage/FriendshipDao.h>
+#include <wechat/storage/GroupDao.h>
+#include <wechat/storage/MessageDao.h>
+#include <wechat/storage/UserDao.h>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
 namespace wechat { namespace network {
-/// Mock 服务端内存状态
+/// Mock 服务端存储
+/// 内部使用 storage 模块 (SQLite :memory:) 持久化用户/好友/群组/消息
+/// 认证 token 和朋友圈仍为内存管理（无对应 DAO）
 /// 所有 MockXxxService 共享同一个 MockDataStore 实例
 class MockDataStore {
 public:
@@ -24,11 +32,6 @@ public:
     int64_t nextId();
 
     // ── 用户 / 认证 ──
-
-    struct UserRecord {
-        core::User user;
-        std::string password;
-    };
 
     /// 注册，返回 userId
     std::string addUser(const std::string& username, const std::string& password);
@@ -57,6 +60,8 @@ public:
     core::Group& createGroup(const std::string& ownerId,
                              const std::vector<std::string>& memberIds);
     core::Group* findGroup(const std::string& groupId);
+    void addGroupMember(const std::string& groupId, const std::string& userId);
+    void removeGroupMember(const std::string& groupId, const std::string& userId);
     void removeGroup(const std::string& groupId);
     std::vector<core::Group> getGroupsByUser(const std::string& userId);
 
@@ -67,6 +72,8 @@ public:
                               int64_t replyTo,
                               const core::MessageContent& content);
     core::Message* findMessage(int64_t messageId);
+    /// 将修改后的消息写回存储（findMessage 返回的指针修改后需调用）
+    void saveMessage(const core::Message& msg);
     /// afterId=0 → 返回最新的 limit 条（从末尾倒数），升序返回
     /// afterId>0 → 返回 id > afterId 的前 limit 条，升序返回
     std::vector<core::Message> getMessagesAfter(const std::string& chatId,
@@ -92,31 +99,30 @@ public:
 private:
     int64_t idCounter;
 
-    // username -> UserRecord
-    std::map<std::string, UserRecord> usersByName;
-    // userId -> username (反向索引)
-    std::map<std::string, std::string> userIdToName;
+    // ── SQLite 存储 ──
+    storage::DatabaseManager dbm_;
+    storage::UserDao userDao_;
+    storage::FriendshipDao friendshipDao_;
+    storage::GroupDao groupDao_;
+    storage::MessageDao messageDao_;
+
+    // ── 内存辅助（认证 + 返回指针/引用的缓存）──
+    // username -> password
+    std::map<std::string, std::string> passwords_;
+    // userId -> username
+    std::map<std::string, std::string> userIdToName_;
     // token -> userId
-    std::map<std::string, std::string> tokens;
+    std::map<std::string, std::string> tokens_;
+    // findUser 返回指针需要稳定地址
+    mutable std::map<std::string, core::User> userCache_;
+    // findGroup / createGroup 返回指针/引用需要稳定地址
+    std::map<std::string, core::Group> groupCache_;
+    // findMessage / addMessage 返回指针/引用需要稳定地址
+    std::map<int64_t, core::Message> messageCache_;
 
-    // 好友关系 (ordered pair set)
-    std::set<std::pair<std::string, std::string>> friendships;
-
-    // groupId -> Group
-    std::map<std::string, core::Group> groups;
-
-    // messageId -> Message
-    std::map<int64_t, core::Message> messages;
-    // chatId -> [messageId...] (按 ID 序)
-    std::map<std::string, std::vector<int64_t>> chatMessages;
-
-    // momentId -> Moment
-    std::map<int64_t, Moment> moments;
-    // 按时间倒序的 momentId 列表
-    std::vector<int64_t> momentTimeline;
-
-    static std::pair<std::string, std::string> ordered(
-        const std::string& a, const std::string& b);
+    // ── 朋友圈（无 DAO，纯内存）──
+    std::map<int64_t, Moment> moments_;
+    std::vector<int64_t> momentTimeline_;
 };
 
 } } // namespace wechat::network

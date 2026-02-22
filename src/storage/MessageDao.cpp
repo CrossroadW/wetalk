@@ -136,75 +136,100 @@ std::optional<core::Message> MessageDao::findById(int64_t id) {
     return rowToMessage(stmt);
 }
 
-std::vector<core::Message> MessageDao::findByChat(
-    const std::string& chatId, int64_t beforeTimestamp, int limit) {
-    std::vector<core::Message> result;
-    SQLite::Statement stmt(db_, R"(
-        SELECT id, sender_id, chat_id, reply_to, content_data,
-               timestamp, edited_at, revoked, read_count, updated_at
-        FROM messages
-        WHERE chat_id = ? AND timestamp < ?
-        ORDER BY timestamp DESC LIMIT ?
-    )");
-    stmt.bind(1, chatId);
-    stmt.bind(2, beforeTimestamp);
-    stmt.bind(3, limit);
-    while (stmt.executeStep()) {
-        result.push_back(rowToMessage(stmt));
-    }
-    return result;
-}
-
 std::vector<core::Message> MessageDao::findAfter(
-    const std::string& chatId, int64_t afterTs, int limit) {
+    const std::string& chatId, int64_t afterId, int limit) {
     std::vector<core::Message> result;
-    SQLite::Statement stmt(db_, R"(
-        SELECT id, sender_id, chat_id, reply_to, content_data,
-               timestamp, edited_at, revoked, read_count, updated_at
-        FROM messages
-        WHERE chat_id = ? AND timestamp > ?
-        ORDER BY timestamp ASC LIMIT ?
-    )");
-    stmt.bind(1, chatId);
-    stmt.bind(2, afterTs);
-    stmt.bind(3, limit);
-    while (stmt.executeStep()) {
-        result.push_back(rowToMessage(stmt));
+
+    if (afterId == 0) {
+        // afterId=0 → 返回最新的 limit 条，升序返回
+        SQLite::Statement stmt(db_, R"(
+            SELECT * FROM (
+                SELECT id, sender_id, chat_id, reply_to, content_data,
+                       timestamp, edited_at, revoked, read_count, updated_at
+                FROM messages
+                WHERE chat_id = ?
+                ORDER BY id DESC LIMIT ?
+            ) sub ORDER BY id ASC
+        )");
+        stmt.bind(1, chatId);
+        stmt.bind(2, limit);
+        while (stmt.executeStep()) {
+            result.push_back(rowToMessage(stmt));
+        }
+    } else {
+        // afterId>0 → 返回 id > afterId 的前 limit 条，升序返回
+        SQLite::Statement stmt(db_, R"(
+            SELECT id, sender_id, chat_id, reply_to, content_data,
+                   timestamp, edited_at, revoked, read_count, updated_at
+            FROM messages
+            WHERE chat_id = ? AND id > ?
+            ORDER BY id ASC LIMIT ?
+        )");
+        stmt.bind(1, chatId);
+        stmt.bind(2, afterId);
+        stmt.bind(3, limit);
+        while (stmt.executeStep()) {
+            result.push_back(rowToMessage(stmt));
+        }
     }
     return result;
 }
 
 std::vector<core::Message> MessageDao::findBefore(
-    const std::string& chatId, int64_t beforeTs, int limit) {
+    const std::string& chatId, int64_t beforeId, int limit) {
     std::vector<core::Message> result;
-    SQLite::Statement stmt(db_, R"(
-        SELECT id, sender_id, chat_id, reply_to, content_data,
-               timestamp, edited_at, revoked, read_count, updated_at
-        FROM messages
-        WHERE chat_id = ? AND timestamp < ?
-        ORDER BY timestamp DESC LIMIT ?
-    )");
-    stmt.bind(1, chatId);
-    stmt.bind(2, beforeTs);
-    stmt.bind(3, limit);
-    while (stmt.executeStep()) {
-        result.push_back(rowToMessage(stmt));
+
+    if (beforeId == 0) {
+        // beforeId=0 → 返回最早的 limit 条，升序返回
+        SQLite::Statement stmt(db_, R"(
+            SELECT id, sender_id, chat_id, reply_to, content_data,
+                   timestamp, edited_at, revoked, read_count, updated_at
+            FROM messages
+            WHERE chat_id = ?
+            ORDER BY id ASC LIMIT ?
+        )");
+        stmt.bind(1, chatId);
+        stmt.bind(2, limit);
+        while (stmt.executeStep()) {
+            result.push_back(rowToMessage(stmt));
+        }
+    } else {
+        // beforeId>0 → 返回 id < beforeId 的最后 limit 条，升序返回
+        SQLite::Statement stmt(db_, R"(
+            SELECT * FROM (
+                SELECT id, sender_id, chat_id, reply_to, content_data,
+                       timestamp, edited_at, revoked, read_count, updated_at
+                FROM messages
+                WHERE chat_id = ? AND id < ?
+                ORDER BY id DESC LIMIT ?
+            ) sub ORDER BY id ASC
+        )");
+        stmt.bind(1, chatId);
+        stmt.bind(2, beforeId);
+        stmt.bind(3, limit);
+        while (stmt.executeStep()) {
+            result.push_back(rowToMessage(stmt));
+        }
     }
     return result;
 }
 
 std::vector<core::Message> MessageDao::findUpdatedAfter(
-    const std::string& chatId, int64_t since) {
+    const std::string& chatId, int64_t startId, int64_t endId,
+    int64_t since, int limit) {
     std::vector<core::Message> result;
     SQLite::Statement stmt(db_, R"(
         SELECT id, sender_id, chat_id, reply_to, content_data,
                timestamp, edited_at, revoked, read_count, updated_at
         FROM messages
-        WHERE chat_id = ? AND updated_at > ?
-        ORDER BY updated_at ASC
+        WHERE chat_id = ? AND id >= ? AND id <= ? AND updated_at > ?
+        ORDER BY id ASC LIMIT ?
     )");
     stmt.bind(1, chatId);
-    stmt.bind(2, since);
+    stmt.bind(2, startId);
+    stmt.bind(3, endId);
+    stmt.bind(4, since);
+    stmt.bind(5, limit);
     while (stmt.executeStep()) {
         result.push_back(rowToMessage(stmt));
     }

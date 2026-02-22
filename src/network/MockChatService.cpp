@@ -107,6 +107,7 @@ VoidResult MockChatService::revokeMessage(const std::string& token,
 
     msg->revoked = true;
     msg->updatedAt = store->now();
+    store->saveMessage(*msg);
     Q_EMIT messageUpdated(msg->chatId, messageId);
     return success();
 }
@@ -132,6 +133,7 @@ VoidResult MockChatService::editMessage(
     msg->content = newContent;
     msg->editedAt = ts;
     msg->updatedAt = ts;
+    store->saveMessage(*msg);
     Q_EMIT messageUpdated(msg->chatId, messageId);
     return success();
 }
@@ -149,6 +151,7 @@ VoidResult MockChatService::markRead(const std::string& token,
 
     msg->readCount++;
     msg->updatedAt = store->now();
+    store->saveMessage(*msg);
     Q_EMIT messageUpdated(chatId, lastMessageId);
     return success();
 }

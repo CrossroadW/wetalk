@@ -179,11 +179,11 @@ TEST_F(StorageDaoTest, MessagePagination) {
         dao.insert(m);
     }
 
-    // 取 timestamp < 4000 的最新 2 条
-    auto page = dao.findByChat("g1", 4000, 2);
+    // findBefore(id=4) → id < 4 的最后 2 条，升序返回
+    auto page = dao.findBefore("g1", 4, 2);
     EXPECT_EQ(page.size(), 2u);
-    EXPECT_EQ(page[0].id, 3); // 降序，最新的先
-    EXPECT_EQ(page[1].id, 2);
+    EXPECT_EQ(page[0].id, 2); // 升序
+    EXPECT_EQ(page[1].id, 3);
 }
 
 TEST_F(StorageDaoTest, MessageIncrementalSync) {
@@ -202,7 +202,7 @@ TEST_F(StorageDaoTest, MessageIncrementalSync) {
     m1.updatedAt = 2000;
     dao.update(m1);
 
-    auto synced = dao.findUpdatedAfter("g1", 1500);
+    auto synced = dao.findUpdatedAfter("g1", 1, 1, 1500, 100);
     EXPECT_EQ(synced.size(), 1u);
     auto* text = std::get_if<TextContent>(&synced[0].content[0]);
     ASSERT_NE(text, nullptr);
@@ -232,14 +232,13 @@ static void insertMessages(MessageDao& dao, const std::string& chatId,
 }
 
 TEST_F(StorageDaoTest, CacheColdStart) {
-    // 首次登录：fetch(after_id=0) → 服务器返回最早的消息
+    // 首次打开聊天：findAfter(afterId=0) → 返回最新的 limit 条，升序
     MessageDao dao(dbm->db());
     insertMessages(dao, "g1", 1, 50);
 
-    // 模拟 fetch(after_ts=0, limit=50) → 拿到 [m1..m50]
-    auto page = dao.findAfter("g1", 0, 50);
-    EXPECT_EQ(page.size(), 50u);
-    EXPECT_EQ(page.front().id, 1);   // 升序，最早的先
+    auto page = dao.findAfter("g1", 0, 20);
+    EXPECT_EQ(page.size(), 20u);
+    EXPECT_EQ(page.front().id, 31);  // 最新 20 条: 31..50
     EXPECT_EQ(page.back().id, 50);
 }
 
@@ -248,11 +247,11 @@ TEST_F(StorageDaoTest, CacheScrollUp) {
     MessageDao dao(dbm->db());
     insertMessages(dao, "g1", 1, 50);
 
-    // 当前缓存 start=m3(ts=300)，向上加载
-    auto older = dao.findBefore("g1", 300, 50);
+    // 当前缓存 start=3，向上加载 id < 3 的最后 50 条，升序返回
+    auto older = dao.findBefore("g1", 3, 50);
     EXPECT_EQ(older.size(), 2u);        // m1, m2
-    EXPECT_EQ(older[0].id, 2);       // 降序，最近的先
-    EXPECT_EQ(older[1].id, 1);
+    EXPECT_EQ(older[0].id, 1);          // 升序
+    EXPECT_EQ(older[1].id, 2);
 }
 
 TEST_F(StorageDaoTest, CacheScrollDown) {
@@ -260,8 +259,8 @@ TEST_F(StorageDaoTest, CacheScrollDown) {
     MessageDao dao(dbm->db());
     insertMessages(dao, "g1", 1, 80);
 
-    // 当前缓存 end=m50(ts=5000)，向下加载
-    auto newer = dao.findAfter("g1", 5000, 50);
+    // 当前缓存 end=50，向下加载 id > 50
+    auto newer = dao.findAfter("g1", 50, 50);
     EXPECT_EQ(newer.size(), 30u);       // m51..m80
     EXPECT_EQ(newer.front().id, 51);
     EXPECT_EQ(newer.back().id, 80);
@@ -286,7 +285,7 @@ TEST_F(StorageDaoTest, CacheRealtimePush) {
     dao.insert(pushed);
 
     // 验证能查到
-    auto newer = dao.findAfter("g1", 5000, 10);
+    auto newer = dao.findAfter("g1", 50, 10);
     EXPECT_EQ(newer.size(), 1u);
     EXPECT_EQ(newer[0].id, 51);
 
@@ -311,7 +310,7 @@ TEST_F(StorageDaoTest, MessageRevoke) {
     EXPECT_EQ(msg->updatedAt, 5000);
 
     // 增量同步能感知到撤回
-    auto synced = dao.findUpdatedAfter("g1", 4000);
+    auto synced = dao.findUpdatedAfter("g1", 1, 1, 4000, 100);
     EXPECT_EQ(synced.size(), 1u);
     EXPECT_TRUE(synced[0].revoked);
 }
@@ -333,7 +332,7 @@ TEST_F(StorageDaoTest, MessageEditContent) {
     EXPECT_EQ(text->text, "edited text");
 
     // 增量同步能感知到编辑
-    auto synced = dao.findUpdatedAfter("g1", 5000);
+    auto synced = dao.findUpdatedAfter("g1", 1, 1, 5000, 100);
     EXPECT_EQ(synced.size(), 1u);
     EXPECT_EQ(synced[0].editedAt, 6000);
 }
@@ -350,7 +349,7 @@ TEST_F(StorageDaoTest, MessageReadCount) {
     EXPECT_EQ(msg->updatedAt, 7000);
 
     // 增量同步能感知到已读变化
-    auto synced = dao.findUpdatedAfter("g1", 6000);
+    auto synced = dao.findUpdatedAfter("g1", 1, 1, 6000, 100);
     EXPECT_EQ(synced.size(), 1u);
     EXPECT_EQ(synced[0].readCount, 3u);
 }

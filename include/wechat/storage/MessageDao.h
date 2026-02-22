@@ -23,21 +23,20 @@ public:
     void remove(int64_t id);
     std::optional<core::Message> findById(int64_t id);
 
-    /// 按 chat_id 分页查询，按 timestamp 降序
-    std::vector<core::Message> findByChat(const std::string& chatId,
-                                          int64_t beforeTimestamp, int limit);
-
-    /// 缓存区间：获取 timestamp > afterTs 的消息（升序），用于向下加载
+    /// afterId=0 → 返回最新的 limit 条（从末尾倒数），升序返回
+    /// afterId>0 → 返回 id > afterId 的前 limit 条，升序返回
     std::vector<core::Message> findAfter(const std::string& chatId,
-                                         int64_t afterTs, int limit);
+                                         int64_t afterId, int limit);
 
-    /// 缓存区间：获取 timestamp < beforeTs 的消息（降序），用于向上加载历史
+    /// beforeId=0 → 返回最早的 limit 条（从头开始），升序返回
+    /// beforeId>0 → 返回 id < beforeId 的最后 limit 条，升序返回
     std::vector<core::Message> findBefore(const std::string& chatId,
-                                          int64_t beforeTs, int limit);
+                                          int64_t beforeId, int limit);
 
-    /// 增量同步：获取某 chat 中 updated_at > since 的消息
+    /// 增量同步：获取 chatId 中 id ∈ [startId, endId] 且 updated_at > since 的消息
     std::vector<core::Message> findUpdatedAfter(const std::string& chatId,
-                                                int64_t since);
+                                                int64_t startId, int64_t endId,
+                                                int64_t since, int limit);
 
     /// 撤回消息
     void revoke(int64_t id, int64_t now);

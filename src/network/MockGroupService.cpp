@@ -61,7 +61,7 @@ VoidResult MockGroupService::addMember(const std::string& token,
     if (std::find(m.begin(), m.end(), userId) != m.end())
         return {ErrorCode::AlreadyExists, "already a member"};
 
-    m.push_back(userId);
+    store->addGroupMember(groupId, userId);
     return success();
 }
 
@@ -84,7 +84,7 @@ VoidResult MockGroupService::removeMember(const std::string& token,
     if (it == m.end())
         return {ErrorCode::NotFound, "not a member"};
 
-    m.erase(it);
+    store->removeGroupMember(groupId, userId);
     return success();
 }
 
