@@ -31,7 +31,7 @@ protected:
 TEST_F(NetworkTest, RegisterAndLogin) {
     auto reg = client->auth().registerUser("alice", "pass123");
     ASSERT_TRUE(reg.ok());
-    EXPECT_FALSE(reg.value().userId.empty());
+    EXPECT_NE(reg.value().userId, 0);
     EXPECT_FALSE(reg.value().token.empty());
 
     // 用注册的凭据登录

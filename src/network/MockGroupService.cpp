@@ -12,9 +12,9 @@ MockGroupService::MockGroupService(std::shared_ptr<MockDataStore> store)
 
 Result<core::Group> MockGroupService::createGroup(
     const std::string& token,
-    const std::vector<std::string>& memberIds) {
+    const std::vector<int64_t>& memberIds) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     // 确保创建者在成员列表中
@@ -27,9 +27,9 @@ Result<core::Group> MockGroupService::createGroup(
 }
 
 VoidResult MockGroupService::dissolveGroup(const std::string& token,
-                                           const std::string& groupId) {
+                                           int64_t groupId) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* group = store->findGroup(groupId);
@@ -44,10 +44,10 @@ VoidResult MockGroupService::dissolveGroup(const std::string& token,
 }
 
 VoidResult MockGroupService::addMember(const std::string& token,
-                                       const std::string& groupId,
-                                       const std::string& userId) {
+                                       int64_t groupId,
+                                       int64_t userId) {
     auto callerId = store->resolveToken(token);
-    if (callerId.empty())
+    if (!callerId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* group = store->findGroup(groupId);
@@ -66,10 +66,10 @@ VoidResult MockGroupService::addMember(const std::string& token,
 }
 
 VoidResult MockGroupService::removeMember(const std::string& token,
-                                          const std::string& groupId,
-                                          const std::string& userId) {
+                                          int64_t groupId,
+                                          int64_t userId) {
     auto callerId = store->resolveToken(token);
-    if (callerId.empty())
+    if (!callerId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* group = store->findGroup(groupId);
@@ -88,10 +88,10 @@ VoidResult MockGroupService::removeMember(const std::string& token,
     return success();
 }
 
-Result<std::vector<std::string>> MockGroupService::listMembers(
-    const std::string& token, const std::string& groupId) {
+Result<std::vector<int64_t>> MockGroupService::listMembers(
+    const std::string& token, int64_t groupId) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* group = store->findGroup(groupId);
@@ -104,7 +104,7 @@ Result<std::vector<std::string>> MockGroupService::listMembers(
 Result<std::vector<core::Group>> MockGroupService::listMyGroups(
     const std::string& token) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     return store->getGroupsByUser(userId);

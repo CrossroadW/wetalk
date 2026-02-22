@@ -1,12 +1,12 @@
 #pragma once
 
-#include <string>
+#include <cstdint>
 
 namespace wechat {
 namespace core {
 
 struct User {
-    std::string id;
+    int64_t id = 0;
 };
 
 } // namespace core

@@ -11,9 +11,9 @@ public:
     explicit MockContactService(std::shared_ptr<MockDataStore> store);
 
     VoidResult addFriend(
-        const std::string& token, const std::string& targetUserId) override;
+        const std::string& token, int64_t targetUserId) override;
     VoidResult removeFriend(
-        const std::string& token, const std::string& targetUserId) override;
+        const std::string& token, int64_t targetUserId) override;
     Result<std::vector<core::User>> listFriends(
         const std::string& token) override;
     Result<std::vector<core::User>> searchUser(

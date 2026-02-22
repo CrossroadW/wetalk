@@ -34,41 +34,41 @@ public:
     // ── 用户 / 认证 ──
 
     /// 注册，返回 userId
-    std::string addUser(const std::string& username, const std::string& password);
-    /// 验证密码，返回 userId（空 = 失败）
-    std::string authenticate(const std::string& username, const std::string& password);
+    int64_t addUser(const std::string& username, const std::string& password);
+    /// 验证密码，返回 userId（0 = 失败）
+    int64_t authenticate(const std::string& username, const std::string& password);
     /// 创建 token
-    std::string createToken(const std::string& userId);
-    /// token -> userId（空 = 无效）
-    std::string resolveToken(const std::string& token);
+    std::string createToken(int64_t userId);
+    /// token -> userId（0 = 无效）
+    int64_t resolveToken(const std::string& token);
     /// 删除 token
     void removeToken(const std::string& token);
     /// 查找用户
-    core::User* findUser(const std::string& userId);
+    core::User* findUser(int64_t userId);
     /// 按关键字搜索用户
     std::vector<core::User> searchUsers(const std::string& keyword);
 
     // ── 好友 ──
 
-    void addFriendship(const std::string& a, const std::string& b);
-    void removeFriendship(const std::string& a, const std::string& b);
-    bool areFriends(const std::string& a, const std::string& b);
-    std::vector<std::string> getFriendIds(const std::string& userId);
+    void addFriendship(int64_t a, int64_t b);
+    void removeFriendship(int64_t a, int64_t b);
+    bool areFriends(int64_t a, int64_t b);
+    std::vector<int64_t> getFriendIds(int64_t userId);
 
     // ── 群组 ──
 
-    core::Group& createGroup(const std::string& ownerId,
-                             const std::vector<std::string>& memberIds);
-    core::Group* findGroup(const std::string& groupId);
-    void addGroupMember(const std::string& groupId, const std::string& userId);
-    void removeGroupMember(const std::string& groupId, const std::string& userId);
-    void removeGroup(const std::string& groupId);
-    std::vector<core::Group> getGroupsByUser(const std::string& userId);
+    core::Group& createGroup(int64_t ownerId,
+                             const std::vector<int64_t>& memberIds);
+    core::Group* findGroup(int64_t groupId);
+    void addGroupMember(int64_t groupId, int64_t userId);
+    void removeGroupMember(int64_t groupId, int64_t userId);
+    void removeGroup(int64_t groupId);
+    std::vector<core::Group> getGroupsByUser(int64_t userId);
 
     // ── 消息 ──
 
-    core::Message& addMessage(const std::string& senderId,
-                              const std::string& chatId,
+    core::Message& addMessage(int64_t senderId,
+                              int64_t chatId,
                               int64_t replyTo,
                               const core::MessageContent& content);
     core::Message* findMessage(int64_t messageId);
@@ -76,24 +76,24 @@ public:
     void saveMessage(const core::Message& msg);
     /// afterId=0 → 返回最新的 limit 条（从末尾倒数），升序返回
     /// afterId>0 → 返回 id > afterId 的前 limit 条，升序返回
-    std::vector<core::Message> getMessagesAfter(const std::string& chatId,
+    std::vector<core::Message> getMessagesAfter(int64_t chatId,
                                                 int64_t afterId, int limit);
     /// beforeId=0 → 返回最早的 limit 条（从头开始），升序返回
     /// beforeId>0 → 返回 id < beforeId 的最后 limit 条，升序返回
-    std::vector<core::Message> getMessagesBefore(const std::string& chatId,
+    std::vector<core::Message> getMessagesBefore(int64_t chatId,
                                                  int64_t beforeId, int limit);
     /// 获取 chatId 中 id ∈ [startId, endId] 且 updated_at > updatedAt 的消息
-    std::vector<core::Message> getMessagesUpdatedAfter(const std::string& chatId,
+    std::vector<core::Message> getMessagesUpdatedAfter(int64_t chatId,
                                                        int64_t startId, int64_t endId,
                                                        int64_t updatedAt, int limit);
 
     // ── 朋友圈 ──
 
-    Moment& addMoment(const std::string& authorId,
+    Moment& addMoment(int64_t authorId,
                       const std::string& text,
                       const std::vector<std::string>& imageIds);
     Moment* findMoment(int64_t momentId);
-    std::vector<Moment> getMoments(const std::set<std::string>& visibleUserIds,
+    std::vector<Moment> getMoments(const std::set<int64_t>& visibleUserIds,
                                    int64_t beforeTs, int limit);
 
 private:
@@ -110,13 +110,13 @@ private:
     // username -> password
     std::map<std::string, std::string> passwords_;
     // userId -> username
-    std::map<std::string, std::string> userIdToName_;
+    std::map<int64_t, std::string> userIdToName_;
     // token -> userId
-    std::map<std::string, std::string> tokens_;
+    std::map<std::string, int64_t> tokens_;
     // findUser 返回指针需要稳定地址
-    mutable std::map<std::string, core::User> userCache_;
+    mutable std::map<int64_t, core::User> userCache_;
     // findGroup / createGroup 返回指针/引用需要稳定地址
-    std::map<std::string, core::Group> groupCache_;
+    std::map<int64_t, core::Group> groupCache_;
     // findMessage / addMessage 返回指针/引用需要稳定地址
     std::map<int64_t, core::Message> messageCache_;
 

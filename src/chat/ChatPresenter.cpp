@@ -15,16 +15,16 @@ ChatPresenter::~ChatPresenter() = default;
 // ── 会话 ──
 
 void ChatPresenter::setSession(std::string const& token,
-                                std::string const& userId) {
+                                int64_t userId) {
     token_ = token;
     userId_ = userId;
 }
 
-std::string const& ChatPresenter::currentUserId() const { return userId_; }
+int64_t ChatPresenter::currentUserId() const { return userId_; }
 
 // ── 聊天初始化 ──
 
-void ChatPresenter::openChat(std::string const& chatId) {
+void ChatPresenter::openChat(int64_t chatId) {
     if (cursors_.find(chatId) == cursors_.end()) {
         cursors_[chatId] = SyncCursor{};
     }
@@ -32,21 +32,21 @@ void ChatPresenter::openChat(std::string const& chatId) {
 
 // ── 操作 ──
 
-void ChatPresenter::sendTextMessage(std::string const& chatId,
+void ChatPresenter::sendTextMessage(int64_t chatId,
                                      std::string const& text) {
     core::TextContent tc;
     tc.text = text;
     sendMessage(chatId, {tc});
 }
 
-void ChatPresenter::sendMessage(std::string const& chatId,
+void ChatPresenter::sendMessage(int64_t chatId,
                                  core::MessageContent const& content,
                                  int64_t replyTo) {
     client_.chat().sendMessage(token_, chatId, replyTo, content);
 }
 
-void ChatPresenter::loadHistory(std::string const& chatId, int limit) {
-    if (chatId.empty() || token_.empty()) {
+void ChatPresenter::loadHistory(int64_t chatId, int limit) {
+    if (!chatId || token_.empty()) {
         return;
     }
 
@@ -62,13 +62,13 @@ void ChatPresenter::loadHistory(std::string const& chatId, int limit) {
             cursor.end = msgs.back().id;
         }
         updateMaxUpdatedAt(cursor, msgs);
-        Q_EMIT messagesInserted(QString::fromStdString(chatId), msgs);
+        Q_EMIT messagesInserted(chatId, msgs);
         syncUpdated(chatId);
     }
 }
 
-void ChatPresenter::loadLatest(std::string const& chatId, int limit) {
-    if (chatId.empty() || token_.empty()) {
+void ChatPresenter::loadLatest(int64_t chatId, int limit) {
+    if (!chatId || token_.empty()) {
         return;
     }
 
@@ -82,7 +82,7 @@ void ChatPresenter::loadLatest(std::string const& chatId, int limit) {
         cursor.start = msgs.front().id;
         cursor.end = msgs.back().id;
         updateMaxUpdatedAt(cursor, msgs);
-        Q_EMIT messagesInserted(QString::fromStdString(chatId), msgs);
+        Q_EMIT messagesInserted(chatId, msgs);
         syncUpdated(chatId);
     }
 }
@@ -98,7 +98,7 @@ void ChatPresenter::editMessage(int64_t messageId,
 
 // ── 网络层通知回调 ──
 
-void ChatPresenter::onNetworkMessageStored(std::string const& chatId) {
+void ChatPresenter::onNetworkMessageStored(int64_t chatId) {
     if (token_.empty()) {
         return;
     }
@@ -116,11 +116,11 @@ void ChatPresenter::onNetworkMessageStored(std::string const& chatId) {
             cursor.start = msgs.front().id;
         }
         updateMaxUpdatedAt(cursor, msgs);
-        Q_EMIT messagesInserted(QString::fromStdString(chatId), msgs);
+        Q_EMIT messagesInserted(chatId, msgs);
     }
 }
 
-void ChatPresenter::onNetworkMessageUpdated(std::string const& chatId,
+void ChatPresenter::onNetworkMessageUpdated(int64_t chatId,
                                               int64_t messageId) {
     if (token_.empty()) {
         return;
@@ -138,15 +138,15 @@ void ChatPresenter::onNetworkMessageUpdated(std::string const& chatId,
             if (msg.updatedAt > cursor.maxUpdatedAt) {
                 cursor.maxUpdatedAt = msg.updatedAt;
             }
-            Q_EMIT messageUpdated(QString::fromStdString(chatId), msg);
+            Q_EMIT messageUpdated(chatId, msg);
         }
     }
 }
 
 // ── 增量同步 ──
 
-void ChatPresenter::syncUpdated(std::string const& chatId) {
-    if (chatId.empty() || token_.empty()) {
+void ChatPresenter::syncUpdated(int64_t chatId) {
+    if (!chatId || token_.empty()) {
         return;
     }
 
@@ -163,7 +163,7 @@ void ChatPresenter::syncUpdated(std::string const& chatId) {
         auto& msgs = result.value().messages;
         updateMaxUpdatedAt(cursor, msgs);
         for (auto const& msg : msgs) {
-            Q_EMIT messageUpdated(QString::fromStdString(chatId), msg);
+            Q_EMIT messageUpdated(chatId, msg);
         }
     }
 }

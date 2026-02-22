@@ -2,8 +2,8 @@
 
 #include "wechat/core/User.h"
 #include <SQLiteCpp/SQLiteCpp.h>
+#include <cstdint>
 #include <optional>
-#include <string>
 #include <vector>
 
 namespace wechat {
@@ -14,8 +14,8 @@ public:
     explicit UserDao(SQLite::Database& db);
 
     void insert(const core::User& user);
-    void remove(const std::string& id);
-    std::optional<core::User> findById(const std::string& id);
+    void remove(int64_t id);
+    std::optional<core::User> findById(int64_t id);
     std::vector<core::User> findAll();
 
 private:

@@ -9,33 +9,17 @@
 find_package(Protobuf REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 
+message(STATUS "_GRPC_PLUGIN_PATH: ${_GRPC_PLUGIN_PATH}")
 # 找到 grpc_cpp_plugin
 find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
 
-if(NOT _GRPC_CPP_PLUGIN_EXECUTABLE)
-    # 尝试从 CONAN 缓存路径找
-    file(GLOB GRPC_DIRS "C:/Users/31093/.conan2/p/b/grpc*")
-    foreach(GRPC_DIR ${GRPC_DIRS})
-        find_program(_GRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin
-            HINTS "${GRPC_DIR}/p/bin"
-            NO_DEFAULT_PATH)
-        if(_GRPC_CPP_PLUGIN_EXECUTABLE)
-            break()
-        endif()
-    endforeach()
-endif()
 
-if(NOT _GRPC_CPP_PLUGIN_EXECUTABLE)
+if (NOT _GRPC_CPP_PLUGIN_EXECUTABLE)
     message(FATAL_ERROR "grpc_cpp_plugin not found")
-endif()
+endif ()
 
-message(STATUS "Found grpc_cpp_plugin: ${_GRPC_CPP_PLUGIN_EXECUTABLE}")
+set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
 
-if(CMAKE_CROSSCOMPILING)
-    find_program(_PROTOBUF_PROTOC protoc)
-else()
-    set(_PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
-endif()
 
 # Proto file
 get_filename_component(AUTH_PROTO "${CMAKE_CURRENT_SOURCE_DIR}/proto/auth.proto" ABSOLUTE)
@@ -48,15 +32,15 @@ set(AUTH_GRPC_SRCS "${CMAKE_CURRENT_BINARY_DIR}/auth.grpc.pb.cc")
 set(AUTH_GRPC_HDRS "${CMAKE_CURRENT_BINARY_DIR}/auth.grpc.pb.h")
 
 add_custom_command(
-    OUTPUT "${AUTH_PROTO_SRCS}" "${AUTH_PROTO_HDRS}" "${AUTH_GRPC_SRCS}" "${AUTH_GRPC_HDRS}"
-    COMMAND ${_PROTOBUF_PROTOC}
-    ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
-         --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
-         -I "${AUTH_PROTO_PATH}"
-         --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
-         "${AUTH_PROTO}"
-    DEPENDS "${AUTH_PROTO}"
-    COMMENT "Generating gRPC and protobuf code for auth.proto"
+        OUTPUT "${AUTH_PROTO_SRCS}" "${AUTH_PROTO_HDRS}" "${AUTH_GRPC_SRCS}" "${AUTH_GRPC_HDRS}"
+        COMMAND ${_PROTOBUF_PROTOC}
+        ARGS --grpc_out "${CMAKE_CURRENT_BINARY_DIR}"
+        --cpp_out "${CMAKE_CURRENT_BINARY_DIR}"
+        -I "${AUTH_PROTO_PATH}"
+        --plugin=protoc-gen-grpc="${_GRPC_CPP_PLUGIN_EXECUTABLE}"
+        "${AUTH_PROTO}"
+        DEPENDS "${AUTH_PROTO}"
+        COMMENT "Generating gRPC and protobuf code for auth.proto"
 )
 
 # ══════════════════════════════════════════════════
@@ -69,7 +53,7 @@ file(GLOB GRPC_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB GRPC_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
 target_sources(wechat_grpc
-    PRIVATE
+        PRIVATE
         ${GRPC_SOURCES}
         ${GRPC_HEADERS}
         ${AUTH_PROTO_SRCS}
@@ -77,14 +61,14 @@ target_sources(wechat_grpc
 )
 
 target_include_directories(wechat_grpc
-    PUBLIC
+        PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_CURRENT_BINARY_DIR}
         ${CMAKE_SOURCE_DIR}/include
 )
 
 target_link_libraries(wechat_grpc
-    PUBLIC
+        PUBLIC
         wechat_network  # 依赖网络模块接口
         wechat_core
         wechat_log
@@ -96,12 +80,12 @@ target_link_libraries(wechat_grpc
 # Tests
 # ══════════════════════════════════════════════════
 
-if(ENABLE_TESTING)
+if (ENABLE_TESTING)
     file(GLOB GRPC_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-    if(GRPC_TEST_SOURCES)
+    if (GRPC_TEST_SOURCES)
         add_executable(test_grpc ${GRPC_TEST_SOURCES})
         target_include_directories(test_grpc PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
         target_link_libraries(test_grpc PUBLIC wechat_grpc GTest::gtest_main)
         gtest_discover_tests(test_grpc)
-    endif()
-endif()
+    endif ()
+endif ()

@@ -20,20 +20,20 @@ namespace chat {
 TEST(ChatModuleTest, MessageStructure) {
     core::Message msg;
     msg.id = 1;
-    msg.senderId = "user1";
-    msg.chatId = "chat1";
+    msg.senderId = 100;
+    msg.chatId = 200;
     msg.timestamp = 1234567890;
 
     EXPECT_EQ(msg.id, 1);
-    EXPECT_EQ(msg.senderId, "user1");
-    EXPECT_EQ(msg.chatId, "chat1");
+    EXPECT_EQ(msg.senderId, 100);
+    EXPECT_EQ(msg.chatId, 200);
     EXPECT_EQ(msg.timestamp, 1234567890);
 }
 
 TEST(ChatModuleTest, UserStructure) {
     core::User user;
-    user.id = "test_user_1";
-    EXPECT_EQ(user.id, "test_user_1");
+    user.id = 42;
+    EXPECT_EQ(user.id, 42);
 }
 
 TEST(ChatModuleTest, MessageContent) {
@@ -89,8 +89,8 @@ protected:
     std::unique_ptr<network::NetworkClient> client_;
     std::unique_ptr<chat::ChatPresenter> presenter_;
     std::string tokenA_, tokenB_;
-    std::string aliceId_, bobId_;
-    std::string chatId_;
+    int64_t aliceId_ = 0, bobId_ = 0;
+    int64_t chatId_ = 0;
 };
 
 // ═══════════════════════════════════════════════════════════════
@@ -359,16 +359,16 @@ TEST_F(ChatPresenterTest, LoadHistoryWithPartialSync) {
 // 边界条件测试
 // ═══════════════════════════════════════════════════════════════
 
-TEST_F(ChatPresenterTest, SendToEmptyChatIdDoesNotCrash) {
-    // 传空 chatId 发消息，不崩溃即通过
-    presenter_->sendTextMessage("", "orphan");
+TEST_F(ChatPresenterTest, SendToZeroChatIdDoesNotCrash) {
+    // 传 0 chatId 发消息，不崩溃即通过
+    presenter_->sendTextMessage(0, "orphan");
 }
 
-TEST_F(ChatPresenterTest, LoadHistoryWithEmptyChatId) {
+TEST_F(ChatPresenterTest, LoadHistoryWithZeroChatId) {
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);
 
-    // 空 chatId loadHistory，应安全返回
-    presenter_->loadHistory("", 20);
+    // chatId=0 loadHistory，应安全返回
+    presenter_->loadHistory(0, 20);
     EXPECT_EQ(spy.count(), 0);
 }
 
@@ -396,8 +396,8 @@ TEST_F(ChatPresenterTest, OpenMultipleChats) {
     // 两条消息分别触发 onMessageStored → messagesInserted
     ASSERT_EQ(spy.count(), 2);
 
-    auto id1 = spy.at(0).at(0).toString().toStdString();
-    auto id2 = spy.at(1).at(0).toString().toStdString();
+    auto id1 = spy.at(0).at(0).toLongLong();
+    auto id2 = spy.at(1).at(0).toLongLong();
     EXPECT_EQ(id1, chatId_);
     EXPECT_EQ(id2, chatId2);
 
@@ -450,7 +450,7 @@ TEST_F(ChatPresenterTest, NotificationBeforeOpenChatStillProcessed) {
 
 TEST_F(ChatPresenterTest, LoadLatestReturnsMostRecentMessages) {
     // 临时清除 session，防止 onMessageStored 自动同步
-    presenter_->setSession("", "");
+    presenter_->setSession("", 0);
 
     // 预灌 30 条消息
     for (int i = 0; i < 30; ++i) {
@@ -485,7 +485,7 @@ TEST_F(ChatPresenterTest, LoadLatestReturnsMostRecentMessages) {
 
 TEST_F(ChatPresenterTest, LoadLatestThenLoadHistory) {
     // 临时清除 session
-    presenter_->setSession("", "");
+    presenter_->setSession("", 0);
 
     // 预灌 30 条消息
     for (int i = 0; i < 30; ++i) {
@@ -557,7 +557,7 @@ TEST_F(ChatPresenterTest, FetchUpdatedReturnsModifiedMessages) {
 
 TEST_F(ChatPresenterTest, FetchAfterZeroReturnsLatest) {
     // 直接测试 ChatService 的 fetchAfter(0) 语义
-    presenter_->setSession("", "");
+    presenter_->setSession("", 0);
 
     for (int i = 0; i < 20; ++i) {
         client_->chat().sendMessage(
@@ -586,7 +586,7 @@ TEST_F(ChatPresenterTest, FetchAfterZeroReturnsLatest) {
 
 TEST_F(ChatPresenterTest, FetchBeforeZeroReturnsEarliest) {
     // 直接测试 ChatService 的 fetchBefore(0) 语义
-    presenter_->setSession("", "");
+    presenter_->setSession("", 0);
 
     for (int i = 0; i < 20; ++i) {
         client_->chat().sendMessage(

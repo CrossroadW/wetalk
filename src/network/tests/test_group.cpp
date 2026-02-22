@@ -101,7 +101,7 @@ TEST_F(GroupTest, CreateGroupEmptyMembers) {
 
 TEST_F(GroupTest, DissolveNonExistentGroup) {
     auto token = registerAndLogin("alice", "p");
-    auto r = client->groups().dissolveGroup(token, "nonexistent");
+    auto r = client->groups().dissolveGroup(token, 999999);
     ASSERT_FALSE(r.ok());
     EXPECT_EQ(r.error().code, ErrorCode::NotFound);
 }

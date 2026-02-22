@@ -15,18 +15,18 @@ SQLite::Database& DatabaseManager::db() { return *db_; }
 void DatabaseManager::initSchema() {
     db_->exec(R"(
         CREATE TABLE IF NOT EXISTS users (
-            id TEXT PRIMARY KEY
+            id INTEGER PRIMARY KEY AUTOINCREMENT
         );
 
         CREATE TABLE IF NOT EXISTS groups_ (
-            id TEXT PRIMARY KEY,
-            owner_id TEXT,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            owner_id INTEGER,
             updated_at INTEGER DEFAULT 0
         );
 
         CREATE TABLE IF NOT EXISTS group_members (
-            group_id TEXT,
-            user_id TEXT,
+            group_id INTEGER,
+            user_id INTEGER,
             joined_at INTEGER NOT NULL,
             removed INTEGER DEFAULT 0,
             updated_at INTEGER DEFAULT 0,
@@ -34,15 +34,15 @@ void DatabaseManager::initSchema() {
         );
 
         CREATE TABLE IF NOT EXISTS friendships (
-            user_id_a TEXT,
-            user_id_b TEXT,
+            user_id_a INTEGER,
+            user_id_b INTEGER,
             PRIMARY KEY (user_id_a, user_id_b)
         );
 
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY,
-            sender_id TEXT,
-            chat_id TEXT NOT NULL,
+            sender_id INTEGER,
+            chat_id INTEGER NOT NULL,
             reply_to INTEGER DEFAULT 0,
             content_data TEXT NOT NULL,
             timestamp INTEGER NOT NULL,

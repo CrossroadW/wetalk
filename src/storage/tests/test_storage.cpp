@@ -22,14 +22,14 @@ protected:
 
 TEST_F(StorageDaoTest, UserInsertAndFind) {
     UserDao dao(dbm->db());
-    dao.insert(User{"u1"});
-    dao.insert(User{"u2"});
+    dao.insert(User{1});
+    dao.insert(User{2});
 
-    auto u = dao.findById("u1");
+    auto u = dao.findById(1);
     ASSERT_TRUE(u.has_value());
-    EXPECT_EQ(u->id, "u1");
+    EXPECT_EQ(u->id, 1);
 
-    EXPECT_FALSE(dao.findById("u999").has_value());
+    EXPECT_FALSE(dao.findById(999).has_value());
 
     auto all = dao.findAll();
     EXPECT_EQ(all.size(), 2u);
@@ -37,26 +37,26 @@ TEST_F(StorageDaoTest, UserInsertAndFind) {
 
 TEST_F(StorageDaoTest, UserRemove) {
     UserDao dao(dbm->db());
-    dao.insert(User{"u1"});
-    dao.remove("u1");
-    EXPECT_FALSE(dao.findById("u1").has_value());
+    dao.insert(User{1});
+    dao.remove(1);
+    EXPECT_FALSE(dao.findById(1).has_value());
 }
 
 // ── Friendship ──
 
 TEST_F(StorageDaoTest, FriendshipAddAndQuery) {
     FriendshipDao dao(dbm->db());
-    dao.add("u1", "u2");
-    dao.add("u3", "u1");
+    dao.add(1, 2);
+    dao.add(3, 1);
 
-    EXPECT_TRUE(dao.isFriend("u1", "u2"));
-    EXPECT_TRUE(dao.isFriend("u2", "u1")); // 方向无关
+    EXPECT_TRUE(dao.isFriend(1, 2));
+    EXPECT_TRUE(dao.isFriend(2, 1)); // 方向无关
 
-    auto friends = dao.findFriends("u1");
+    auto friends = dao.findFriends(1);
     EXPECT_EQ(friends.size(), 2u);
 
-    dao.remove("u2", "u1");
-    EXPECT_FALSE(dao.isFriend("u1", "u2"));
+    dao.remove(2, 1);
+    EXPECT_FALSE(dao.isFriend(1, 2));
 }
 
 // ── Group ──
@@ -65,52 +65,52 @@ TEST_F(StorageDaoTest, GroupCreateAndMembers) {
     GroupDao dao(dbm->db());
 
     Group g;
-    g.id = "g1";
-    g.ownerId = "u1";
-    g.memberIds = {"u1", "u2", "u3"};
+    g.id = 1;
+    g.ownerId = 1;
+    g.memberIds = {1, 2, 3};
     dao.insertGroup(g, 1000);
 
-    auto found = dao.findGroupById("g1");
+    auto found = dao.findGroupById(1);
     ASSERT_TRUE(found.has_value());
-    EXPECT_EQ(found->ownerId, "u1");
+    EXPECT_EQ(found->ownerId, 1);
     EXPECT_EQ(found->memberIds.size(), 3u);
 
     // 用户查所属组
-    auto groups = dao.findGroupIdsByUser("u2");
+    auto groups = dao.findGroupIdsByUser(2);
     EXPECT_EQ(groups.size(), 1u);
-    EXPECT_EQ(groups[0], "g1");
+    EXPECT_EQ(groups[0], 1);
 }
 
 TEST_F(StorageDaoTest, GroupAddRemoveMember) {
     GroupDao dao(dbm->db());
 
-    Group g{"g1", "u1", {"u1"}};
+    Group g{1, 1, {1}};
     dao.insertGroup(g, 1000);
 
-    dao.addMember("g1", "u4", 2000);
-    auto members = dao.findMemberIds("g1");
+    dao.addMember(1, 4, 2000);
+    auto members = dao.findMemberIds(1);
     EXPECT_EQ(members.size(), 2u);
 
     // 软删除
-    dao.removeMember("g1", "u4", 3000);
-    members = dao.findMemberIds("g1");
+    dao.removeMember(1, 4, 3000);
+    members = dao.findMemberIds(1);
     EXPECT_EQ(members.size(), 1u);
 
     // 重新加入
-    dao.addMember("g1", "u4", 4000);
-    members = dao.findMemberIds("g1");
+    dao.addMember(1, 4, 4000);
+    members = dao.findMemberIds(1);
     EXPECT_EQ(members.size(), 2u);
 }
 
 TEST_F(StorageDaoTest, GroupIncrementalSync) {
     GroupDao dao(dbm->db());
 
-    dao.insertGroup(Group{"g1", "u1", {"u1"}}, 1000);
-    dao.insertGroup(Group{"g2", "u2", {"u2"}}, 2000);
+    dao.insertGroup(Group{1, 1, {1}}, 1000);
+    dao.insertGroup(Group{2, 2, {2}}, 2000);
 
     auto updated = dao.findGroupsUpdatedAfter(1500);
     EXPECT_EQ(updated.size(), 1u);
-    EXPECT_EQ(updated[0].id, "g2");
+    EXPECT_EQ(updated[0].id, 2);
 }
 
 // ── Message (含 JSON 序列化) ──
@@ -120,8 +120,8 @@ TEST_F(StorageDaoTest, MessageInsertAndFind) {
 
     Message msg;
     msg.id = 1;
-    msg.senderId = "u1";
-    msg.chatId = "g1";
+    msg.senderId = 1;
+    msg.chatId = 1;
     msg.replyTo = 0;
     msg.content = {
         TextContent{"hello"},
@@ -142,8 +142,8 @@ TEST_F(StorageDaoTest, MessageInsertAndFind) {
 
     auto found = dao.findById(1);
     ASSERT_TRUE(found.has_value());
-    EXPECT_EQ(found->senderId, "u1");
-    EXPECT_EQ(found->chatId, "g1");
+    EXPECT_EQ(found->senderId, 1);
+    EXPECT_EQ(found->chatId, 1);
     EXPECT_EQ(found->content.size(), 2u);
 
     // 验证 TextContent
@@ -168,8 +168,8 @@ TEST_F(StorageDaoTest, MessagePagination) {
     for (int i = 1; i <= 5; ++i) {
         Message m;
         m.id = i;
-        m.senderId = "u1";
-        m.chatId = "g1";
+        m.senderId = 1;
+        m.chatId = 1;
         m.content = {TextContent{"msg " + std::to_string(i)}};
         m.timestamp = i * 1000;
         m.editedAt = 0;
@@ -180,7 +180,7 @@ TEST_F(StorageDaoTest, MessagePagination) {
     }
 
     // findBefore(id=4) → id < 4 的最后 2 条，升序返回
-    auto page = dao.findBefore("g1", 4, 2);
+    auto page = dao.findBefore(1, 4, 2);
     EXPECT_EQ(page.size(), 2u);
     EXPECT_EQ(page[0].id, 2); // 升序
     EXPECT_EQ(page[1].id, 3);
@@ -190,7 +190,7 @@ TEST_F(StorageDaoTest, MessageIncrementalSync) {
     MessageDao dao(dbm->db());
 
     Message m1;
-    m1.id = 1; m1.senderId = "u1"; m1.chatId = "g1";
+    m1.id = 1; m1.senderId = 1; m1.chatId = 1;
     m1.content = {TextContent{"v1"}};
     m1.timestamp = 1000; m1.editedAt = 0;
     m1.revoked = false; m1.readCount = 0; m1.updatedAt = 0;
@@ -202,7 +202,7 @@ TEST_F(StorageDaoTest, MessageIncrementalSync) {
     m1.updatedAt = 2000;
     dao.update(m1);
 
-    auto synced = dao.findUpdatedAfter("g1", 1, 1, 1500, 100);
+    auto synced = dao.findUpdatedAfter(1, 1, 1, 1500, 100);
     EXPECT_EQ(synced.size(), 1u);
     auto* text = std::get_if<TextContent>(&synced[0].content[0]);
     ASSERT_NE(text, nullptr);
@@ -214,12 +214,12 @@ TEST_F(StorageDaoTest, MessageIncrementalSync) {
 // ══════════════════════════════════════════════════
 
 // 辅助：批量插入消息
-static void insertMessages(MessageDao& dao, const std::string& chatId,
+static void insertMessages(MessageDao& dao, int64_t chatId,
                            int from, int to) {
     for (int i = from; i <= to; ++i) {
         Message m;
         m.id = i;
-        m.senderId = "u1";
+        m.senderId = 1;
         m.chatId = chatId;
         m.content = {TextContent{"msg " + std::to_string(i)}};
         m.timestamp = i * 100;  // 有序时间戳
@@ -234,9 +234,9 @@ static void insertMessages(MessageDao& dao, const std::string& chatId,
 TEST_F(StorageDaoTest, CacheColdStart) {
     // 首次打开聊天：findAfter(afterId=0) → 返回最新的 limit 条，升序
     MessageDao dao(dbm->db());
-    insertMessages(dao, "g1", 1, 50);
+    insertMessages(dao, 1, 1, 50);
 
-    auto page = dao.findAfter("g1", 0, 20);
+    auto page = dao.findAfter(1, 0, 20);
     EXPECT_EQ(page.size(), 20u);
     EXPECT_EQ(page.front().id, 31);  // 最新 20 条: 31..50
     EXPECT_EQ(page.back().id, 50);
@@ -245,10 +245,10 @@ TEST_F(StorageDaoTest, CacheColdStart) {
 TEST_F(StorageDaoTest, CacheScrollUp) {
     // 向上滚动：加载 start 之前的历史消息
     MessageDao dao(dbm->db());
-    insertMessages(dao, "g1", 1, 50);
+    insertMessages(dao, 1, 1, 50);
 
     // 当前缓存 start=3，向上加载 id < 3 的最后 50 条，升序返回
-    auto older = dao.findBefore("g1", 3, 50);
+    auto older = dao.findBefore(1, 3, 50);
     EXPECT_EQ(older.size(), 2u);        // m1, m2
     EXPECT_EQ(older[0].id, 1);          // 升序
     EXPECT_EQ(older[1].id, 2);
@@ -257,10 +257,10 @@ TEST_F(StorageDaoTest, CacheScrollUp) {
 TEST_F(StorageDaoTest, CacheScrollDown) {
     // 向下滚动：加载 end 之后的新消息
     MessageDao dao(dbm->db());
-    insertMessages(dao, "g1", 1, 80);
+    insertMessages(dao, 1, 1, 80);
 
     // 当前缓存 end=50，向下加载 id > 50
-    auto newer = dao.findAfter("g1", 50, 50);
+    auto newer = dao.findAfter(1, 50, 50);
     EXPECT_EQ(newer.size(), 30u);       // m51..m80
     EXPECT_EQ(newer.front().id, 51);
     EXPECT_EQ(newer.back().id, 80);
@@ -269,13 +269,13 @@ TEST_F(StorageDaoTest, CacheScrollDown) {
 TEST_F(StorageDaoTest, CacheRealtimePush) {
     // WebSocket 推送：新消息直接插入，end 更新
     MessageDao dao(dbm->db());
-    insertMessages(dao, "g1", 1, 50);
+    insertMessages(dao, 1, 1, 50);
 
     // 模拟 WS 推送 m51
     Message pushed;
     pushed.id = 51;
-    pushed.senderId = "u2";
-    pushed.chatId = "g1";
+    pushed.senderId = 2;
+    pushed.chatId = 1;
     pushed.content = {TextContent{"realtime msg"}};
     pushed.timestamp = 5100;
     pushed.editedAt = 0;
@@ -285,7 +285,7 @@ TEST_F(StorageDaoTest, CacheRealtimePush) {
     dao.insert(pushed);
 
     // 验证能查到
-    auto newer = dao.findAfter("g1", 50, 10);
+    auto newer = dao.findAfter(1, 50, 10);
     EXPECT_EQ(newer.size(), 1u);
     EXPECT_EQ(newer[0].id, 51);
 
@@ -300,7 +300,7 @@ TEST_F(StorageDaoTest, CacheRealtimePush) {
 
 TEST_F(StorageDaoTest, MessageRevoke) {
     MessageDao dao(dbm->db());
-    insertMessages(dao, "g1", 1, 1);
+    insertMessages(dao, 1, 1, 1);
 
     dao.revoke(1, 5000);
 
@@ -310,14 +310,14 @@ TEST_F(StorageDaoTest, MessageRevoke) {
     EXPECT_EQ(msg->updatedAt, 5000);
 
     // 增量同步能感知到撤回
-    auto synced = dao.findUpdatedAfter("g1", 1, 1, 4000, 100);
+    auto synced = dao.findUpdatedAfter(1, 1, 1, 4000, 100);
     EXPECT_EQ(synced.size(), 1u);
     EXPECT_TRUE(synced[0].revoked);
 }
 
 TEST_F(StorageDaoTest, MessageEditContent) {
     MessageDao dao(dbm->db());
-    insertMessages(dao, "g1", 1, 1);
+    insertMessages(dao, 1, 1, 1);
 
     wechat::core::MessageContent newContent = {TextContent{"edited text"}};
     dao.editContent(1, newContent, 6000);
@@ -332,14 +332,14 @@ TEST_F(StorageDaoTest, MessageEditContent) {
     EXPECT_EQ(text->text, "edited text");
 
     // 增量同步能感知到编辑
-    auto synced = dao.findUpdatedAfter("g1", 1, 1, 5000, 100);
+    auto synced = dao.findUpdatedAfter(1, 1, 1, 5000, 100);
     EXPECT_EQ(synced.size(), 1u);
     EXPECT_EQ(synced[0].editedAt, 6000);
 }
 
 TEST_F(StorageDaoTest, MessageReadCount) {
     MessageDao dao(dbm->db());
-    insertMessages(dao, "g1", 1, 1);
+    insertMessages(dao, 1, 1, 1);
 
     dao.updateReadCount(1, 3, 7000);
 
@@ -349,7 +349,7 @@ TEST_F(StorageDaoTest, MessageReadCount) {
     EXPECT_EQ(msg->updatedAt, 7000);
 
     // 增量同步能感知到已读变化
-    auto synced = dao.findUpdatedAfter("g1", 1, 1, 6000, 100);
+    auto synced = dao.findUpdatedAfter(1, 1, 1, 6000, 100);
     EXPECT_EQ(synced.size(), 1u);
     EXPECT_EQ(synced[0].readCount, 3u);
 }
@@ -361,37 +361,37 @@ TEST_F(StorageDaoTest, MessageReadCount) {
 TEST_F(StorageDaoTest, GroupMemberChangeSync) {
     GroupDao dao(dbm->db());
 
-    dao.insertGroup(Group{"g1", "u1", {"u1", "u2"}}, 1000);
+    dao.insertGroup(Group{1, 1, {1, 2}}, 1000);
 
     // t=2000 加入 u3
-    dao.addMember("g1", "u3", 2000);
+    dao.addMember(1, 3, 2000);
     // t=3000 移除 u2
-    dao.removeMember("g1", "u2", 3000);
+    dao.removeMember(1, 2, 3000);
 
     // 从 t=1500 开始同步
     auto changes = dao.findMemberChangesAfter(1500);
     EXPECT_EQ(changes.size(), 2u);
 
     // 第一条：u3 加入
-    EXPECT_EQ(changes[0].groupId, "g1");
-    EXPECT_EQ(changes[0].userId, "u3");
+    EXPECT_EQ(changes[0].groupId, 1);
+    EXPECT_EQ(changes[0].userId, 3);
     EXPECT_FALSE(changes[0].removed);
 
     // 第二条：u2 被移除
-    EXPECT_EQ(changes[1].groupId, "g1");
-    EXPECT_EQ(changes[1].userId, "u2");
+    EXPECT_EQ(changes[1].groupId, 1);
+    EXPECT_EQ(changes[1].userId, 2);
     EXPECT_TRUE(changes[1].removed);
 }
 
 TEST_F(StorageDaoTest, GroupOwnerChangeSync) {
     GroupDao dao(dbm->db());
 
-    dao.insertGroup(Group{"g1", "u1", {"u1", "u2"}}, 1000);
+    dao.insertGroup(Group{1, 1, {1, 2}}, 1000);
 
     // t=5000 转让群主
-    dao.updateOwner("g1", "u2", 5000);
+    dao.updateOwner(1, 2, 5000);
 
     auto updated = dao.findGroupsUpdatedAfter(4000);
     EXPECT_EQ(updated.size(), 1u);
-    EXPECT_EQ(updated[0].ownerId, "u2");
+    EXPECT_EQ(updated[0].ownerId, 2);
 }

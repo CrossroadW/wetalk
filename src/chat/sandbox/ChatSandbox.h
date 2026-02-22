@@ -35,15 +35,15 @@ private Q_SLOTS:
 
 private:
     struct ChatEntry {
-        std::string chatId;
-        std::string peerId;
+        int64_t chatId = 0;
+        int64_t peerId = 0;
         std::string peerName;
         ChatWidget* widget = nullptr;
         MockBackend* backend = nullptr;
     };
 
     void setupUI();
-    void switchToChat(std::string const& chatId);
+    void switchToChat(int64_t chatId);
 
     // 网络层 & Presenter（沙盒拥有生命周期）
     std::unique_ptr<network::NetworkClient> client_;
@@ -51,10 +51,10 @@ private:
 
     // 当前用户
     std::string myToken_;
-    std::string myUserId_;
+    int64_t myUserId_ = 0;
 
     // 聊天列表
-    std::map<std::string, ChatEntry> chats_;  // chatId -> entry
+    std::map<int64_t, ChatEntry> chats_;  // chatId -> entry
     int peerCounter_ = 0;
 
     // UI

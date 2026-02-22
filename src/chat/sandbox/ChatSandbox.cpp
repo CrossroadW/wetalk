@@ -105,7 +105,7 @@ void ChatSandbox::onAddChat() {
     backend->setChatId(chatId);
 
     // 临时清除 Presenter session，防止 onMessageStored 自动同步 cursor
-    presenter_->setSession("", "");
+    presenter_->setSession("", 0);
     backend->prefill(100, {myToken_, peerToken});
     presenter_->setSession(myToken_, myUserId_);
 
@@ -133,7 +133,7 @@ void ChatSandbox::onAddChat() {
 
     // 添加到联系人列表
     auto* item = new QListWidgetItem(QString::fromStdString(peerName));
-    item->setData(Qt::UserRole, QString::fromStdString(chatId));
+    item->setData(Qt::UserRole, static_cast<qlonglong>(chatId));
     contactList_->addItem(item);
 
     // 自动切换到新聊天
@@ -145,11 +145,11 @@ void ChatSandbox::onAddChat() {
 }
 
 void ChatSandbox::onContactClicked(QListWidgetItem* item) {
-    auto chatId = item->data(Qt::UserRole).toString().toStdString();
+    auto chatId = item->data(Qt::UserRole).toLongLong();
     switchToChat(chatId);
 }
 
-void ChatSandbox::switchToChat(std::string const& chatId) {
+void ChatSandbox::switchToChat(int64_t chatId) {
     auto it = chats_.find(chatId);
     if (it == chats_.end()) {
         return;

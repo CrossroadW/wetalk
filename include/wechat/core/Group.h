@@ -1,15 +1,15 @@
 #pragma once
 
-#include <string>
+#include <cstdint>
 #include <vector>
 
 namespace wechat {
 namespace core {
 
 struct Group {
-    std::string id;
-    std::string ownerId;
-    std::vector<std::string> memberIds;
+    int64_t id = 0;
+    int64_t ownerId = 0;
+    std::vector<int64_t> memberIds;
 };
 
 } // namespace core

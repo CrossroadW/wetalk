@@ -35,57 +35,56 @@ public:
 
     // ── 会话 ──
 
-    void setSession(std::string const& token, std::string const& userId);
-    [[nodiscard]] std::string const& currentUserId() const;
+    void setSession(std::string const& token, int64_t userId);
+    [[nodiscard]] int64_t currentUserId() const;
 
     // ── 聊天初始化 ──
 
     /// 确保 chatId 的同步游标存在（不 fetch、不 emit）
-    void openChat(std::string const& chatId);
+    void openChat(int64_t chatId);
 
     // ── 操作（均需显式传 chatId）──
 
-    void sendMessage(std::string const& chatId,
+    void sendMessage(int64_t chatId,
                      core::MessageContent const& content,
                      int64_t replyTo = 0);
-    void sendTextMessage(std::string const& chatId,
+    void sendTextMessage(int64_t chatId,
                          std::string const& text);
     /// 打开聊天时调用，fetchAfter(0) 加载最新消息
-    void loadLatest(std::string const& chatId, int limit = 20);
+    void loadLatest(int64_t chatId, int limit = 20);
     /// 向上翻页，fetchBefore(start) 加载历史消息
-    void loadHistory(std::string const& chatId, int limit = 20);
+    void loadHistory(int64_t chatId, int limit = 20);
     void revokeMessage(int64_t messageId);
     void editMessage(int64_t messageId,
                      core::MessageContent const& newContent);
 
 Q_SIGNALS:
     /// 新增消息（自己发的 + 别人发的，统一路径）
-    void messagesInserted(QString chatId,
+    void messagesInserted(int64_t chatId,
                           std::vector<core::Message> messages);
 
     /// 消息变更（撤回、编辑、已读数等）
-    void messageUpdated(QString chatId, core::Message message);
+    void messageUpdated(int64_t chatId, core::Message message);
 
     /// 消息删除
-    void messageRemoved(QString chatId, int64_t messageId);
+    void messageRemoved(int64_t chatId, int64_t messageId);
 
 private:
     network::NetworkClient& client_;
 
     std::string token_;
-    std::string userId_;
+    int64_t userId_ = 0;
 
     struct SyncCursor {
         int64_t start = 0;
         int64_t end = 0;
         int64_t maxUpdatedAt = 0;
     };
-    std::map<std::string, SyncCursor> cursors_;
+    std::map<int64_t, SyncCursor> cursors_;
 
-    void onNetworkMessageStored(std::string const& chatId);
-    void onNetworkMessageUpdated(std::string const& chatId,
-                                  int64_t messageId);
-    void syncUpdated(std::string const& chatId);
+    void onNetworkMessageStored(int64_t chatId);
+    void onNetworkMessageUpdated(int64_t chatId, int64_t messageId);
+    void syncUpdated(int64_t chatId);
     void updateMaxUpdatedAt(SyncCursor& cursor,
                             std::vector<core::Message> const& msgs);
 };

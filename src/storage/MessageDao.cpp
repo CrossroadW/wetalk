@@ -137,7 +137,7 @@ std::optional<core::Message> MessageDao::findById(int64_t id) {
 }
 
 std::vector<core::Message> MessageDao::findAfter(
-    const std::string& chatId, int64_t afterId, int limit) {
+    int64_t chatId, int64_t afterId, int limit) {
     std::vector<core::Message> result;
 
     if (afterId == 0) {
@@ -176,7 +176,7 @@ std::vector<core::Message> MessageDao::findAfter(
 }
 
 std::vector<core::Message> MessageDao::findBefore(
-    const std::string& chatId, int64_t beforeId, int limit) {
+    int64_t chatId, int64_t beforeId, int limit) {
     std::vector<core::Message> result;
 
     if (beforeId == 0) {
@@ -215,7 +215,7 @@ std::vector<core::Message> MessageDao::findBefore(
 }
 
 std::vector<core::Message> MessageDao::findUpdatedAfter(
-    const std::string& chatId, int64_t startId, int64_t endId,
+    int64_t chatId, int64_t startId, int64_t endId,
     int64_t since, int limit) {
     std::vector<core::Message> result;
     SQLite::Statement stmt(db_, R"(
@@ -239,8 +239,8 @@ std::vector<core::Message> MessageDao::findUpdatedAfter(
 core::Message MessageDao::rowToMessage(SQLite::Statement& stmt) {
     core::Message msg;
     msg.id = stmt.getColumn(0).getInt64();
-    msg.senderId = stmt.getColumn(1).getString();
-    msg.chatId = stmt.getColumn(2).getString();
+    msg.senderId = stmt.getColumn(1).getInt64();
+    msg.chatId = stmt.getColumn(2).getInt64();
     msg.replyTo = stmt.getColumn(3).getInt64();
     msg.content = deserializeContent(stmt.getColumn(4).getString());
     msg.timestamp = stmt.getColumn(5).getInt64();

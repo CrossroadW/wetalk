@@ -10,10 +10,10 @@ MockChatService::MockChatService(std::shared_ptr<MockDataStore> store)
     : store(std::move(store)) {}
 
 Result<core::Message> MockChatService::sendMessage(
-    const std::string& token, const std::string& chatId,
+    const std::string& token, int64_t chatId,
     int64_t replyTo, const core::MessageContent& content) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     if (content.empty())
@@ -34,10 +34,10 @@ Result<core::Message> MockChatService::sendMessage(
 }
 
 Result<SyncMessagesResponse> MockChatService::fetchAfter(
-    const std::string& token, const std::string& chatId,
+    const std::string& token, int64_t chatId,
     int64_t afterId, int limit) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto msgs = store->getMessagesAfter(chatId, afterId, limit + 1);
@@ -56,10 +56,10 @@ Result<SyncMessagesResponse> MockChatService::fetchAfter(
 }
 
 Result<SyncMessagesResponse> MockChatService::fetchBefore(
-    const std::string& token, const std::string& chatId,
+    const std::string& token, int64_t chatId,
     int64_t beforeId, int limit) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto msgs = store->getMessagesBefore(chatId, beforeId, limit + 1);
@@ -78,11 +78,11 @@ Result<SyncMessagesResponse> MockChatService::fetchBefore(
 }
 
 Result<SyncMessagesResponse> MockChatService::fetchUpdated(
-    const std::string& token, const std::string& chatId,
+    const std::string& token, int64_t chatId,
     int64_t startId, int64_t endId,
     int64_t updatedAt, int limit) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto msgs = store->getMessagesUpdatedAfter(chatId, startId, endId, updatedAt, limit + 1);
@@ -95,7 +95,7 @@ Result<SyncMessagesResponse> MockChatService::fetchUpdated(
 VoidResult MockChatService::revokeMessage(const std::string& token,
                                           int64_t messageId) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* msg = store->findMessage(messageId);
@@ -116,7 +116,7 @@ VoidResult MockChatService::editMessage(
     const std::string& token, int64_t messageId,
     const core::MessageContent& newContent) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* msg = store->findMessage(messageId);
@@ -139,10 +139,10 @@ VoidResult MockChatService::editMessage(
 }
 
 VoidResult MockChatService::markRead(const std::string& token,
-                                     const std::string& chatId,
+                                     int64_t chatId,
                                      int64_t lastMessageId) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* msg = store->findMessage(lastMessageId);

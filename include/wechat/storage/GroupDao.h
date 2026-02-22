@@ -4,7 +4,6 @@
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <cstdint>
 #include <optional>
-#include <string>
 #include <vector>
 
 namespace wechat {
@@ -16,23 +15,23 @@ public:
 
     // ── groups_ 表 ──
     void insertGroup(const core::Group& group, int64_t now);
-    void updateOwner(const std::string& groupId, const std::string& ownerId, int64_t now);
-    void removeGroup(const std::string& groupId);
-    std::optional<core::Group> findGroupById(const std::string& id);
+    void updateOwner(int64_t groupId, int64_t ownerId, int64_t now);
+    void removeGroup(int64_t groupId);
+    std::optional<core::Group> findGroupById(int64_t id);
 
     // ── group_members 表 ──
-    void addMember(const std::string& groupId, const std::string& userId, int64_t now);
-    void removeMember(const std::string& groupId, const std::string& userId, int64_t now);
-    std::vector<std::string> findMemberIds(const std::string& groupId);
-    std::vector<std::string> findGroupIdsByUser(const std::string& userId);
+    void addMember(int64_t groupId, int64_t userId, int64_t now);
+    void removeMember(int64_t groupId, int64_t userId, int64_t now);
+    std::vector<int64_t> findMemberIds(int64_t groupId);
+    std::vector<int64_t> findGroupIdsByUser(int64_t userId);
 
     // ── 增量同步 ──
     std::vector<core::Group> findGroupsUpdatedAfter(int64_t since);
 
     /// 成员变更增量同步：返回 {group_id, user_id, removed} 三元组
     struct MemberChange {
-        std::string groupId;
-        std::string userId;
+        int64_t groupId;
+        int64_t userId;
         bool removed;
         int64_t updatedAt;
     };

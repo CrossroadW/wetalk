@@ -16,12 +16,12 @@ public:
     /// 添加好友
     virtual VoidResult addFriend(
         const std::string& token,
-        const std::string& targetUserId) = 0;
+        int64_t targetUserId) = 0;
 
     /// 删除好友
     virtual VoidResult removeFriend(
         const std::string& token,
-        const std::string& targetUserId) = 0;
+        int64_t targetUserId) = 0;
 
     /// 获取好友列表
     virtual Result<std::vector<core::User>> listFriends(

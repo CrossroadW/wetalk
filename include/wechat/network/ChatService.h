@@ -28,7 +28,7 @@ public:
     /// 发送消息，返回服务端分配的完整 Message
     virtual Result<core::Message> sendMessage(
         const std::string& token,
-        const std::string& chatId,
+        int64_t chatId,
         int64_t replyTo,
         const core::MessageContent& content) = 0;
 
@@ -37,7 +37,7 @@ public:
     /// afterId > 0 → 返回 id > afterId 的前 limit 条（升序）
     virtual Result<SyncMessagesResponse> fetchAfter(
         const std::string& token,
-        const std::string& chatId,
+        int64_t chatId,
         int64_t afterId,
         int limit) = 0;
 
@@ -46,7 +46,7 @@ public:
     /// beforeId > 0 → 返回 id < beforeId 的最后 limit 条（升序返回）
     virtual Result<SyncMessagesResponse> fetchBefore(
         const std::string& token,
-        const std::string& chatId,
+        int64_t chatId,
         int64_t beforeId,
         int limit) = 0;
 
@@ -54,7 +54,7 @@ public:
     /// updatedAt = 0 → 返回所有有更新的已缓存消息
     virtual Result<SyncMessagesResponse> fetchUpdated(
         const std::string& token,
-        const std::string& chatId,
+        int64_t chatId,
         int64_t startId,
         int64_t endId,
         int64_t updatedAt,
@@ -74,15 +74,15 @@ public:
     /// 标记已读
     virtual VoidResult markRead(
         const std::string& token,
-        const std::string& chatId,
+        int64_t chatId,
         int64_t lastMessageId) = 0;
 
 Q_SIGNALS:
     /// 有新消息写入（发送/接收均触发）
-    void messageStored(const std::string& chatId);
+    void messageStored(int64_t chatId);
 
     /// 消息被修改（撤回/编辑/已读数变化）
-    void messageUpdated(const std::string& chatId, int64_t messageId);
+    void messageUpdated(int64_t chatId, int64_t messageId);
 };
 
 } // namespace wechat::network

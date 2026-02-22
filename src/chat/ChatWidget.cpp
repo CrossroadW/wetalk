@@ -140,11 +140,11 @@ void ChatWidget::setChatPartner(core::User const& partner) {
     chatPartner_ = partner;
     if (titleLabel_) {
         titleLabel_->setText(
-            tr("与 %1 聊天").arg(QString::fromStdString(chatPartner_.id)));
+            tr("与 %1 聊天").arg(chatPartner_.id));
     }
 }
 
-void ChatWidget::setChatId(std::string const& chatId) {
+void ChatWidget::setChatId(int64_t chatId) {
     chatId_ = chatId;
 }
 
@@ -186,9 +186,9 @@ void ChatWidget::sendMessage() {
 
 // ── 模型变化回调 ──
 
-void ChatWidget::onMessagesInserted(QString chatId,
+void ChatWidget::onMessagesInserted(int64_t chatId,
                                      std::vector<core::Message> messages) {
-    if (!chatId_.empty() && chatId.toStdString() != chatId_) {
+    if (chatId_ && chatId != chatId_) {
         return;
     }
 
@@ -213,17 +213,17 @@ void ChatWidget::onMessagesInserted(QString chatId,
     loading_ = false;
 }
 
-void ChatWidget::onMessageUpdated(QString chatId,
+void ChatWidget::onMessageUpdated(int64_t chatId,
                                    core::Message message) {
-    if (!chatId_.empty() && chatId.toStdString() != chatId_) {
+    if (chatId_ && chatId != chatId_) {
         return;
     }
     // upsert 语义：addMessage 会更新已有消息
     messageListView_->addMessage(message, currentUser_);
 }
 
-void ChatWidget::onMessageRemoved(QString chatId, int64_t messageId) {
-    if (!chatId_.empty() && chatId.toStdString() != chatId_) {
+void ChatWidget::onMessageRemoved(int64_t chatId, int64_t messageId) {
+    if (chatId_ && chatId != chatId_) {
         return;
     }
     // TODO: 从列表中移除对应消息项
@@ -233,7 +233,7 @@ void ChatWidget::onMessageRemoved(QString chatId, int64_t messageId) {
 // ── 初始化 & 懒加载 ──
 
 void ChatWidget::initChat() {
-    if (!presenter_ || chatId_.empty() || initialized_) {
+    if (!presenter_ || !chatId_ || initialized_) {
         return;
     }
     initialized_ = true;
@@ -242,7 +242,7 @@ void ChatWidget::initChat() {
 }
 
 void ChatWidget::onReachedTop() {
-    if (!presenter_ || chatId_.empty() || loading_) {
+    if (!presenter_ || !chatId_ || loading_) {
         return;
     }
     loading_ = true;

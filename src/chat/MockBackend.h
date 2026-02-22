@@ -27,10 +27,10 @@ public:
 
     /// 设置模拟用户会话
     void setPeerSession(std::string const& token,
-                        std::string const& userId);
+                        int64_t userId);
 
     /// 设置目标聊天
-    void setChatId(std::string const& chatId);
+    void setChatId(int64_t chatId);
 
     // ── 预灌数据（同步，ChatWidget 创建前调用）──
 
@@ -71,8 +71,8 @@ private:
 
     network::NetworkClient& client_;
     std::string peerToken_;
-    std::string peerId_;
-    std::string chatId_;
+    int64_t peerId_ = 0;
+    int64_t chatId_ = 0;
 
     QTimer timer_;
     std::vector<ScriptEntry> script_;

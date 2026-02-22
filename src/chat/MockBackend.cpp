@@ -24,12 +24,12 @@ MockBackend::MockBackend(network::NetworkClient& client, QObject* parent)
 }
 
 void MockBackend::setPeerSession(std::string const& token,
-                                  std::string const& userId) {
+                                  int64_t userId) {
     peerToken_ = token;
     peerId_ = userId;
 }
 
-void MockBackend::setChatId(std::string const& chatId) {
+void MockBackend::setChatId(int64_t chatId) {
     chatId_ = chatId;
 }
 

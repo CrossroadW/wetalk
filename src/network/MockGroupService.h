@@ -13,17 +13,17 @@ public:
 
     Result<core::Group> createGroup(
         const std::string& token,
-        const std::vector<std::string>& memberIds) override;
+        const std::vector<int64_t>& memberIds) override;
     VoidResult dissolveGroup(
-        const std::string& token, const std::string& groupId) override;
+        const std::string& token, int64_t groupId) override;
     VoidResult addMember(
-        const std::string& token, const std::string& groupId,
-        const std::string& userId) override;
+        const std::string& token, int64_t groupId,
+        int64_t userId) override;
     VoidResult removeMember(
-        const std::string& token, const std::string& groupId,
-        const std::string& userId) override;
-    Result<std::vector<std::string>> listMembers(
-        const std::string& token, const std::string& groupId) override;
+        const std::string& token, int64_t groupId,
+        int64_t userId) override;
+    Result<std::vector<int64_t>> listMembers(
+        const std::string& token, int64_t groupId) override;
     Result<std::vector<core::Group>> listMyGroups(
         const std::string& token) override;
 

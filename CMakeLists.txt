@@ -36,6 +36,7 @@ add_subdirectory(src/auth)
 add_subdirectory(src/chat)
 add_subdirectory(src/contacts)
 add_subdirectory(src/moments)
+#add_subdirectory(src/grpc/)
 
 # Main app
 add_executable(wetalk)

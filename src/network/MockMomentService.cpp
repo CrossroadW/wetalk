@@ -15,7 +15,7 @@ Result<Moment> MockMomentService::postMoment(
     const std::string& token, const std::string& text,
     const std::vector<std::string>& imageIds) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     if (text.empty() && imageIds.empty())
@@ -28,12 +28,12 @@ Result<Moment> MockMomentService::postMoment(
 Result<std::vector<Moment>> MockMomentService::listMoments(
     const std::string& token, int64_t beforeTs, int limit) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     // 可见范围：自己 + 好友
     auto friendIds = store->getFriendIds(userId);
-    std::set<std::string> visible(friendIds.begin(), friendIds.end());
+    std::set<int64_t> visible(friendIds.begin(), friendIds.end());
     visible.insert(userId);
 
     return store->getMoments(visible, beforeTs, limit);
@@ -42,7 +42,7 @@ Result<std::vector<Moment>> MockMomentService::listMoments(
 VoidResult MockMomentService::likeMoment(const std::string& token,
                                          int64_t momentId) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* moment = store->findMoment(momentId);
@@ -61,7 +61,7 @@ Result<Moment::Comment> MockMomentService::commentMoment(
     const std::string& token, int64_t momentId,
     const std::string& text) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* moment = store->findMoment(momentId);

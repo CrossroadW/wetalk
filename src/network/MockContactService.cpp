@@ -8,9 +8,9 @@ MockContactService::MockContactService(std::shared_ptr<MockDataStore> store)
     : store(std::move(store)) {}
 
 VoidResult MockContactService::addFriend(const std::string& token,
-                                         const std::string& targetUserId) {
+                                         int64_t targetUserId) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     if (userId == targetUserId)
@@ -27,9 +27,9 @@ VoidResult MockContactService::addFriend(const std::string& token,
 }
 
 VoidResult MockContactService::removeFriend(const std::string& token,
-                                            const std::string& targetUserId) {
+                                            int64_t targetUserId) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     if (!store->areFriends(userId, targetUserId))
@@ -42,7 +42,7 @@ VoidResult MockContactService::removeFriend(const std::string& token,
 Result<std::vector<core::User>> MockContactService::listFriends(
     const std::string& token) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto friendIds = store->getFriendIds(userId);
@@ -57,7 +57,7 @@ Result<std::vector<core::User>> MockContactService::listFriends(
 Result<std::vector<core::User>> MockContactService::searchUser(
     const std::string& token, const std::string& keyword) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     return store->searchUsers(keyword);

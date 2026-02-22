@@ -34,14 +34,14 @@ User (id)
 ```cpp
 // ── User: 身份 ──
 struct User {
-    std::string id;
+    int64_t id = 0;
 };
 
 // ── Group: 聊天容器 (私聊 = 2人, 群聊 = N人) ──
 struct Group {
-    std::string id;
-    std::string ownerId;                // 私聊时为空
-    std::vector<std::string> memberIds;
+    int64_t id = 0;
+    int64_t ownerId = 0;                // 私聊时为空(0)
+    std::vector<int64_t> memberIds;
 };
 
 // ── MessageContent: 消息载荷 ──
@@ -85,8 +85,8 @@ using MessageContent = std::vector<ContentBlock>;
 // ── Message: 一条消息 ──
 struct Message {
     int64_t id = 0;
-    std::string senderId;
-    std::string chatId;         // 始终是 Group.id
+    int64_t senderId = 0;
+    int64_t chatId = 0;         // 始终是 Group.id
     int64_t replyTo = 0;       // 引用消息 id，0 = 无引用
     MessageContent content;     // 内容块列表
     int64_t timestamp;
@@ -99,15 +99,15 @@ struct Message {
 // ── Moment: 朋友圈动态 ──
 struct Moment {
     int64_t id = 0;
-    std::string authorId;
+    int64_t authorId = 0;
     std::string text;
     std::vector<std::string> imageIds;  // 图片资源 ID 列表
     int64_t timestamp;
-    std::vector<std::string> likedBy;   // 点赞用户 ID 列表
+    std::vector<int64_t> likedBy;       // 点赞用户 ID 列表
 
     struct Comment {
         int64_t id = 0;
-        std::string authorId;
+        int64_t authorId = 0;
         std::string text;
         int64_t timestamp;
     };
@@ -123,18 +123,18 @@ struct Moment {
 
 ```sql
 CREATE TABLE users (
-    id TEXT PRIMARY KEY
+    id INTEGER PRIMARY KEY AUTOINCREMENT
 );
 
 CREATE TABLE groups_ (
-    id TEXT PRIMARY KEY,
-    owner_id TEXT,             -- 私聊时为空
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    owner_id INTEGER,             -- 私聊时为 0
     updated_at INTEGER DEFAULT 0 -- 群信息变更时更新，用于增量同步
 );
 
 CREATE TABLE group_members (
-    group_id TEXT,
-    user_id TEXT,
+    group_id INTEGER,
+    user_id INTEGER,
     joined_at INTEGER NOT NULL,    -- 加入时间
     removed INTEGER DEFAULT 0,     -- 0=在群, 1=已退出/被移除
     updated_at INTEGER DEFAULT 0,  -- 最后变更时间，用于增量同步
@@ -142,15 +142,15 @@ CREATE TABLE group_members (
 );
 
 CREATE TABLE friendships (
-    user_id_a TEXT,
-    user_id_b TEXT,
+    user_id_a INTEGER,
+    user_id_b INTEGER,
     PRIMARY KEY (user_id_a, user_id_b)
 );
 
 CREATE TABLE messages (
     id INTEGER PRIMARY KEY,
-    sender_id TEXT,
-    chat_id TEXT NOT NULL,
+    sender_id INTEGER,
+    chat_id INTEGER NOT NULL,
     reply_to INTEGER DEFAULT 0, -- 引用消息 id，0 = 无引用
     content_data TEXT NOT NULL, -- 序列化的内容块列表
     revoked INTEGER DEFAULT 0,
@@ -160,7 +160,7 @@ CREATE TABLE messages (
 
 CREATE TABLE moments (
     id INTEGER PRIMARY KEY,
-    author_id TEXT NOT NULL,
+    author_id INTEGER NOT NULL,
     text TEXT NOT NULL DEFAULT '',
     updated_at INTEGER DEFAULT 0
 );
@@ -174,14 +174,14 @@ CREATE TABLE moment_images (
 
 CREATE TABLE moment_likes (
     moment_id INTEGER NOT NULL,
-    user_id TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
     PRIMARY KEY (moment_id, user_id)
 );
 
 CREATE TABLE moment_comments (
     id INTEGER PRIMARY KEY,
     moment_id INTEGER NOT NULL,
-    author_id TEXT NOT NULL,
+    author_id INTEGER NOT NULL,
     text TEXT NOT NULL,
 );
 

@@ -27,7 +27,7 @@ Result<LoginResponse> MockAuthService::registerUser(
 Result<LoginResponse> MockAuthService::login(
     const std::string& username, const std::string& password) {
     auto userId = store->authenticate(username, password);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid username or password"};
 
     auto token = store->createToken(userId);
@@ -36,7 +36,7 @@ Result<LoginResponse> MockAuthService::login(
 
 VoidResult MockAuthService::logout(const std::string& token) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     store->removeToken(token);
@@ -45,7 +45,7 @@ VoidResult MockAuthService::logout(const std::string& token) {
 
 Result<core::User> MockAuthService::getCurrentUser(const std::string& token) {
     auto userId = store->resolveToken(token);
-    if (userId.empty())
+    if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
     auto* user = store->findUser(userId);

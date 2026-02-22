@@ -11,15 +11,15 @@ namespace wechat::network {
 /// 朋友圈动态
 struct Moment {
     int64_t id = 0;
-    std::string authorId;
+    int64_t authorId = 0;
     std::string text;
     std::vector<std::string> imageIds;
     int64_t timestamp;
-    std::vector<std::string> likedBy;
+    std::vector<int64_t> likedBy;
 
     struct Comment {
         int64_t id = 0;
-        std::string authorId;
+        int64_t authorId = 0;
         std::string text;
         int64_t timestamp;
     };

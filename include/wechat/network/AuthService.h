@@ -3,14 +3,14 @@
 #include <wechat/core/User.h>
 #include <wechat/network/NetworkTypes.h>
 
-#include <optional>
+#include <cstdint>
 #include <string>
 
 namespace wechat::network {
 
 /// 登录响应
 struct LoginResponse {
-    std::string userId;
+    int64_t userId = 0;
     std::string token;
 };
 

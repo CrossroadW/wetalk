@@ -21,7 +21,7 @@ protected:
 TEST_F(AuthTest, RegisterAndLogin) {
     auto reg = client->auth().registerUser("alice", "pass123");
     ASSERT_TRUE(reg.ok());
-    EXPECT_FALSE(reg.value().userId.empty());
+    EXPECT_NE(reg.value().userId, 0);
     EXPECT_FALSE(reg.value().token.empty());
 
     auto login = client->auth().login("alice", "pass123");

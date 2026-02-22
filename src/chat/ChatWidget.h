@@ -36,7 +36,7 @@ public:
 
     void setCurrentUser(core::User const& user);
     void setChatPartner(core::User const& partner);
-    void setChatId(std::string const& chatId);
+    void setChatId(int64_t chatId);
 
     /// 注入 ChatPresenter，ChatWidget 不拥有其生命周期
     void setPresenter(ChatPresenter* presenter);
@@ -47,10 +47,10 @@ public:
 
 private Q_SLOTS:
     // 模型变化回调
-    void onMessagesInserted(QString chatId,
+    void onMessagesInserted(int64_t chatId,
                             std::vector<core::Message> messages);
-    void onMessageUpdated(QString chatId, core::Message message);
-    void onMessageRemoved(QString chatId, int64_t messageId);
+    void onMessageUpdated(int64_t chatId, core::Message message);
+    void onMessageRemoved(int64_t chatId, int64_t messageId);
 
     // 右键菜单
     void onReplyRequested(core::Message const& message);
@@ -77,7 +77,7 @@ private:
 
     core::User currentUser_;
     core::User chatPartner_;
-    std::string chatId_;
+    int64_t chatId_ = 0;
 
     ChatPresenter* presenter_ = nullptr;
     bool initialized_ = false;

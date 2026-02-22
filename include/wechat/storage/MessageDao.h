@@ -25,16 +25,16 @@ public:
 
     /// afterId=0 → 返回最新的 limit 条（从末尾倒数），升序返回
     /// afterId>0 → 返回 id > afterId 的前 limit 条，升序返回
-    std::vector<core::Message> findAfter(const std::string& chatId,
+    std::vector<core::Message> findAfter(int64_t chatId,
                                          int64_t afterId, int limit);
 
     /// beforeId=0 → 返回最早的 limit 条（从头开始），升序返回
     /// beforeId>0 → 返回 id < beforeId 的最后 limit 条，升序返回
-    std::vector<core::Message> findBefore(const std::string& chatId,
+    std::vector<core::Message> findBefore(int64_t chatId,
                                           int64_t beforeId, int limit);
 
     /// 增量同步：获取 chatId 中 id ∈ [startId, endId] 且 updated_at > since 的消息
-    std::vector<core::Message> findUpdatedAfter(const std::string& chatId,
+    std::vector<core::Message> findUpdatedAfter(int64_t chatId,
                                                 int64_t startId, int64_t endId,
                                                 int64_t since, int limit);
 
