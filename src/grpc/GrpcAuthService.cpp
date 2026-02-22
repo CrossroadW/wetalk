@@ -21,24 +21,20 @@ GrpcAuthService::GrpcAuthService(const std::string& serverAddress)
 Result<LoginResponse> GrpcAuthService::registerUser(
     const std::string& username, const std::string& password) {
     // TODO: 实现真实的 gRPC 调用
-    return {ErrorCode::Unavailable,
-            "gRPC backend not available yet - use MockNetworkClient"};
+    return fail("gRPC backend not available yet - use MockNetworkClient");
 }
 
 Result<LoginResponse> GrpcAuthService::login(
     const std::string& username, const std::string& password) {
-    return {ErrorCode::Unavailable,
-            "gRPC backend not available yet - use MockNetworkClient"};
+    return fail("gRPC backend not available yet - use MockNetworkClient");
 }
 
 VoidResult GrpcAuthService::logout(const std::string& token) {
-    return {ErrorCode::Unavailable,
-            "gRPC backend not available yet - use MockNetworkClient"};
+    return fail("gRPC backend not available yet - use MockNetworkClient");
 }
 
 Result<core::User> GrpcAuthService::getCurrentUser(const std::string& token) {
-    return {ErrorCode::Unavailable,
-            "gRPC backend not available yet - use MockNetworkClient"};
+    return fail("gRPC backend not available yet - use MockNetworkClient");
 }
 
 } // namespace network

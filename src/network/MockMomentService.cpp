@@ -16,10 +16,10 @@ Result<Moment> MockMomentService::postMoment(
     const std::vector<std::string>& imageIds) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     if (text.empty() && imageIds.empty())
-        return {ErrorCode::InvalidArgument, "moment must have text or images"};
+        return fail("moment must have text or images");
 
     auto moment = store->addMoment(userId, text, imageIds);
     return moment;
@@ -29,7 +29,7 @@ Result<std::vector<Moment>> MockMomentService::listMoments(
     const std::string& token, int64_t beforeTs, int limit) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     // 可见范围：自己 + 好友
     auto friendIds = store->getFriendIds(userId);
@@ -43,14 +43,14 @@ VoidResult MockMomentService::likeMoment(const std::string& token,
                                          int64_t momentId) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto moment = store->findMoment(momentId);
     if (!moment)
-        return {ErrorCode::NotFound, "moment not found"};
+        return fail("moment not found");
 
     if (store->hasLiked(momentId, userId))
-        return {ErrorCode::AlreadyExists, "already liked"};
+        return fail("already liked");
 
     store->addLike(momentId, userId);
     return success();
@@ -61,14 +61,14 @@ Result<Moment::Comment> MockMomentService::commentMoment(
     const std::string& text) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto moment = store->findMoment(momentId);
     if (!moment)
-        return {ErrorCode::NotFound, "moment not found"};
+        return fail("moment not found");
 
     if (text.empty())
-        return {ErrorCode::InvalidArgument, "comment text required"};
+        return fail("comment text required");
 
     auto commentId = store->addComment(momentId, userId, text);
     // 重新加载获取完整 comment（含数据库生成的 timestamp）

@@ -11,16 +11,16 @@ VoidResult MockContactService::addFriend(const std::string& token,
                                          int64_t targetUserId) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     if (userId == targetUserId)
-        return {ErrorCode::InvalidArgument, "cannot add yourself"};
+        return fail("cannot add yourself");
 
     if (!store->findUser(targetUserId).has_value())
-        return {ErrorCode::NotFound, "user not found"};
+        return fail("user not found");
 
     if (store->areFriends(userId, targetUserId))
-        return {ErrorCode::AlreadyExists, "already friends"};
+        return fail("already friends");
 
     store->addFriendship(userId, targetUserId);
     return success();
@@ -30,10 +30,10 @@ VoidResult MockContactService::removeFriend(const std::string& token,
                                             int64_t targetUserId) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     if (!store->areFriends(userId, targetUserId))
-        return {ErrorCode::NotFound, "not friends"};
+        return fail("not friends");
 
     store->removeFriendship(userId, targetUserId);
     return success();
@@ -43,7 +43,7 @@ Result<std::vector<core::User>> MockContactService::listFriends(
     const std::string& token) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto friendIds = store->getFriendIds(userId);
     std::vector<core::User> result;
@@ -58,7 +58,7 @@ Result<std::vector<core::User>> MockContactService::searchUser(
     const std::string& token, const std::string& keyword) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     return store->searchUsers(keyword);
 }

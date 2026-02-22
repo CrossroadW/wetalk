@@ -14,7 +14,7 @@ protected:
     std::string registerAndLogin(const std::string& username,
                                  const std::string& password) {
         auto r = client->auth().registerUser(username, password);
-        EXPECT_TRUE(r.ok());
+        EXPECT_TRUE(r.has_value());
         return r.value().token;
     }
 
@@ -27,10 +27,10 @@ TEST_F(ContactTest, AddAndListFriends) {
     auto userIdB = regB.value().userId;
 
     auto r = client->contacts().addFriend(tokenA, userIdB);
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
 
     auto friends = client->contacts().listFriends(tokenA);
-    ASSERT_TRUE(friends.ok());
+    ASSERT_TRUE(friends.has_value());
     EXPECT_EQ(friends.value().size(), 1u);
     EXPECT_EQ(friends.value()[0].id, userIdB);
 }
@@ -42,7 +42,7 @@ TEST_F(ContactTest, RemoveFriend) {
 
     client->contacts().addFriend(tokenA, userIdB);
     auto r = client->contacts().removeFriend(tokenA, userIdB);
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
 
     auto friends = client->contacts().listFriends(tokenA);
     EXPECT_EQ(friends.value().size(), 0u);
@@ -51,8 +51,7 @@ TEST_F(ContactTest, RemoveFriend) {
 TEST_F(ContactTest, AddFriendSelf) {
     auto reg = client->auth().registerUser("alice", "p");
     auto r = client->contacts().addFriend(reg.value().token, reg.value().userId);
-    ASSERT_FALSE(r.ok());
-    EXPECT_EQ(r.error().code, ErrorCode::InvalidArgument);
+    ASSERT_FALSE(r.has_value());
 }
 
 TEST_F(ContactTest, SearchUser) {
@@ -61,14 +60,14 @@ TEST_F(ContactTest, SearchUser) {
     registerAndLogin("bobby", "p");
 
     auto r = client->contacts().searchUser(tokenA, "bob");
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
     EXPECT_EQ(r.value().size(), 2u);
 }
 
 TEST_F(ContactTest, SearchUserEmptyResult) {
     auto tokenA = registerAndLogin("alice", "p");
     auto r = client->contacts().searchUser(tokenA, "nonexistent");
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
     EXPECT_EQ(r.value().size(), 0u);
 }
 

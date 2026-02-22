@@ -82,7 +82,7 @@ void ChatSandbox::onAddChat() {
     std::string peerName = "user_" + std::to_string(peerCounter_);
 
     auto reg = client_->auth().registerUser(peerName, "pass");
-    if (!reg.ok()) {
+    if (!reg.has_value()) {
         spdlog::warn("Failed to register peer: {}", peerName);
         return;
     }
@@ -93,7 +93,7 @@ void ChatSandbox::onAddChat() {
     client_->contacts().addFriend(myToken_, peerId);
     auto group = client_->groups().createGroup(
         myToken_, {myUserId_, peerId});
-    if (!group.ok()) {
+    if (!group.has_value()) {
         spdlog::warn("Failed to create group with {}", peerName);
         return;
     }

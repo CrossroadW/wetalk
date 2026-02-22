@@ -14,19 +14,19 @@ Result<core::Message> MockChatService::sendMessage(
     int64_t replyTo, const core::MessageContent& content) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     if (content.empty())
-        return {ErrorCode::InvalidArgument, "empty content"};
+        return fail("empty content");
 
     // 验证 chatId 对应的群存在且用户是成员
     auto group = store->findGroup(chatId);
     if (!group)
-        return {ErrorCode::NotFound, "chat not found"};
+        return fail("chat not found");
 
     auto& members = group->memberIds;
     if (std::find(members.begin(), members.end(), userId) == members.end())
-        return {ErrorCode::PermissionDenied, "not a member of this chat"};
+        return fail("not a member of this chat");
 
     auto msg = store->addMessage(userId, chatId, replyTo, content);
     Q_EMIT messageStored(chatId);
@@ -38,7 +38,7 @@ Result<SyncMessagesResponse> MockChatService::fetchAfter(
     int64_t afterId, int limit) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto msgs = store->getMessagesAfter(chatId, afterId, limit + 1);
     bool hasMore = static_cast<int>(msgs.size()) > limit;
@@ -60,7 +60,7 @@ Result<SyncMessagesResponse> MockChatService::fetchBefore(
     int64_t beforeId, int limit) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto msgs = store->getMessagesBefore(chatId, beforeId, limit + 1);
     bool hasMore = static_cast<int>(msgs.size()) > limit;
@@ -83,7 +83,7 @@ Result<SyncMessagesResponse> MockChatService::fetchUpdated(
     int64_t updatedAt, int limit) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto msgs = store->getMessagesUpdatedAfter(chatId, startId, endId, updatedAt, limit + 1);
     bool hasMore = static_cast<int>(msgs.size()) > limit;
@@ -96,14 +96,14 @@ VoidResult MockChatService::revokeMessage(const std::string& token,
                                           int64_t messageId) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto msg = store->findMessage(messageId);
     if (!msg)
-        return {ErrorCode::NotFound, "message not found"};
+        return fail("message not found");
 
     if (msg->senderId != userId)
-        return {ErrorCode::PermissionDenied, "can only revoke own messages"};
+        return fail("can only revoke own messages");
 
     msg->revoked = true;
     msg->updatedAt = store->now();
@@ -117,17 +117,17 @@ VoidResult MockChatService::editMessage(
     const core::MessageContent& newContent) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto msg = store->findMessage(messageId);
     if (!msg)
-        return {ErrorCode::NotFound, "message not found"};
+        return fail("message not found");
 
     if (msg->senderId != userId)
-        return {ErrorCode::PermissionDenied, "can only edit own messages"};
+        return fail("can only edit own messages");
 
     if (msg->revoked)
-        return {ErrorCode::InvalidArgument, "cannot edit revoked message"};
+        return fail("cannot edit revoked message");
 
     auto ts = store->now();
     msg->content = newContent;
@@ -143,11 +143,11 @@ VoidResult MockChatService::markRead(const std::string& token,
                                      int64_t lastMessageId) {
     auto userId = store->resolveToken(token);
     if (!userId)
-        return {ErrorCode::Unauthorized, "invalid token"};
+        return fail("invalid token");
 
     auto msg = store->findMessage(lastMessageId);
     if (!msg)
-        return {ErrorCode::NotFound, "message not found"};
+        return fail("message not found");
 
     msg->readCount++;
     msg->updatedAt = store->now();

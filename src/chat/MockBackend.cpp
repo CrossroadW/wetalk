@@ -48,7 +48,7 @@ std::vector<int64_t> MockBackend::prefill(
         tc.text = text;
         auto result =
             client_.chat().sendMessage(token, chatId_, 0, {tc});
-        if (result.ok()) {
+        if (result.has_value()) {
             ids.push_back(result.value().id);
         }
     }
@@ -97,7 +97,7 @@ void MockBackend::executeNext() {
         tc.text = entry.text;
         auto result =
             client_.chat().sendMessage(peerToken_, chatId_, 0, {tc});
-        if (result.ok()) {
+        if (result.has_value()) {
             sentMsgIds_.push_back(result.value().id);
         }
         break;

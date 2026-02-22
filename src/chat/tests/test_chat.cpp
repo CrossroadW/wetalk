@@ -569,7 +569,7 @@ TEST_F(ChatPresenterTest, FetchAfterZeroReturnsLatest) {
     presenter_->setSession(tokenA_, aliceId_);
 
     auto result = client_->chat().fetchAfter(tokenA_, chatId_, 0, 5);
-    ASSERT_TRUE(result.ok());
+    ASSERT_TRUE(result.has_value());
     auto& msgs = result.value().messages;
 
     // afterId=0 应返回最新的 5 条
@@ -598,7 +598,7 @@ TEST_F(ChatPresenterTest, FetchBeforeZeroReturnsEarliest) {
     presenter_->setSession(tokenA_, aliceId_);
 
     auto result = client_->chat().fetchBefore(tokenA_, chatId_, 0, 5);
-    ASSERT_TRUE(result.ok());
+    ASSERT_TRUE(result.has_value());
     auto& msgs = result.value().messages;
 
     // beforeId=0 应返回最早的 5 条

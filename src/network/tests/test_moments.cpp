@@ -14,7 +14,7 @@ protected:
     std::string registerAndLogin(const std::string& username,
                                  const std::string& password) {
         auto r = client->auth().registerUser(username, password);
-        EXPECT_TRUE(r.ok());
+        EXPECT_TRUE(r.has_value());
         return r.value().token;
     }
 
@@ -30,11 +30,11 @@ TEST_F(MomentTest, PostAndListMoments) {
     client->contacts().addFriend(tokenA, regB.value().userId);
 
     auto posted = client->moments().postMoment(tokenA, "hello world", {});
-    ASSERT_TRUE(posted.ok());
+    ASSERT_TRUE(posted.has_value());
     EXPECT_EQ(posted.value().authorId, regA.value().userId);
 
     auto list = client->moments().listMoments(tokenB, INT64_MAX, 50);
-    ASSERT_TRUE(list.ok());
+    ASSERT_TRUE(list.has_value());
     EXPECT_EQ(list.value().size(), 1u);
     EXPECT_EQ(list.value()[0].text, "hello world");
 }
@@ -46,7 +46,7 @@ TEST_F(MomentTest, MomentsNotVisibleToStranger) {
     client->moments().postMoment(regA.value().token, "secret", {});
 
     auto list = client->moments().listMoments(regB.value().token, INT64_MAX, 50);
-    ASSERT_TRUE(list.ok());
+    ASSERT_TRUE(list.has_value());
     EXPECT_EQ(list.value().size(), 0u);
 }
 
@@ -58,11 +58,10 @@ TEST_F(MomentTest, LikeMoment) {
     auto momentId = posted.value().id;
 
     auto r = client->moments().likeMoment(tokenA, momentId);
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
 
     auto r2 = client->moments().likeMoment(tokenA, momentId);
-    ASSERT_FALSE(r2.ok());
-    EXPECT_EQ(r2.error().code, ErrorCode::AlreadyExists);
+    ASSERT_FALSE(r2.has_value());
 }
 
 TEST_F(MomentTest, CommentMoment) {
@@ -73,7 +72,7 @@ TEST_F(MomentTest, CommentMoment) {
     auto momentId = posted.value().id;
 
     auto r = client->moments().commentMoment(tokenA, momentId, "great!");
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
     EXPECT_EQ(r.value().text, "great!");
     EXPECT_EQ(r.value().authorId, regA.value().userId);
 }
@@ -83,7 +82,7 @@ TEST_F(MomentTest, PostMomentWithImages) {
 
     auto posted = client->moments().postMoment(
         token, "", {"img1.jpg", "img2.jpg"});
-    ASSERT_TRUE(posted.ok());
+    ASSERT_TRUE(posted.has_value());
     EXPECT_EQ(posted.value().imageIds.size(), 2u);
 }
 
@@ -91,8 +90,7 @@ TEST_F(MomentTest, PostEmptyMoment) {
     auto token = registerAndLogin("alice", "p");
 
     auto r = client->moments().postMoment(token, "", {});
-    ASSERT_FALSE(r.ok());
-    EXPECT_EQ(r.error().code, ErrorCode::InvalidArgument);
+    ASSERT_FALSE(r.has_value());
 }
 
 TEST_F(MomentTest, ListMomentsPagination) {
@@ -108,7 +106,7 @@ TEST_F(MomentTest, ListMomentsPagination) {
     }
 
     auto list = client->moments().listMoments(tokenB, INT64_MAX, 3);
-    ASSERT_TRUE(list.ok());
+    ASSERT_TRUE(list.has_value());
     EXPECT_EQ(list.value().size(), 3u);
 }
 
@@ -116,6 +114,5 @@ TEST_F(MomentTest, LikeNonExistentMoment) {
     auto token = registerAndLogin("alice", "p");
 
     auto r = client->moments().likeMoment(token, 999999);
-    ASSERT_FALSE(r.ok());
-    EXPECT_EQ(r.error().code, ErrorCode::NotFound);
+    ASSERT_FALSE(r.has_value());
 }

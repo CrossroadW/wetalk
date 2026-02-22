@@ -1,16 +1,16 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
+#include <expected>
 #include <string>
-#include <variant>
 
 namespace wechat {
 namespace network {
 
-// ── 错误码 ──
+// ── 错误码 → 固定字符串映射 ──
 
-enum class ErrorCode : uint8_t {
-    Ok = 0,
+enum class Err : uint8_t {
     InvalidArgument,
     NotFound,
     AlreadyExists,
@@ -19,44 +19,43 @@ enum class ErrorCode : uint8_t {
     Internal,
     Unavailable,
     Timeout,
+    Count_  // 哨兵，不要使用
 };
 
-// ── 错误信息 ──
-
-struct Error {
-    ErrorCode code;
-    std::string message;
+inline constexpr std::array kErrMessages = {
+    "invalid argument",
+    "not found",
+    "already exists",
+    "unauthorized",
+    "permission denied",
+    "internal error",
+    "service unavailable",
+    "timeout",
 };
 
-// ── Result<T>：成功返回 T，失败返回 Error ──
+/// 枚举 → 字符串
+inline std::string errMsg(Err e) {
+    auto i = static_cast<uint8_t>(e);
+    if (i < kErrMessages.size()) return std::string(kErrMessages[i]);
+    return "unknown error";
+}
+
+/// 快捷构造 unexpected：errMsg(Err) 或自定义字符串
+inline std::unexpected<std::string> fail(Err e) {
+    return std::unexpected(errMsg(e));
+}
+inline std::unexpected<std::string> fail(std::string msg) {
+    return std::unexpected(std::move(msg));
+}
+
+// ── Result 类型别名 ──
 
 template <typename T>
-class Result {
-    std::variant<T, Error> data;
+using Result = std::expected<T, std::string>;
 
-public:
-    Result(T value) : data(std::move(value)) {}
-    Result(Error err) : data(std::move(err)) {}
-    Result(ErrorCode code, std::string msg)
-        : data(Error{code, std::move(msg)}) {}
+using VoidResult = std::expected<void, std::string>;
 
-    [[nodiscard]] bool ok() const { return std::holds_alternative<T>(data); }
-    explicit operator bool() const { return ok(); }
-
-    const T& value() const& { return std::get<T>(data); }
-    T& value() & { return std::get<T>(data); }
-    T&& value() && { return std::get<T>(std::move(data)); }
-
-    const Error& error() const& { return std::get<Error>(data); }
-};
-
-// ── Result<void> 特化 ──
-
-struct Unit {};
-
-using VoidResult = Result<Unit>;
-
-inline VoidResult success() { return Unit{}; }
+inline VoidResult success() { return {}; }
 
 } // namespace network
 } // namespace wechat

@@ -16,7 +16,7 @@ protected:
     std::string registerAndLogin(const std::string& username,
                                  const std::string& password) {
         auto r = client->auth().registerUser(username, password);
-        EXPECT_TRUE(r.ok());
+        EXPECT_TRUE(r.has_value());
         return r.value().token;
     }
 
@@ -35,11 +35,11 @@ TEST_F(ChatTest, SendAndSyncMessages) {
 
     MessageContent content = {TextContent{"hello bob!"}};
     auto sent = client->chat().sendMessage(tokenA, chatId, 0, content);
-    ASSERT_TRUE(sent.ok());
+    ASSERT_TRUE(sent.has_value());
     EXPECT_EQ(sent.value().senderId, regA.value().userId);
 
     auto sync = client->chat().fetchAfter(tokenB, chatId, 0, 50);
-    ASSERT_TRUE(sync.ok());
+    ASSERT_TRUE(sync.has_value());
     EXPECT_EQ(sync.value().messages.size(), 1u);
 
     auto* text = std::get_if<TextContent>(&sync.value().messages[0].content[0]);
@@ -56,8 +56,7 @@ TEST_F(ChatTest, SendMessageNotMember) {
 
     MessageContent content = {TextContent{"hi"}};
     auto r = client->chat().sendMessage(regB.value().token, chatId, 0, content);
-    ASSERT_FALSE(r.ok());
-    EXPECT_EQ(r.error().code, ErrorCode::PermissionDenied);
+    ASSERT_FALSE(r.has_value());
 }
 
 TEST_F(ChatTest, RevokeMessage) {
@@ -72,7 +71,7 @@ TEST_F(ChatTest, RevokeMessage) {
     auto msgId = sent.value().id;
 
     auto r = client->chat().revokeMessage(tokenA, msgId);
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
 
     auto sync = client->chat().fetchAfter(tokenA, chatId, 0, 50);
     EXPECT_TRUE(sync.value().messages[0].revoked);
@@ -90,8 +89,7 @@ TEST_F(ChatTest, RevokeOtherUserMessage) {
         regA.value().token, chatId, 0, MessageContent{TextContent{"hi"}});
 
     auto r = client->chat().revokeMessage(regB.value().token, sent.value().id);
-    ASSERT_FALSE(r.ok());
-    EXPECT_EQ(r.error().code, ErrorCode::PermissionDenied);
+    ASSERT_FALSE(r.has_value());
 }
 
 TEST_F(ChatTest, EditMessage) {
@@ -107,7 +105,7 @@ TEST_F(ChatTest, EditMessage) {
 
     MessageContent newContent = {TextContent{"fixed"}};
     auto r = client->chat().editMessage(tokenA, msgId, newContent);
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
 
     auto sync = client->chat().fetchAfter(tokenA, chatId, 0, 50);
     auto* text = std::get_if<TextContent>(&sync.value().messages[0].content[0]);
@@ -128,7 +126,7 @@ TEST_F(ChatTest, MarkRead) {
         regA.value().token, chatId, 0, MessageContent{TextContent{"hi"}});
 
     auto r = client->chat().markRead(regB.value().token, chatId, sent.value().id);
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
 
     auto sync = client->chat().fetchAfter(regA.value().token, chatId, 0, 50);
     EXPECT_EQ(sync.value().messages[0].readCount, 1u);
@@ -149,20 +147,20 @@ TEST_F(ChatTest, SyncMessagesPagination) {
 
     // fetchAfter(0) 返回最新 3 条（msg 2,3,4），hasMore=true
     auto sync = client->chat().fetchAfter(tokenA, chatId, 0, 3);
-    ASSERT_TRUE(sync.ok());
+    ASSERT_TRUE(sync.has_value());
     EXPECT_EQ(sync.value().messages.size(), 3u);
     EXPECT_TRUE(sync.value().hasMore);
 
     // fetchBefore(0) 返回最早 3 条（msg 0,1,2），hasMore=true
     auto syncB = client->chat().fetchBefore(tokenA, chatId, 0, 3);
-    ASSERT_TRUE(syncB.ok());
+    ASSERT_TRUE(syncB.has_value());
     EXPECT_EQ(syncB.value().messages.size(), 3u);
     EXPECT_TRUE(syncB.value().hasMore);
 
     // 从最早页的最后一条继续向后翻页
     auto lastId = syncB.value().messages.back().id;
     auto sync2 = client->chat().fetchAfter(tokenA, chatId, lastId, 3);
-    ASSERT_TRUE(sync2.ok());
+    ASSERT_TRUE(sync2.has_value());
     EXPECT_EQ(sync2.value().messages.size(), 2u);
     EXPECT_FALSE(sync2.value().hasMore);
 }
@@ -182,7 +180,7 @@ TEST_F(ChatTest, SendMessageReplyTo) {
         regB.value().token, chatId, msg1.value().id,
         MessageContent{TextContent{"reply"}});
 
-    ASSERT_TRUE(msg2.ok());
+    ASSERT_TRUE(msg2.has_value());
     EXPECT_EQ(msg2.value().replyTo, msg1.value().id);
 }
 
@@ -195,6 +193,5 @@ TEST_F(ChatTest, SendEmptyMessage) {
 
     MessageContent content;
     auto r = client->chat().sendMessage(token, chatId, 0, content);
-    ASSERT_FALSE(r.ok());
-    EXPECT_EQ(r.error().code, ErrorCode::InvalidArgument);
+    ASSERT_FALSE(r.has_value());
 }

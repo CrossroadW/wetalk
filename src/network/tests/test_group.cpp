@@ -14,7 +14,7 @@ protected:
     std::string registerAndLogin(const std::string& username,
                                  const std::string& password) {
         auto r = client->auth().registerUser(username, password);
-        EXPECT_TRUE(r.ok());
+        EXPECT_TRUE(r.has_value());
         return r.value().token;
     }
 
@@ -28,11 +28,11 @@ TEST_F(GroupTest, CreateGroupAndListMembers) {
 
     auto r = client->groups().createGroup(
         tokenA, {regA.value().userId, regB.value().userId});
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
     auto groupId = r.value().id;
 
     auto members = client->groups().listMembers(tokenA, groupId);
-    ASSERT_TRUE(members.ok());
+    ASSERT_TRUE(members.has_value());
     EXPECT_EQ(members.value().size(), 2u);
 }
 
@@ -45,11 +45,10 @@ TEST_F(GroupTest, DissolveGroupOnlyOwner) {
     auto groupId = group.value().id;
 
     auto r = client->groups().dissolveGroup(regB.value().token, groupId);
-    ASSERT_FALSE(r.ok());
-    EXPECT_EQ(r.error().code, ErrorCode::PermissionDenied);
+    ASSERT_FALSE(r.has_value());
 
     auto r2 = client->groups().dissolveGroup(regA.value().token, groupId);
-    ASSERT_TRUE(r2.ok());
+    ASSERT_TRUE(r2.has_value());
 }
 
 TEST_F(GroupTest, AddAndRemoveGroupMember) {
@@ -62,13 +61,13 @@ TEST_F(GroupTest, AddAndRemoveGroupMember) {
     auto groupId = group.value().id;
 
     auto r = client->groups().addMember(tokenA, groupId, regB.value().userId);
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
 
     auto members = client->groups().listMembers(tokenA, groupId);
     EXPECT_EQ(members.value().size(), 2u);
 
     auto r2 = client->groups().removeMember(tokenA, groupId, regB.value().userId);
-    ASSERT_TRUE(r2.ok());
+    ASSERT_TRUE(r2.has_value());
 
     members = client->groups().listMembers(tokenA, groupId);
     EXPECT_EQ(members.value().size(), 1u);
@@ -83,18 +82,18 @@ TEST_F(GroupTest, ListMyGroups) {
     client->groups().createGroup(regA.value().token, {regA.value().userId});
 
     auto r = client->groups().listMyGroups(regA.value().token);
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
     EXPECT_EQ(r.value().size(), 2u);
 
     auto r2 = client->groups().listMyGroups(regB.value().token);
-    ASSERT_TRUE(r2.ok());
+    ASSERT_TRUE(r2.has_value());
     EXPECT_EQ(r2.value().size(), 1u);
 }
 
 TEST_F(GroupTest, CreateGroupEmptyMembers) {
     auto reg = client->auth().registerUser("alice", "p");
     auto r = client->groups().createGroup(reg.value().token, {});
-    ASSERT_TRUE(r.ok());
+    ASSERT_TRUE(r.has_value());
     EXPECT_EQ(r.value().ownerId, reg.value().userId);
     EXPECT_EQ(r.value().memberIds.size(), 1u);
 }
@@ -102,6 +101,5 @@ TEST_F(GroupTest, CreateGroupEmptyMembers) {
 TEST_F(GroupTest, DissolveNonExistentGroup) {
     auto token = registerAndLogin("alice", "p");
     auto r = client->groups().dissolveGroup(token, 999999);
-    ASSERT_FALSE(r.ok());
-    EXPECT_EQ(r.error().code, ErrorCode::NotFound);
+    ASSERT_FALSE(r.has_value());
 }

@@ -55,7 +55,7 @@ void ChatPresenter::loadHistory(int64_t chatId, int limit) {
     auto result =
         client_.chat().fetchBefore(token_, chatId, beforeId, limit);
 
-    if (result.ok() && !result.value().messages.empty()) {
+    if (result.has_value() && !result.value().messages.empty()) {
         auto& msgs = result.value().messages;
         cursor.start = msgs.front().id;
         if (cursor.end == 0) {
@@ -77,7 +77,7 @@ void ChatPresenter::loadLatest(int64_t chatId, int limit) {
     auto result =
         client_.chat().fetchAfter(token_, chatId, 0, limit);
 
-    if (result.ok() && !result.value().messages.empty()) {
+    if (result.has_value() && !result.value().messages.empty()) {
         auto& msgs = result.value().messages;
         cursor.start = msgs.front().id;
         cursor.end = msgs.back().id;
@@ -109,7 +109,7 @@ void ChatPresenter::onNetworkMessageStored(int64_t chatId) {
     auto result =
         client_.chat().fetchAfter(token_, chatId, cursor.end, 50);
 
-    if (result.ok() && !result.value().messages.empty()) {
+    if (result.has_value() && !result.value().messages.empty()) {
         auto& msgs = result.value().messages;
         cursor.end = msgs.back().id;
         if (cursor.start == 0) {
@@ -131,7 +131,7 @@ void ChatPresenter::onNetworkMessageUpdated(int64_t chatId,
     auto result =
         client_.chat().fetchBefore(token_, chatId, messageId + 1, 1);
 
-    if (result.ok() && !result.value().messages.empty()) {
+    if (result.has_value() && !result.value().messages.empty()) {
         auto& msg = result.value().messages[0];
         if (msg.id == messageId) {
             auto& cursor = cursors_[chatId];
@@ -159,7 +159,7 @@ void ChatPresenter::syncUpdated(int64_t chatId) {
         token_, chatId, cursor.start, cursor.end,
         cursor.maxUpdatedAt, 100);
 
-    if (result.ok() && !result.value().messages.empty()) {
+    if (result.has_value() && !result.value().messages.empty()) {
         auto& msgs = result.value().messages;
         updateMaxUpdatedAt(cursor, msgs);
         for (auto const& msg : msgs) {

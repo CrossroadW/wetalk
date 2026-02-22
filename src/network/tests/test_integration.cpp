@@ -16,7 +16,7 @@ protected:
     std::string registerAndLogin(const std::string& username,
                                  const std::string& password) {
         auto r = client->auth().registerUser(username, password);
-        EXPECT_TRUE(r.ok());
+        EXPECT_TRUE(r.has_value());
         return r.value().token;
     }
 
@@ -26,35 +26,35 @@ protected:
 TEST_F(IntegrationTest, EndToEndFlow) {
     auto regA = client->auth().registerUser("alice", "pass");
     auto regB = client->auth().registerUser("bob", "pass");
-    ASSERT_TRUE(regA.ok());
-    ASSERT_TRUE(regB.ok());
+    ASSERT_TRUE(regA.has_value());
+    ASSERT_TRUE(regB.has_value());
     auto tokenA = regA.value().token;
     auto tokenB = regB.value().token;
 
-    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().userId).ok());
+    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().userId).has_value());
 
     auto group = client->groups().createGroup(
         tokenA, {regA.value().userId, regB.value().userId});
-    ASSERT_TRUE(group.ok());
+    ASSERT_TRUE(group.has_value());
     auto chatId = group.value().id;
 
     auto msg1 = client->chat().sendMessage(
         tokenA, chatId, 0, MessageContent{TextContent{"hey bob"}});
-    ASSERT_TRUE(msg1.ok());
+    ASSERT_TRUE(msg1.has_value());
 
     auto sync = client->chat().fetchAfter(tokenB, chatId, 0, 50);
-    ASSERT_TRUE(sync.ok());
+    ASSERT_TRUE(sync.has_value());
     EXPECT_EQ(sync.value().messages.size(), 1u);
 
     auto msg2 = client->chat().sendMessage(
         tokenB, chatId, msg1.value().id,
         MessageContent{TextContent{"hey alice!"}});
-    ASSERT_TRUE(msg2.ok());
+    ASSERT_TRUE(msg2.has_value());
     EXPECT_EQ(msg2.value().replyTo, msg1.value().id);
 
     auto sync2 = client->chat().fetchAfter(
         tokenA, chatId, msg1.value().id, 50);
-    ASSERT_TRUE(sync2.ok());
+    ASSERT_TRUE(sync2.has_value());
     EXPECT_EQ(sync2.value().messages.size(), 1u);
 
     auto* text = std::get_if<TextContent>(&sync2.value().messages[0].content[0]);
@@ -62,10 +62,10 @@ TEST_F(IntegrationTest, EndToEndFlow) {
     EXPECT_EQ(text->text, "hey alice!");
 
     auto moment = client->moments().postMoment(tokenA, "having fun", {});
-    ASSERT_TRUE(moment.ok());
+    ASSERT_TRUE(moment.has_value());
 
     auto momentList = client->moments().listMoments(tokenB, INT64_MAX, 50);
-    ASSERT_TRUE(momentList.ok());
+    ASSERT_TRUE(momentList.has_value());
     EXPECT_EQ(momentList.value().size(), 1u);
 }
 
@@ -99,10 +99,10 @@ TEST_F(IntegrationTest, CompleteFriendshipFlow) {
 
     // alice 搜索并添加 bob
     auto search = client->contacts().searchUser(tokenA, "bob");
-    ASSERT_TRUE(search.ok());
+    ASSERT_TRUE(search.has_value());
     ASSERT_EQ(search.value().size(), 1u);
 
-    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().userId).ok());
+    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().userId).has_value());
 
     // alice 发朋友圈
     client->moments().postMoment(tokenA, "hello friends", {});
