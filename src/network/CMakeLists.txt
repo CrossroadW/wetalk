@@ -31,7 +31,6 @@ target_link_libraries(wechat_network
 )
 
 target_compile_definitions(wechat_network PRIVATE
-        PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}"
         QT_NO_KEYWORDS
 )
 

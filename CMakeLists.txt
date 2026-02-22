@@ -50,7 +50,10 @@ target_compile_features(wetalk PRIVATE cxx_std_23)
 
 target_include_directories(wetalk PRIVATE ${CMAKE_SOURCE_DIR}/src)
 
-target_compile_definitions(wetalk PRIVATE QT_NO_KEYWORDS)
+target_compile_definitions(wetalk PRIVATE
+    QT_NO_KEYWORDS
+    PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}"
+)
 
 set_target_properties(wetalk PROPERTIES AUTOMOC ON)
 

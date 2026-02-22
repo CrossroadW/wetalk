@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 
 #include <wechat/contacts/ContactsPresenter.h>
+#include <wechat/core/AppPaths.h>
 #include <wechat/core/User.h>
 #include <wechat/log/Log.h>
 #include <wechat/login/LoginPresenter.h>
@@ -20,6 +21,7 @@
 
 int main(int argc, char* argv[]) {
     wechat::log::init();
+    wechat::core::AppPaths::setDataDir(PROJECT_ROOT_PATH);
     QApplication app(argc, argv);
 
     // 网络层（Mock）

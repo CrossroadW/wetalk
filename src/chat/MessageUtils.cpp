@@ -1,6 +1,8 @@
 #include "MessageUtils.h"
+
+#include <wechat/core/AppPaths.h>
+
 #include <QFileInfo>
-#include <QDir>
 
 namespace wechat {
 namespace chat {
@@ -37,30 +39,23 @@ QString extractTextFromContent(core::MessageContent const &content) {
 
 // 辅助函数：获取资源路径
 QString getResourcePath(core::ResourceContent const &resource) {
-    // 使用resourceId作为文件名，尝试从不同路径加载
-    QString resourceFileName = QString::fromStdString(resource.resourceId);
+    auto resourceId = resource.resourceId;
+    if (resourceId.empty()) return {};
 
-    // 如果resourceId已经是完整路径，则直接返回
-    if (resourceFileName.startsWith("/") || resourceFileName.contains(":/")) {
-        return resourceFileName;
+    // 如果 resourceId 已经是绝对路径，直接返回
+    if (resourceId[0] == '/' || resourceId.find(":/") != std::string::npos ||
+        resourceId.find(":\\") != std::string::npos) {
+        return QString::fromStdString(resourceId);
     }
 
-    // 构建项目根目录的 img 目录路径
-#ifdef PROJECT_ROOT_PATH
-    QString imgPath =
-        QString("%1/img/%2").arg(PROJECT_ROOT_PATH).arg(resourceFileName);
-#else
-    // Fallback: 尝试使用相对路径（从当前工作目录）
-    QString imgPath = QString("img/%1").arg(resourceFileName);
-#endif
-
-    // 检查项目根目录下的 img 目录中是否存在该文件
-    if (QFileInfo::exists(imgPath)) {
-        return imgPath;
+    // 通过 AppPaths 拼接: {dataDir}/resources/{resourceId}
+    auto path = QString::fromStdString(core::AppPaths::resourcePath(resourceId));
+    if (QFileInfo::exists(path)) {
+        return path;
     }
 
-    // 如果前面的路径都找不到文件，则返回原始资源ID
-    return resourceFileName;
+    // fallback: 返回原始 resourceId
+    return QString::fromStdString(resourceId);
 }
 
 } // namespace chat
