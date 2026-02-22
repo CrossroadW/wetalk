@@ -71,7 +71,6 @@ private:
 
     network::NetworkClient& client_;
     std::string peerToken_;
-    int64_t peerId_ = 0;
     int64_t chatId_ = 0;
 
     QTimer timer_;

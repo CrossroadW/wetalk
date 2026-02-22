@@ -49,7 +49,6 @@ target_compile_features(wetalk PRIVATE cxx_std_23)
 target_link_libraries(wetalk
     PUBLIC
         wechat_core
-        wechat_auth
         wechat_chat
         wechat_contacts
         wechat_moments

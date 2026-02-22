@@ -51,7 +51,6 @@ include/
 | core | wechat_core | 基础类型、工具函数 | 否 |
 | storage | wechat_storage | SQLite3 本地存储 | 否 |
 | network | wechat_network | gRPC 接口 + Mock | 否 |
-| auth | wechat_auth | 登录、注册、会话管理 | 是 |
 | chat | wechat_chat | 聊天消息 | 是 |
 | contacts | wechat_contacts | 联系人管理 | 是 |
 | moments | wechat_moments | 朋友圈/动态 | 是 |
