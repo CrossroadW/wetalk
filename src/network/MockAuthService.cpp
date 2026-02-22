@@ -12,6 +12,12 @@ Result<core::User> MockAuthService::registerUser(
     if (username.empty() || password.empty())
         return fail("username and password required");
 
+    // UNIQUE 约束：用户名不能重复
+    for (auto& u : store->searchUsers(username)) {
+        if (u.username == username)
+            return fail("username already exists");
+    }
+
     auto userId = store->addUser(username, password);
     store->createToken(userId);
     return *store->findUser(userId);

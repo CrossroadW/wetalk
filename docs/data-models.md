@@ -127,7 +127,7 @@ struct Moment {
 ```sql
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
     password TEXT NOT NULL,
     token TEXT                    -- 当前会话 token，NULL = 未登录
 );

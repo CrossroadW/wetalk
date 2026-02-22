@@ -60,10 +60,10 @@ TEST_F(AuthTest, GetCurrentUser) {
 
 TEST_F(AuthTest, RegisterDuplicateUsername) {
     auto r1 = client->auth().registerUser("alice", "pass");
-    auto r2 = client->auth().registerUser("alice", "other");
     ASSERT_TRUE(r1.has_value());
-    ASSERT_TRUE(r2.has_value());
-    EXPECT_NE(r1->id, r2->id);
+
+    auto r2 = client->auth().registerUser("alice", "other");
+    ASSERT_FALSE(r2.has_value());
 }
 
 TEST_F(AuthTest, LoginUnknownUser) {
