@@ -20,7 +20,7 @@ Result<core::Message> MockChatService::sendMessage(
         return {ErrorCode::InvalidArgument, "empty content"};
 
     // 验证 chatId 对应的群存在且用户是成员
-    auto* group = store->findGroup(chatId);
+    auto group = store->findGroup(chatId);
     if (!group)
         return {ErrorCode::NotFound, "chat not found"};
 
@@ -28,7 +28,7 @@ Result<core::Message> MockChatService::sendMessage(
     if (std::find(members.begin(), members.end(), userId) == members.end())
         return {ErrorCode::PermissionDenied, "not a member of this chat"};
 
-    auto& msg = store->addMessage(userId, chatId, replyTo, content);
+    auto msg = store->addMessage(userId, chatId, replyTo, content);
     Q_EMIT messageStored(chatId);
     return msg;
 }
@@ -98,7 +98,7 @@ VoidResult MockChatService::revokeMessage(const std::string& token,
     if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* msg = store->findMessage(messageId);
+    auto msg = store->findMessage(messageId);
     if (!msg)
         return {ErrorCode::NotFound, "message not found"};
 
@@ -119,7 +119,7 @@ VoidResult MockChatService::editMessage(
     if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* msg = store->findMessage(messageId);
+    auto msg = store->findMessage(messageId);
     if (!msg)
         return {ErrorCode::NotFound, "message not found"};
 
@@ -145,7 +145,7 @@ VoidResult MockChatService::markRead(const std::string& token,
     if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* msg = store->findMessage(lastMessageId);
+    auto msg = store->findMessage(lastMessageId);
     if (!msg)
         return {ErrorCode::NotFound, "message not found"};
 

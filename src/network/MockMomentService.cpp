@@ -21,7 +21,7 @@ Result<Moment> MockMomentService::postMoment(
     if (text.empty() && imageIds.empty())
         return {ErrorCode::InvalidArgument, "moment must have text or images"};
 
-    auto& moment = store->addMoment(userId, text, imageIds);
+    auto moment = store->addMoment(userId, text, imageIds);
     return moment;
 }
 
@@ -45,7 +45,7 @@ VoidResult MockMomentService::likeMoment(const std::string& token,
     if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* moment = store->findMoment(momentId);
+    auto moment = store->findMoment(momentId);
     if (!moment)
         return {ErrorCode::NotFound, "moment not found"};
 
@@ -63,7 +63,7 @@ Result<Moment::Comment> MockMomentService::commentMoment(
     if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* moment = store->findMoment(momentId);
+    auto moment = store->findMoment(momentId);
     if (!moment)
         return {ErrorCode::NotFound, "moment not found"};
 
@@ -72,9 +72,11 @@ Result<Moment::Comment> MockMomentService::commentMoment(
 
     auto commentId = store->addComment(momentId, userId, text);
     // 重新加载获取完整 comment（含数据库生成的 timestamp）
-    auto* updated = store->findMoment(momentId);
-    for (auto const& c : updated->comments) {
-        if (c.id == commentId) return c;
+    auto updated = store->findMoment(momentId);
+    if (updated) {
+        for (auto const& c : updated->comments) {
+            if (c.id == commentId) return c;
+        }
     }
     return Moment::Comment{commentId, userId, text, store->now()};
 }

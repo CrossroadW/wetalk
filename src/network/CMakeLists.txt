@@ -23,9 +23,10 @@ target_include_directories(wechat_network
 target_link_libraries(wechat_network
     PUBLIC
         wechat_core
-        wechat_storage
         wechat_log
         Qt6::Core
+        SQLiteCpp
+        nlohmann_json::nlohmann_json
 )
 
 target_compile_definitions(wechat_network PRIVATE

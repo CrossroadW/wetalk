@@ -16,7 +16,7 @@ VoidResult MockContactService::addFriend(const std::string& token,
     if (userId == targetUserId)
         return {ErrorCode::InvalidArgument, "cannot add yourself"};
 
-    if (!store->findUser(targetUserId))
+    if (!store->findUser(targetUserId).has_value())
         return {ErrorCode::NotFound, "user not found"};
 
     if (store->areFriends(userId, targetUserId))
@@ -48,7 +48,7 @@ Result<std::vector<core::User>> MockContactService::listFriends(
     auto friendIds = store->getFriendIds(userId);
     std::vector<core::User> result;
     for (auto& fid : friendIds) {
-        auto* u = store->findUser(fid);
+        auto u = store->findUser(fid);
         if (u) result.push_back(*u);
     }
     return result;

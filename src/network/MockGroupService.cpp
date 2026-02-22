@@ -22,7 +22,7 @@ Result<core::Group> MockGroupService::createGroup(
     if (std::find(ids.begin(), ids.end(), userId) == ids.end())
         ids.insert(ids.begin(), userId);
 
-    auto& group = store->createGroup(userId, ids);
+    auto group = store->createGroup(userId, ids);
     return group;
 }
 
@@ -32,7 +32,7 @@ VoidResult MockGroupService::dissolveGroup(const std::string& token,
     if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* group = store->findGroup(groupId);
+    auto group = store->findGroup(groupId);
     if (!group)
         return {ErrorCode::NotFound, "group not found"};
 
@@ -50,11 +50,11 @@ VoidResult MockGroupService::addMember(const std::string& token,
     if (!callerId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* group = store->findGroup(groupId);
+    auto group = store->findGroup(groupId);
     if (!group)
         return {ErrorCode::NotFound, "group not found"};
 
-    if (!store->findUser(userId))
+    if (!store->findUser(userId).has_value())
         return {ErrorCode::NotFound, "user not found"};
 
     auto& m = group->memberIds;
@@ -72,7 +72,7 @@ VoidResult MockGroupService::removeMember(const std::string& token,
     if (!callerId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* group = store->findGroup(groupId);
+    auto group = store->findGroup(groupId);
     if (!group)
         return {ErrorCode::NotFound, "group not found"};
 
@@ -94,7 +94,7 @@ Result<std::vector<int64_t>> MockGroupService::listMembers(
     if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* group = store->findGroup(groupId);
+    auto group = store->findGroup(groupId);
     if (!group)
         return {ErrorCode::NotFound, "group not found"};
 

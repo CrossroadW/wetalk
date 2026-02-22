@@ -48,7 +48,7 @@ Result<core::User> MockAuthService::getCurrentUser(const std::string& token) {
     if (!userId)
         return {ErrorCode::Unauthorized, "invalid token"};
 
-    auto* user = store->findUser(userId);
+    auto user = store->findUser(userId);
     if (!user)
         return {ErrorCode::Internal, "user not found"};
 

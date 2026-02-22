@@ -30,7 +30,6 @@ include_directories(include)
 # Modules
 add_subdirectory(src/log)
 add_subdirectory(src/core)
-add_subdirectory(src/storage)
 add_subdirectory(src/network)
 add_subdirectory(src/auth)
 add_subdirectory(src/chat)

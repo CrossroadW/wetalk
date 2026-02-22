@@ -14,7 +14,6 @@ target_link_libraries(wechat_contacts
     PUBLIC
         wechat_core
         wechat_network
-        wechat_storage
         Qt6::Core
         Qt6::Widgets
         wechat_log

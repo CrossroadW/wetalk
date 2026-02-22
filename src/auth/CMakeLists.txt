@@ -14,7 +14,6 @@ target_link_libraries(wechat_auth
     PUBLIC
         wechat_core
         wechat_network
-        wechat_storage
         wechat_log
 )
 
