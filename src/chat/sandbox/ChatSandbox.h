@@ -1,28 +1,24 @@
 #pragma once
 
 #include <QWidget>
-#include <QStackedWidget>
-#include <QListWidget>
-#include <QHBoxLayout>
 #include <QPushButton>
-#include <QInputDialog>
 
-#include <wechat/chat/ChatPresenter.h>
 #include <wechat/network/NetworkClient.h>
 
-#include "../ChatWidget.h"
+#include "../ChatPage.h"
 #include "../MockBackend.h"
 
 #include <map>
 #include <memory>
 #include <string>
 
-namespace wechat::chat {
+namespace wechat {
+namespace chat {
 
-/// 沙盒多聊天容器
+/// 沙盒容器
 ///
-/// 左侧联系人列表 + 右侧 ChatWidget 栈，模拟微信主界面。
-/// 可随意添加用户、创建聊天、切换会话，仅用于开发调试。
+/// 使用 ChatPage 组合 SessionList + ChatWidget，
+/// 添加"+ 新建聊天"按钮预灌数据并启动 MockBackend 脚本。
 class ChatSandbox : public QWidget {
     Q_OBJECT
 
@@ -31,37 +27,21 @@ public:
 
 private Q_SLOTS:
     void onAddChat();
-    void onContactClicked(QListWidgetItem* item);
 
 private:
-    struct ChatEntry {
-        int64_t chatId = 0;
-        int64_t peerId = 0;
-        std::string peerName;
-        ChatWidget* widget = nullptr;
-        MockBackend* backend = nullptr;
-    };
-
     void setupUI();
-    void switchToChat(int64_t chatId);
 
-    // 网络层 & Presenter（沙盒拥有生命周期）
-    std::unique_ptr<network::NetworkClient> client_;
-    std::unique_ptr<ChatPresenter> presenter_;
+    std::unique_ptr<network::NetworkClient> client;
+    ChatPage* chatPage = nullptr;
+    QPushButton* addButton = nullptr;
 
-    // 当前用户
-    std::string myToken_;
-    int64_t myUserId_ = 0;
+    std::string myToken;
+    int64_t myUserId = 0;
+    int peerCounter = 0;
 
-    // 聊天列表
-    std::map<int64_t, ChatEntry> chats_;  // chatId -> entry
-    int peerCounter_ = 0;
-
-    // UI
-    QListWidget* contactList_ = nullptr;
-    QStackedWidget* chatStack_ = nullptr;
-    QPushButton* addButton_ = nullptr;
-    QWidget* placeholder_ = nullptr;
+    // 保持 MockBackend 存活
+    std::map<int64_t, MockBackend*> backends;
 };
 
-} // namespace wechat::chat
+} // namespace chat
+} // namespace wechat

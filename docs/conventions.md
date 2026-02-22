@@ -48,11 +48,11 @@ include/
 | 模块 | 库名 | 说明 | 有 Sandbox |
 |------|------|------|-----------|
 | log | wechat_log | 日志模块（封装 spdlog） | 是 |
-| core | wechat_core | 基础类型、工具函数 | 否 |
-| storage | wechat_storage | SQLite3 本地存储 | 否 |
-| network | wechat_network | gRPC 接口 + Mock | 否 |
-| chat | wechat_chat | 聊天消息 | 是 |
-| contacts | wechat_contacts | 联系人管理 | 是 |
+| core | wechat_core | 基础类型（User, Message, Group） | 否 |
+| network | wechat_network | 网络服务接口 + Mock 实现（含 SQLite 存储） | 否 |
+| login | wechat_login | 登录/注册（LoginPresenter + LoginWidget） | 是 |
+| chat | wechat_chat | 聊天（ChatPresenter + SessionPresenter + ChatPage） | 是 |
+| contacts | wechat_contacts | 联系人管理（ContactsPresenter + ContactsWidget） | 是 |
 | moments | wechat_moments | 朋友圈/动态 | 是 |
 
 

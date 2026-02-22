@@ -18,13 +18,13 @@ GrpcAuthService::GrpcAuthService(const std::string& serverAddress)
     //                               grpc::InsecureChannelCredentials());
 }
 
-Result<LoginResponse> GrpcAuthService::registerUser(
+Result<core::User> GrpcAuthService::registerUser(
     const std::string& username, const std::string& password) {
     // TODO: 实现真实的 gRPC 调用
     return fail("gRPC backend not available yet - use MockNetworkClient");
 }
 
-Result<LoginResponse> GrpcAuthService::login(
+Result<core::User> GrpcAuthService::login(
     const std::string& username, const std::string& password) {
     return fail("gRPC backend not available yet - use MockNetworkClient");
 }

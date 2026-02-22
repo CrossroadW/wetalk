@@ -40,6 +40,8 @@ if(ENABLE_TESTING)
     file(GLOB CHAT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
     if(CHAT_TEST_SOURCES)
         add_executable(test_chat ${CHAT_TEST_SOURCES})
+        target_compile_definitions(test_chat PRIVATE QT_NO_KEYWORDS)
+        set_target_properties(test_chat PROPERTIES AUTOMOC ON)
         target_link_libraries(test_chat PUBLIC wechat_chat
                 GTest::gtest_main
                 Qt6::Test

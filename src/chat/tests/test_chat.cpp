@@ -74,8 +74,8 @@ protected:
         auto regB = client_->auth().registerUser("bob", "p");
         tokenA_ = regA.value().token;
         tokenB_ = regB.value().token;
-        aliceId_ = regA.value().userId;
-        bobId_ = regB.value().userId;
+        aliceId_ = regA.value().id;
+        bobId_ = regB.value().id;
 
         client_->contacts().addFriend(tokenA_, bobId_);
         auto group = client_->groups().createGroup(
@@ -376,9 +376,9 @@ TEST_F(ChatPresenterTest, OpenMultipleChats) {
     // 创建第二个聊天
     auto regC = client_->auth().registerUser("charlie", "p");
     auto tokenC = regC.value().token;
-    client_->contacts().addFriend(tokenA_, regC.value().userId);
+    client_->contacts().addFriend(tokenA_, regC.value().id);
     auto group2 = client_->groups().createGroup(
-        tokenA_, {aliceId_, regC.value().userId});
+        tokenA_, {aliceId_, regC.value().id});
     auto chatId2 = group2.value().id;
 
     QSignalSpy spy(presenter_.get(), &chat::ChatPresenter::messagesInserted);

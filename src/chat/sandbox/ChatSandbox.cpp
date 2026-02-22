@@ -1,160 +1,92 @@
 #include "ChatSandbox.h"
 
-#include <QLabel>
-#include <QSplitter>
 #include <QVBoxLayout>
 
 #include <spdlog/spdlog.h>
 
-namespace wechat::chat {
+namespace wechat {
+namespace chat {
 
 ChatSandbox::ChatSandbox(QWidget* parent) : QWidget(parent) {
-    // 1. 创建 Mock 网络客户端 & 注册当前用户
-    client_ = network::createMockClient();
-    auto reg = client_->auth().registerUser("me", "pass");
-    myToken_ = reg.value().token;
-    myUserId_ = reg.value().userId;
-
-    // 2. 创建 Presenter
-    presenter_ = std::make_unique<ChatPresenter>(*client_);
-    presenter_->setSession(myToken_, myUserId_);
+    client = network::createMockClient();
+    auto reg = client->auth().registerUser("me", "pass");
+    myToken = reg->token;
+    myUserId = reg->id;
 
     setupUI();
+
+    chatPage->setSession(myToken, myUserId);
 }
 
 void ChatSandbox::setupUI() {
-    // 左侧面板：添加按钮 + 联系人列表
-    auto* leftPanel = new QWidget();
-    auto* leftLayout = new QVBoxLayout(leftPanel);
-    leftLayout->setContentsMargins(0, 0, 0, 0);
+    auto* layout = new QVBoxLayout(this);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
 
-    addButton_ = new QPushButton(tr("+ 新建聊天"));
-    addButton_->setStyleSheet(
+    addButton = new QPushButton(tr("+ New Chat"));
+    addButton->setStyleSheet(
         "QPushButton {"
         "    background-color: #07C160; color: white;"
         "    border: none; padding: 10px; font-size: 14px;"
         "}"
         "QPushButton:hover { background-color: #06AD56; }");
-    leftLayout->addWidget(addButton_);
+    layout->addWidget(addButton);
 
-    contactList_ = new QListWidget();
-    contactList_->setStyleSheet(
-        "QListWidget { background: #2E2E2E; color: white; border: none; "
-        "font-size: 14px; }"
-        "QListWidget::item { padding: 12px 10px; }"
-        "QListWidget::item:selected { background: #3A3A3A; }");
-    leftLayout->addWidget(contactList_);
-
-    // 右侧：聊天栈
-    chatStack_ = new QStackedWidget();
-    placeholder_ = new QWidget();
-    auto* phLayout = new QVBoxLayout(placeholder_);
-    auto* phLabel = new QLabel(tr("点击左侧联系人开始聊天\n或点击「+ 新建聊天」添加"));
-    phLabel->setAlignment(Qt::AlignCenter);
-    phLabel->setStyleSheet("color: #999; font-size: 16px;");
-    phLayout->addWidget(phLabel);
-    chatStack_->addWidget(placeholder_);
-
-    // Splitter 组合
-    auto* splitter = new QSplitter(Qt::Horizontal);
-    splitter->addWidget(leftPanel);
-    splitter->addWidget(chatStack_);
-    splitter->setStretchFactor(0, 0);
-    splitter->setStretchFactor(1, 1);
-    splitter->setSizes({220, 580});
-
-    auto* mainLayout = new QHBoxLayout(this);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-    mainLayout->addWidget(splitter);
+    chatPage = new ChatPage(*client);
+    layout->addWidget(chatPage);
 
     setWindowTitle("WeTalk Sandbox");
     resize(900, 700);
 
-    // 信号
-    connect(addButton_, &QPushButton::clicked, this, &ChatSandbox::onAddChat);
-    connect(contactList_, &QListWidget::itemClicked,
-            this, &ChatSandbox::onContactClicked);
+    connect(addButton, &QPushButton::clicked, this, &ChatSandbox::onAddChat);
 }
 
 void ChatSandbox::onAddChat() {
-    // 自动生成对方用户
-    ++peerCounter_;
-    std::string peerName = "user_" + std::to_string(peerCounter_);
+    ++peerCounter;
+    std::string peerName = "user_" + std::to_string(peerCounter);
 
-    auto reg = client_->auth().registerUser(peerName, "pass");
+    auto reg = client->auth().registerUser(peerName, "pass");
     if (!reg.has_value()) {
         spdlog::warn("Failed to register peer: {}", peerName);
         return;
     }
-    auto peerId = reg.value().userId;
-    auto peerToken = reg.value().token;
+    auto peerId = reg->id;
+    auto peerToken = reg->token;
 
     // 建立好友 & 创建群聊
-    client_->contacts().addFriend(myToken_, peerId);
-    auto group = client_->groups().createGroup(
-        myToken_, {myUserId_, peerId});
+    client->contacts().addFriend(myToken, peerId);
+    auto group = client->groups().createGroup(myToken, {myUserId, peerId});
     if (!group.has_value()) {
         spdlog::warn("Failed to create group with {}", peerName);
         return;
     }
-    auto chatId = group.value().id;
+    auto chatId = group->id;
 
-    // ── MockBackend 预灌历史消息 ──
-    auto* backend = new MockBackend(*client_, this);
+    // MockBackend 预灌历史消息
+    auto* backend = new MockBackend(*client, this);
     backend->setPeerSession(peerToken, peerId);
     backend->setChatId(chatId);
 
-    // 临时清除 Presenter session，防止 onMessageStored 自动同步 cursor
-    presenter_->setSession("", 0);
-    backend->prefill(100, {myToken_, peerToken});
-    presenter_->setSession(myToken_, myUserId_);
+    // 临时清除 session，防止 onMessageStored 自动同步
+    chatPage->chatPresenter()->setSession("", 0);
+    backend->prefill(100, {myToken, peerToken});
+    chatPage->chatPresenter()->setSession(myToken, myUserId);
 
     spdlog::info("Pre-filled 100 messages in chat {}", chatId);
 
-    // 创建 ChatWidget（setPresenter 会触发 initChat → loadLatest(20)）
-    auto* widget = new ChatWidget();
-    widget->setCurrentUser(core::User{myUserId_});
-    widget->setChatPartner(core::User{peerId});
-    widget->setChatId(chatId);
-    widget->setPresenter(presenter_.get());
-    chatStack_->addWidget(widget);
+    // 通过 ChatPage 打开聊天
+    core::User peer;
+    peer.id = peerId;
+    peer.username = peerName;
+    chatPage->openChat(chatId, peer);
 
-    // 启动测试脚本（模拟对方发消息、撤回、编辑）
+    // 启动测试脚本
     backend->runScript(MockBackend::typicalScript());
-
-    // 记录
-    ChatEntry entry;
-    entry.chatId = chatId;
-    entry.peerId = peerId;
-    entry.peerName = peerName;
-    entry.widget = widget;
-    entry.backend = backend;
-    chats_[chatId] = std::move(entry);
-
-    // 添加到联系人列表
-    auto* item = new QListWidgetItem(QString::fromStdString(peerName));
-    item->setData(Qt::UserRole, static_cast<qlonglong>(chatId));
-    contactList_->addItem(item);
-
-    // 自动切换到新聊天
-    contactList_->setCurrentItem(item);
-    switchToChat(chatId);
+    backends[chatId] = backend;
 
     spdlog::info("New chat created: {} <-> {} (MockBackend active)",
-                 myUserId_, peerName);
+                 myUserId, peerName);
 }
 
-void ChatSandbox::onContactClicked(QListWidgetItem* item) {
-    auto chatId = item->data(Qt::UserRole).toLongLong();
-    switchToChat(chatId);
-}
-
-void ChatSandbox::switchToChat(int64_t chatId) {
-    auto it = chats_.find(chatId);
-    if (it == chats_.end()) {
-        return;
-    }
-    chatStack_->setCurrentWidget(it->second.widget);
-}
-
-} // namespace wechat::chat
+} // namespace chat
+} // namespace wechat

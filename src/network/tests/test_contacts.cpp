@@ -24,7 +24,7 @@ protected:
 TEST_F(ContactTest, AddAndListFriends) {
     auto tokenA = registerAndLogin("alice", "p");
     auto regB = client->auth().registerUser("bob", "p");
-    auto userIdB = regB.value().userId;
+    auto userIdB = regB.value().id;
 
     auto r = client->contacts().addFriend(tokenA, userIdB);
     ASSERT_TRUE(r.has_value());
@@ -38,7 +38,7 @@ TEST_F(ContactTest, AddAndListFriends) {
 TEST_F(ContactTest, RemoveFriend) {
     auto tokenA = registerAndLogin("alice", "p");
     auto regB = client->auth().registerUser("bob", "p");
-    auto userIdB = regB.value().userId;
+    auto userIdB = regB.value().id;
 
     client->contacts().addFriend(tokenA, userIdB);
     auto r = client->contacts().removeFriend(tokenA, userIdB);
@@ -50,7 +50,7 @@ TEST_F(ContactTest, RemoveFriend) {
 
 TEST_F(ContactTest, AddFriendSelf) {
     auto reg = client->auth().registerUser("alice", "p");
-    auto r = client->contacts().addFriend(reg.value().token, reg.value().userId);
+    auto r = client->contacts().addFriend(reg.value().token, reg.value().id);
     ASSERT_FALSE(r.has_value());
 }
 
@@ -77,7 +77,7 @@ TEST_F(ContactTest, BidirectionalFriendship) {
     auto tokenB = regB.value().token;
 
     // alice 添加 bob
-    client->contacts().addFriend(tokenA, regB.value().userId);
+    client->contacts().addFriend(tokenA, regB.value().id);
 
     // 互为好友
     auto friendsA = client->contacts().listFriends(tokenA);

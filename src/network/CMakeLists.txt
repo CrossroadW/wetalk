@@ -27,6 +27,7 @@ target_link_libraries(wechat_network
         Qt6::Core
         SQLiteCpp
         nlohmann_json::nlohmann_json
+        Boost::headers
 )
 
 target_compile_definitions(wechat_network PRIVATE

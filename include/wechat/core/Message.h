@@ -39,9 +39,6 @@ struct ResourceMeta {
     std::size_t size;                            // 文件大小 (bytes)
     std::string filename;                        // 原始文件名
     std::map<std::string, std::string> extra;    // 扩展元信息
-    // Image: {"width": "800", "height": "600"}
-    // Audio: {"duration": "30"}
-    // Video: {"width": "1920", "height": "1080", "duration": "120"}
 };
 
 struct ResourceContent {

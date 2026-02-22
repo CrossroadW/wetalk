@@ -21,12 +21,15 @@ protected:
 TEST_F(AuthTest, RegisterAndLogin) {
     auto reg = client->auth().registerUser("alice", "pass123");
     ASSERT_TRUE(reg.has_value());
-    EXPECT_NE(reg.value().userId, 0);
-    EXPECT_FALSE(reg.value().token.empty());
+    EXPECT_NE(reg->id, 0);
+    EXPECT_EQ(reg->username, "alice");
+    EXPECT_EQ(reg->password, "pass123");
+    EXPECT_FALSE(reg->token.empty());
 
     auto login = client->auth().login("alice", "pass123");
     ASSERT_TRUE(login.has_value());
-    EXPECT_EQ(login.value().userId, reg.value().userId);
+    EXPECT_EQ(login->id, reg->id);
+    EXPECT_FALSE(login->token.empty());
 }
 
 TEST_F(AuthTest, LoginWrongPassword) {
@@ -37,10 +40,10 @@ TEST_F(AuthTest, LoginWrongPassword) {
 
 TEST_F(AuthTest, Logout) {
     auto reg = client->auth().registerUser("carol", "pass");
-    auto r = client->auth().logout(reg.value().token);
+    auto r = client->auth().logout(reg->token);
     ASSERT_TRUE(r.has_value());
 
-    auto user = client->auth().getCurrentUser(reg.value().token);
+    auto user = client->auth().getCurrentUser(reg->token);
     EXPECT_FALSE(user.has_value());
 }
 
@@ -48,15 +51,19 @@ TEST_F(AuthTest, GetCurrentUser) {
     auto reg = client->auth().registerUser("dave", "pass");
     ASSERT_TRUE(reg.has_value());
 
-    auto user = client->auth().getCurrentUser(reg.value().token);
+    auto user = client->auth().getCurrentUser(reg->token);
     ASSERT_TRUE(user.has_value());
-    EXPECT_EQ(user.value().id, reg.value().userId);
+    EXPECT_EQ(user->id, reg->id);
+    EXPECT_EQ(user->username, "dave");
+    EXPECT_EQ(user->token, reg->token);
 }
 
 TEST_F(AuthTest, RegisterDuplicateUsername) {
-    client->auth().registerUser("alice", "pass");
-    auto r = client->auth().registerUser("alice", "other");
-    ASSERT_FALSE(r.has_value());
+    auto r1 = client->auth().registerUser("alice", "pass");
+    auto r2 = client->auth().registerUser("alice", "other");
+    ASSERT_TRUE(r1.has_value());
+    ASSERT_TRUE(r2.has_value());
+    EXPECT_NE(r1->id, r2->id);
 }
 
 TEST_F(AuthTest, LoginUnknownUser) {
@@ -67,4 +74,26 @@ TEST_F(AuthTest, LoginUnknownUser) {
 TEST_F(AuthTest, InvalidToken) {
     auto user = client->auth().getCurrentUser("invalid_token");
     ASSERT_FALSE(user.has_value());
+}
+
+TEST_F(AuthTest, EmptyUsernameOrPassword) {
+    auto r1 = client->auth().registerUser("", "pass");
+    ASSERT_FALSE(r1.has_value());
+
+    auto r2 = client->auth().registerUser("user", "");
+    ASSERT_FALSE(r2.has_value());
+}
+
+TEST_F(AuthTest, LogoutInvalidToken) {
+    auto r = client->auth().logout("nonexistent_token");
+    ASSERT_FALSE(r.has_value());
+}
+
+TEST_F(AuthTest, LoginRefreshesToken) {
+    auto reg = client->auth().registerUser("eve", "pass");
+    auto firstToken = reg->token;
+
+    auto login = client->auth().login("eve", "pass");
+    ASSERT_TRUE(login.has_value());
+    EXPECT_NE(login->token, firstToken);
 }

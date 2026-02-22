@@ -22,23 +22,67 @@
 ## 关键文件
 
 - `include/wechat/core/Message.h` — 消息数据结构（variant 内容块，支持图文混排）
-- `include/wechat/chat/ChatPresenter.h` — 聊天 MVP Presenter（QObject，合并业务逻辑+信号）
+- `include/wechat/core/User.h` — 用户数据结构（id, username, password, token）
+- `include/wechat/core/Group.h` — 群组数据结构
+- `include/wechat/chat/ChatPresenter.h` — 聊天 MVP Presenter（消息同步 + 信号）
+- `include/wechat/chat/SessionPresenter.h` — 会话列表 Presenter（群组列表 + 实时更新）
+- `include/wechat/login/LoginPresenter.h` — 登录 MVP Presenter（登录/注册 + 信号）
+- `include/wechat/contacts/ContactsPresenter.h` — 通讯录 Presenter（好友管理 + 搜索）
 - `include/wechat/network/NetworkClient.h` — 网络客户端抽象工厂
 - `include/wechat/network/ChatService.h` — 聊天服务接口（发送/同步/撤回/编辑 + 推送通知信号）
-- `src/chat/ChatWidget.h` — 主聊天界面（MVP View）
+- `include/wechat/network/AuthService.h` — 认证服务接口（注册/登录/登出）
+- `include/wechat/network/ContactService.h` — 联系人服务接口
+- `include/wechat/network/GroupService.h` — 群组服务接口
+- `include/wechat/network/MomentService.h` — 朋友圈服务接口
+- `src/chat/ChatWidget.h` — 聊天消息界面（MVP View）
+- `src/chat/ChatPage.h` — 聊天页面（SessionListWidget + ChatWidget 组合）
+- `src/chat/SessionListWidget.h` — 会话列表界面
 - `src/chat/MockBackend.h` — 模拟后端（预灌数据 + 定时脚本测试）
-- `src/network/MockDataStore.h` — 内存数据存储（Mock 后端）
+- `src/login/LoginWidget.h` — 登录/注册界面
+- `src/contacts/ContactsWidget.h` — 通讯录界面（好友列表 + 搜索）
+- `src/network/MockDataStore.h` — SQLite 内存数据存储（Mock 后端）
+- `src/main.cpp` — 主应用入口（Login → MainWindow with ChatPage + ContactsWidget）
 
 ## 架构
 
 ```
-UI 层 (Qt Widgets)       ChatWidget, MessageListView, MessageItemWidget
-    ↕ Qt signals/slots (QueuedConnection)
-Presenter (QObject)      ChatPresenter — 网络通知 → 同步 → Qt signals
+┌──────────────────────────────────────────────┐
+│  main.cpp (MainWindow)                       │
+│  ┌────────┬─────────────────────────────────┐│
+│  │ TabBar │ Content (QStackedWidget)        ││
+│  │        │                                 ││
+│  │ [Chat] │ ChatPage (SessionList + Chat)   ││
+│  │ [Cont] │ ContactsWidget                  ││
+│  │        │                                 ││
+│  └────────┴─────────────────────────────────┘│
+└──────────────────────────────────────────────┘
+        ▲ loginSuccess 信号触发跳转
+┌──────────────────────────────────────────────┐
+│  LoginWidget (登录/注册界面)                   │
+└──────────────────────────────────────────────┘
+```
+
+ChatPage 内部：
+```
+┌──────────────┬────────────────────────┐
+│ SessionList  │  ChatWidget            │
+│              │                        │
+│ Alice        │  [MessageListView]     │
+│ Group1       │                        │
+│              │  [Input + Send]        │
+└──────────────┴────────────────────────┘
+```
+
+### MVP 数据流
+
+```
+UI 层 (Qt Widgets)       LoginWidget, ChatWidget, ContactsWidget, SessionListWidget
     ↕ Qt signals/slots
-服务层 (QObject)         NetworkClient → ChatService, AuthService, ContactService...
+Presenter (QObject)      LoginPresenter, ChatPresenter, SessionPresenter, ContactsPresenter
+    ↕ 方法调用
+服务层 (QObject)         NetworkClient → ChatService, AuthService, ContactService, GroupService
     ↕
-数据层                   MockDataStore (内存) / SQLite (计划中)
+数据层                   MockDataStore (SQLite :memory:)
 ```
 
 发送: ChatWidget → ChatPresenter.sendMessage() → ChatService → Q_EMIT messageStored → fetchAfter → Q_EMIT messagesInserted → ChatWidget
@@ -47,10 +91,10 @@ Presenter (QObject)      ChatPresenter — 网络通知 → 同步 → Qt signal
 
 撤回/编辑: ChatPresenter → ChatService → Q_EMIT messageUpdated → fetchMessage → Q_EMIT messageUpdated → ChatWidget
 
+登录: LoginWidget → LoginPresenter.login() → AuthService → Q_EMIT loginSuccess(User) → MainWindow
+
 ## 依赖与工具
 
-spdlog 1.17.0, gtest 1.17.0, sqlitecpp 3.3.3, Qt6 (Core/Widgets/Network)
+spdlog 1.17.0, gtest 1.17.0, sqlitecpp 3.3.3, boost 1.86.0 (UUID), Qt6 (Core/Widgets/Network)
 
 C++23 / CMake 3.24+ / Conan 2.0+ / MSVC / Ninja Multi-Config / `ENABLE_TESTING=ON`
-
-

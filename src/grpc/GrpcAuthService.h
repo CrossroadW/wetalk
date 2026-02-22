@@ -14,11 +14,11 @@ class GrpcAuthService : public AuthService {
 public:
     explicit GrpcAuthService(const std::string& serverAddress);
 
-    Result<LoginResponse> registerUser(
+    Result<core::User> registerUser(
         const std::string& username,
         const std::string& password) override;
 
-    Result<LoginResponse> login(
+    Result<core::User> login(
         const std::string& username,
         const std::string& password) override;
 

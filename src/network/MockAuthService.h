@@ -11,9 +11,9 @@ class MockAuthService : public AuthService {
 public:
     explicit MockAuthService(std::shared_ptr<MockDataStore> store);
 
-    Result<LoginResponse> registerUser(
+    Result<core::User> registerUser(
         const std::string& username, const std::string& password) override;
-    Result<LoginResponse> login(
+    Result<core::User> login(
         const std::string& username, const std::string& password) override;
     VoidResult logout(const std::string& token) override;
     Result<core::User> getCurrentUser(const std::string& token) override;

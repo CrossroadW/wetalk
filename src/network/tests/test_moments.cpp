@@ -27,11 +27,11 @@ TEST_F(MomentTest, PostAndListMoments) {
     auto tokenA = regA.value().token;
     auto tokenB = regB.value().token;
 
-    client->contacts().addFriend(tokenA, regB.value().userId);
+    client->contacts().addFriend(tokenA, regB.value().id);
 
     auto posted = client->moments().postMoment(tokenA, "hello world", {});
     ASSERT_TRUE(posted.has_value());
-    EXPECT_EQ(posted.value().authorId, regA.value().userId);
+    EXPECT_EQ(posted.value().authorId, regA.value().id);
 
     auto list = client->moments().listMoments(tokenB, INT64_MAX, 50);
     ASSERT_TRUE(list.has_value());
@@ -74,7 +74,7 @@ TEST_F(MomentTest, CommentMoment) {
     auto r = client->moments().commentMoment(tokenA, momentId, "great!");
     ASSERT_TRUE(r.has_value());
     EXPECT_EQ(r.value().text, "great!");
-    EXPECT_EQ(r.value().authorId, regA.value().userId);
+    EXPECT_EQ(r.value().authorId, regA.value().id);
 }
 
 TEST_F(MomentTest, PostMomentWithImages) {
@@ -98,7 +98,7 @@ TEST_F(MomentTest, ListMomentsPagination) {
     auto regB = client->auth().registerUser("bob", "p");
     auto tokenB = regB.value().token;
 
-    client->contacts().addFriend(regA.value().token, regB.value().userId);
+    client->contacts().addFriend(regA.value().token, regB.value().id);
 
     for (int i = 0; i < 5; ++i) {
         client->moments().postMoment(

@@ -5,7 +5,7 @@
 ## 数据模型关系
 
 ```
-User (id)
+User (id, username, password, token)
   │
   ├── 好友关系 ──→ User                     (contacts 模块，不在 core)
   │
@@ -35,6 +35,9 @@ User (id)
 // ── User: 身份 ──
 struct User {
     int64_t id = 0;
+    std::string username;
+    std::string password;
+    std::string token;       // 当前会话 token（登录后填充）
 };
 
 // ── Group: 聊天容器 (私聊 = 2人, 群聊 = N人) ──
@@ -125,12 +128,8 @@ struct Moment {
 CREATE TABLE users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL,
-    password TEXT NOT NULL
-);
-
-CREATE TABLE tokens (
-    token TEXT PRIMARY KEY,
-    user_id INTEGER NOT NULL
+    password TEXT NOT NULL,
+    token TEXT                    -- 当前会话 token，NULL = 未登录
 );
 
 CREATE TABLE groups_ (

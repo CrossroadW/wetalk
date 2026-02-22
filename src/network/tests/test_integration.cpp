@@ -31,10 +31,10 @@ TEST_F(IntegrationTest, EndToEndFlow) {
     auto tokenA = regA.value().token;
     auto tokenB = regB.value().token;
 
-    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().userId).has_value());
+    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().id).has_value());
 
     auto group = client->groups().createGroup(
-        tokenA, {regA.value().userId, regB.value().userId});
+        tokenA, {regA.value().id, regB.value().id});
     ASSERT_TRUE(group.has_value());
     auto chatId = group.value().id;
 
@@ -76,7 +76,7 @@ TEST_F(IntegrationTest, MultiUserGroupChat) {
 
     auto group = client->groups().createGroup(
         regA.value().token,
-        {regA.value().userId, regB.value().userId, regC.value().userId});
+        {regA.value().id, regB.value().id, regC.value().id});
     auto chatId = group.value().id;
 
     // alice 发消息
@@ -102,7 +102,7 @@ TEST_F(IntegrationTest, CompleteFriendshipFlow) {
     ASSERT_TRUE(search.has_value());
     ASSERT_EQ(search.value().size(), 1u);
 
-    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().userId).has_value());
+    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().id).has_value());
 
     // alice 发朋友圈
     client->moments().postMoment(tokenA, "hello friends", {});

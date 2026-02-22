@@ -3,16 +3,9 @@
 #include <wechat/core/User.h>
 #include <wechat/network/NetworkTypes.h>
 
-#include <cstdint>
 #include <string>
 
 namespace wechat::network {
-
-/// 登录响应
-struct LoginResponse {
-    int64_t userId = 0;
-    std::string token;
-};
 
 /// 认证服务接口
 class AuthService {
@@ -20,11 +13,11 @@ public:
     virtual ~AuthService() = default;
 
     /// 注册
-    virtual Result<LoginResponse> registerUser(
+    virtual Result<core::User> registerUser(
         const std::string& username, const std::string& password) = 0;
 
     /// 登录
-    virtual Result<LoginResponse> login(
+    virtual Result<core::User> login(
         const std::string& username, const std::string& password) = 0;
 
     /// 登出

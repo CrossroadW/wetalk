@@ -27,7 +27,7 @@ TEST_F(GroupTest, CreateGroupAndListMembers) {
     auto tokenA = regA.value().token;
 
     auto r = client->groups().createGroup(
-        tokenA, {regA.value().userId, regB.value().userId});
+        tokenA, {regA.value().id, regB.value().id});
     ASSERT_TRUE(r.has_value());
     auto groupId = r.value().id;
 
@@ -41,7 +41,7 @@ TEST_F(GroupTest, DissolveGroupOnlyOwner) {
     auto regB = client->auth().registerUser("bob", "p");
 
     auto group = client->groups().createGroup(
-        regA.value().token, {regA.value().userId, regB.value().userId});
+        regA.value().token, {regA.value().id, regB.value().id});
     auto groupId = group.value().id;
 
     auto r = client->groups().dissolveGroup(regB.value().token, groupId);
@@ -57,16 +57,16 @@ TEST_F(GroupTest, AddAndRemoveGroupMember) {
     auto regC = client->auth().registerUser("carol", "p");
     auto tokenA = regA.value().token;
 
-    auto group = client->groups().createGroup(tokenA, {regA.value().userId});
+    auto group = client->groups().createGroup(tokenA, {regA.value().id});
     auto groupId = group.value().id;
 
-    auto r = client->groups().addMember(tokenA, groupId, regB.value().userId);
+    auto r = client->groups().addMember(tokenA, groupId, regB.value().id);
     ASSERT_TRUE(r.has_value());
 
     auto members = client->groups().listMembers(tokenA, groupId);
     EXPECT_EQ(members.value().size(), 2u);
 
-    auto r2 = client->groups().removeMember(tokenA, groupId, regB.value().userId);
+    auto r2 = client->groups().removeMember(tokenA, groupId, regB.value().id);
     ASSERT_TRUE(r2.has_value());
 
     members = client->groups().listMembers(tokenA, groupId);
@@ -78,8 +78,8 @@ TEST_F(GroupTest, ListMyGroups) {
     auto regB = client->auth().registerUser("bob", "p");
 
     client->groups().createGroup(
-        regA.value().token, {regA.value().userId, regB.value().userId});
-    client->groups().createGroup(regA.value().token, {regA.value().userId});
+        regA.value().token, {regA.value().id, regB.value().id});
+    client->groups().createGroup(regA.value().token, {regA.value().id});
 
     auto r = client->groups().listMyGroups(regA.value().token);
     ASSERT_TRUE(r.has_value());
@@ -94,7 +94,7 @@ TEST_F(GroupTest, CreateGroupEmptyMembers) {
     auto reg = client->auth().registerUser("alice", "p");
     auto r = client->groups().createGroup(reg.value().token, {});
     ASSERT_TRUE(r.has_value());
-    EXPECT_EQ(r.value().ownerId, reg.value().userId);
+    EXPECT_EQ(r.value().ownerId, reg.value().id);
     EXPECT_EQ(r.value().memberIds.size(), 1u);
 }
 

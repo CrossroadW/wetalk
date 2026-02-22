@@ -18,6 +18,7 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Widgets Network Test)
 find_package(SQLiteCpp CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(Boost REQUIRED COMPONENTS headers)
 
 if(ENABLE_TESTING)
     include(CTest)
@@ -32,6 +33,7 @@ add_subdirectory(src/log)
 add_subdirectory(src/core)
 add_subdirectory(src/network)
 add_subdirectory(src/chat)
+add_subdirectory(src/login)
 add_subdirectory(src/contacts)
 add_subdirectory(src/moments)
 #add_subdirectory(src/grpc/)
@@ -46,12 +48,20 @@ target_sources(wetalk
 
 target_compile_features(wetalk PRIVATE cxx_std_23)
 
+target_include_directories(wetalk PRIVATE ${CMAKE_SOURCE_DIR}/src)
+
+target_compile_definitions(wetalk PRIVATE QT_NO_KEYWORDS)
+
+set_target_properties(wetalk PROPERTIES AUTOMOC ON)
+
 target_link_libraries(wetalk
     PUBLIC
         wechat_core
         wechat_chat
+        wechat_login
         wechat_contacts
         wechat_moments
+        wechat_network
         wechat_log
         Qt6::Widgets
 )

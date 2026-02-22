@@ -31,13 +31,13 @@ protected:
 TEST_F(NetworkTest, RegisterAndLogin) {
     auto reg = client->auth().registerUser("alice", "pass123");
     ASSERT_TRUE(reg.has_value());
-    EXPECT_NE(reg.value().userId, 0);
+    EXPECT_NE(reg.value().id, 0);
     EXPECT_FALSE(reg.value().token.empty());
 
     // 用注册的凭据登录
     auto login = client->auth().login("alice", "pass123");
     ASSERT_TRUE(login.has_value());
-    EXPECT_EQ(login.value().userId, reg.value().userId);
+    EXPECT_EQ(login.value().id, reg.value().id);
 }
 
 TEST_F(NetworkTest, LoginWrongPassword) {
@@ -62,7 +62,7 @@ TEST_F(NetworkTest, GetCurrentUser) {
 
     auto user = client->auth().getCurrentUser(reg.value().token);
     ASSERT_TRUE(user.has_value());
-    EXPECT_EQ(user.value().id, reg.value().userId);
+    EXPECT_EQ(user.value().id, reg.value().id);
 }
 
 // ══════════════════════════════════════════════════
@@ -72,7 +72,7 @@ TEST_F(NetworkTest, GetCurrentUser) {
 TEST_F(NetworkTest, AddAndListFriends) {
     auto tokenA = registerAndLogin("alice", "p");
     auto regB = client->auth().registerUser("bob", "p");
-    auto userIdB = regB.value().userId;
+    auto userIdB = regB.value().id;
 
     auto r = client->contacts().addFriend(tokenA, userIdB);
     ASSERT_TRUE(r.has_value());
@@ -86,7 +86,7 @@ TEST_F(NetworkTest, AddAndListFriends) {
 TEST_F(NetworkTest, RemoveFriend) {
     auto tokenA = registerAndLogin("alice", "p");
     auto regB = client->auth().registerUser("bob", "p");
-    auto userIdB = regB.value().userId;
+    auto userIdB = regB.value().id;
 
     client->contacts().addFriend(tokenA, userIdB);
     auto r = client->contacts().removeFriend(tokenA, userIdB);
@@ -98,7 +98,7 @@ TEST_F(NetworkTest, RemoveFriend) {
 
 TEST_F(NetworkTest, AddFriendSelf) {
     auto reg = client->auth().registerUser("alice", "p");
-    auto r = client->contacts().addFriend(reg.value().token, reg.value().userId);
+    auto r = client->contacts().addFriend(reg.value().token, reg.value().id);
     ASSERT_FALSE(r.has_value());
 }
 
@@ -122,7 +122,7 @@ TEST_F(NetworkTest, CreateGroupAndListMembers) {
     auto tokenA = regA.value().token;
 
     auto r = client->groups().createGroup(
-        tokenA, {regA.value().userId, regB.value().userId});
+        tokenA, {regA.value().id, regB.value().id});
     ASSERT_TRUE(r.has_value());
     auto groupId = r.value().id;
 
@@ -136,7 +136,7 @@ TEST_F(NetworkTest, DissolveGroupOnlyOwner) {
     auto regB = client->auth().registerUser("bob", "p");
 
     auto group = client->groups().createGroup(
-        regA.value().token, {regA.value().userId, regB.value().userId});
+        regA.value().token, {regA.value().id, regB.value().id});
     auto groupId = group.value().id;
 
     // bob 不是群主，不能解散
@@ -155,18 +155,18 @@ TEST_F(NetworkTest, AddAndRemoveGroupMember) {
     auto tokenA = regA.value().token;
 
     auto group = client->groups().createGroup(
-        tokenA, {regA.value().userId});
+        tokenA, {regA.value().id});
     auto groupId = group.value().id;
 
     // 添加 bob
-    auto r = client->groups().addMember(tokenA, groupId, regB.value().userId);
+    auto r = client->groups().addMember(tokenA, groupId, regB.value().id);
     ASSERT_TRUE(r.has_value());
 
     auto members = client->groups().listMembers(tokenA, groupId);
     EXPECT_EQ(members.value().size(), 2u);
 
     // 移除 bob
-    auto r2 = client->groups().removeMember(tokenA, groupId, regB.value().userId);
+    auto r2 = client->groups().removeMember(tokenA, groupId, regB.value().id);
     ASSERT_TRUE(r2.has_value());
 
     members = client->groups().listMembers(tokenA, groupId);
@@ -178,9 +178,9 @@ TEST_F(NetworkTest, ListMyGroups) {
     auto regB = client->auth().registerUser("bob", "p");
 
     client->groups().createGroup(
-        regA.value().token, {regA.value().userId, regB.value().userId});
+        regA.value().token, {regA.value().id, regB.value().id});
     client->groups().createGroup(
-        regA.value().token, {regA.value().userId});
+        regA.value().token, {regA.value().id});
 
     auto r = client->groups().listMyGroups(regA.value().token);
     ASSERT_TRUE(r.has_value());
@@ -202,14 +202,14 @@ TEST_F(NetworkTest, SendAndSyncMessages) {
     auto tokenB = regB.value().token;
 
     auto group = client->groups().createGroup(
-        tokenA, {regA.value().userId, regB.value().userId});
+        tokenA, {regA.value().id, regB.value().id});
     auto chatId = group.value().id;
 
     // alice 发消息
     MessageContent content = {TextContent{"hello bob!"}};
     auto sent = client->chat().sendMessage(tokenA, chatId, 0, content);
     ASSERT_TRUE(sent.has_value());
-    EXPECT_EQ(sent.value().senderId, regA.value().userId);
+    EXPECT_EQ(sent.value().senderId, regA.value().id);
     EXPECT_EQ(sent.value().chatId, chatId);
 
     // bob 同步
@@ -228,7 +228,7 @@ TEST_F(NetworkTest, SendMessageNotMember) {
     auto regB = client->auth().registerUser("bob", "p");
 
     auto group = client->groups().createGroup(
-        regA.value().token, {regA.value().userId});
+        regA.value().token, {regA.value().id});
     auto chatId = group.value().id;
 
     // bob 不是成员
@@ -241,7 +241,7 @@ TEST_F(NetworkTest, RevokeMessage) {
     auto regA = client->auth().registerUser("alice", "p");
     auto tokenA = regA.value().token;
 
-    auto group = client->groups().createGroup(tokenA, {regA.value().userId});
+    auto group = client->groups().createGroup(tokenA, {regA.value().id});
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
@@ -262,7 +262,7 @@ TEST_F(NetworkTest, RevokeOtherUserMessage) {
 
     auto group = client->groups().createGroup(
         regA.value().token,
-        {regA.value().userId, regB.value().userId});
+        {regA.value().id, regB.value().id});
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
@@ -277,7 +277,7 @@ TEST_F(NetworkTest, EditMessage) {
     auto regA = client->auth().registerUser("alice", "p");
     auto tokenA = regA.value().token;
 
-    auto group = client->groups().createGroup(tokenA, {regA.value().userId});
+    auto group = client->groups().createGroup(tokenA, {regA.value().id});
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
@@ -301,7 +301,7 @@ TEST_F(NetworkTest, MarkRead) {
 
     auto group = client->groups().createGroup(
         regA.value().token,
-        {regA.value().userId, regB.value().userId});
+        {regA.value().id, regB.value().id});
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
@@ -318,7 +318,7 @@ TEST_F(NetworkTest, SyncMessagesPagination) {
     auto regA = client->auth().registerUser("alice", "p");
     auto tokenA = regA.value().token;
 
-    auto group = client->groups().createGroup(tokenA, {regA.value().userId});
+    auto group = client->groups().createGroup(tokenA, {regA.value().id});
     auto chatId = group.value().id;
 
     for (int i = 0; i < 5; ++i) {
@@ -358,12 +358,12 @@ TEST_F(NetworkTest, PostAndListMoments) {
     auto tokenB = regB.value().token;
 
     // 互加好友
-    client->contacts().addFriend(tokenA, regB.value().userId);
+    client->contacts().addFriend(tokenA, regB.value().id);
 
     // alice 发朋友圈
     auto posted = client->moments().postMoment(tokenA, "hello world", {});
     ASSERT_TRUE(posted.has_value());
-    EXPECT_EQ(posted.value().authorId, regA.value().userId);
+    EXPECT_EQ(posted.value().authorId, regA.value().id);
 
     // bob 能看到（是好友）
     auto list = client->moments().listMoments(tokenB, INT64_MAX, 50);
@@ -409,7 +409,7 @@ TEST_F(NetworkTest, CommentMoment) {
     auto r = client->moments().commentMoment(tokenA, momentId, "great!");
     ASSERT_TRUE(r.has_value());
     EXPECT_EQ(r.value().text, "great!");
-    EXPECT_EQ(r.value().authorId, regA.value().userId);
+    EXPECT_EQ(r.value().authorId, regA.value().id);
 }
 
 // ══════════════════════════════════════════════════
@@ -426,11 +426,11 @@ TEST_F(NetworkTest, EndToEndFlow) {
     auto tokenB = regB.value().token;
 
     // 互加好友
-    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().userId).has_value());
+    ASSERT_TRUE(client->contacts().addFriend(tokenA, regB.value().id).has_value());
 
     // 创建群聊
     auto group = client->groups().createGroup(
-        tokenA, {regA.value().userId, regB.value().userId});
+        tokenA, {regA.value().id, regB.value().id});
     ASSERT_TRUE(group.has_value());
     auto chatId = group.value().id;
 

@@ -1,5 +1,7 @@
 #include "MockDataStore.h"
 
+#include <boost/uuid/random_generator.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <nlohmann/json.hpp>
 #include <algorithm>
 #include <chrono>
@@ -94,13 +96,9 @@ void MockDataStore::initSchema() {
     db_.exec(R"(
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL ,
-            password TEXT NOT NULL
-        );
-
-        CREATE TABLE IF NOT EXISTS tokens (
-            token TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL
+            username TEXT NOT NULL,
+            password TEXT NOT NULL,
+            token TEXT
         );
 
         CREATE TABLE IF NOT EXISTS groups_ (
@@ -215,10 +213,9 @@ int64_t MockDataStore::authenticate(std::string const &username,
 }
 
 std::string MockDataStore::createToken(int64_t userId) {
-    static int64_t tokenCounter = 0;
-    auto token = "tok_" + std::to_string(++tokenCounter);
+    auto token = to_string(boost::uuids::random_generator()());
     SQLite::Statement stmt(db_,
-        "INSERT INTO tokens (token, user_id) VALUES (?, ?)");
+        "UPDATE users SET token = ? WHERE id = ?");
     stmt.bind(1, token);
     stmt.bind(2, userId);
     stmt.exec();
@@ -227,34 +224,49 @@ std::string MockDataStore::createToken(int64_t userId) {
 
 int64_t MockDataStore::resolveToken(std::string const &token) {
     SQLite::Statement stmt(db_,
-        "SELECT user_id FROM tokens WHERE token = ?");
+        "SELECT id FROM users WHERE token = ?");
     stmt.bind(1, token);
     if (!stmt.executeStep()) return 0;
     return stmt.getColumn(0).getInt64();
 }
 
 void MockDataStore::removeToken(std::string const &token) {
-    SQLite::Statement stmt(db_, "DELETE FROM tokens WHERE token = ?");
+    SQLite::Statement stmt(db_,
+        "UPDATE users SET token = NULL WHERE token = ?");
     stmt.bind(1, token);
     stmt.exec();
 }
 
 std::optional<core::User> MockDataStore::findUser(int64_t userId) {
-    SQLite::Statement stmt(db_, "SELECT id FROM users WHERE id = ?");
+    SQLite::Statement stmt(db_,
+        "SELECT id, username, password, token FROM users WHERE id = ?");
     stmt.bind(1, userId);
     if (!stmt.executeStep()) return std::nullopt;
-    return core::User{stmt.getColumn(0).getInt64()};
+    core::User u;
+    u.id = stmt.getColumn(0).getInt64();
+    u.username = stmt.getColumn(1).getString();
+    u.password = stmt.getColumn(2).getString();
+    if (!stmt.getColumn(3).isNull())
+        u.token = stmt.getColumn(3).getString();
+    return u;
 }
 
 std::vector<core::User> MockDataStore::searchUsers(std::string const &keyword) {
     SQLite::Statement stmt(db_,
-        "SELECT id, username FROM users WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?");
+        "SELECT id, username, password, token FROM users"
+        " WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?");
     auto pattern = "%" + keyword + "%";
     stmt.bind(1, pattern);
     stmt.bind(2, pattern);
     std::vector<core::User> result;
     while (stmt.executeStep()) {
-        result.push_back(core::User{stmt.getColumn(0).getInt64()});
+        core::User u;
+        u.id = stmt.getColumn(0).getInt64();
+        u.username = stmt.getColumn(1).getString();
+        u.password = stmt.getColumn(2).getString();
+        if (!stmt.getColumn(3).isNull())
+            u.token = stmt.getColumn(3).getString();
+        result.push_back(std::move(u));
     }
     return result;
 }

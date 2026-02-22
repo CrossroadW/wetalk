@@ -30,13 +30,13 @@ TEST_F(ChatTest, SendAndSyncMessages) {
     auto tokenB = regB.value().token;
 
     auto group = client->groups().createGroup(
-        tokenA, {regA.value().userId, regB.value().userId});
+        tokenA, {regA.value().id, regB.value().id});
     auto chatId = group.value().id;
 
     MessageContent content = {TextContent{"hello bob!"}};
     auto sent = client->chat().sendMessage(tokenA, chatId, 0, content);
     ASSERT_TRUE(sent.has_value());
-    EXPECT_EQ(sent.value().senderId, regA.value().userId);
+    EXPECT_EQ(sent.value().senderId, regA.value().id);
 
     auto sync = client->chat().fetchAfter(tokenB, chatId, 0, 50);
     ASSERT_TRUE(sync.has_value());
@@ -51,7 +51,7 @@ TEST_F(ChatTest, SendMessageNotMember) {
     auto regA = client->auth().registerUser("alice", "p");
     auto regB = client->auth().registerUser("bob", "p");
 
-    auto group = client->groups().createGroup(regA.value().token, {regA.value().userId});
+    auto group = client->groups().createGroup(regA.value().token, {regA.value().id});
     auto chatId = group.value().id;
 
     MessageContent content = {TextContent{"hi"}};
@@ -63,7 +63,7 @@ TEST_F(ChatTest, RevokeMessage) {
     auto regA = client->auth().registerUser("alice", "p");
     auto tokenA = regA.value().token;
 
-    auto group = client->groups().createGroup(tokenA, {regA.value().userId});
+    auto group = client->groups().createGroup(tokenA, {regA.value().id});
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
@@ -82,7 +82,7 @@ TEST_F(ChatTest, RevokeOtherUserMessage) {
     auto regB = client->auth().registerUser("bob", "p");
 
     auto group = client->groups().createGroup(
-        regA.value().token, {regA.value().userId, regB.value().userId});
+        regA.value().token, {regA.value().id, regB.value().id});
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
@@ -96,7 +96,7 @@ TEST_F(ChatTest, EditMessage) {
     auto regA = client->auth().registerUser("alice", "p");
     auto tokenA = regA.value().token;
 
-    auto group = client->groups().createGroup(tokenA, {regA.value().userId});
+    auto group = client->groups().createGroup(tokenA, {regA.value().id});
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
@@ -119,7 +119,7 @@ TEST_F(ChatTest, MarkRead) {
     auto regB = client->auth().registerUser("bob", "p");
 
     auto group = client->groups().createGroup(
-        regA.value().token, {regA.value().userId, regB.value().userId});
+        regA.value().token, {regA.value().id, regB.value().id});
     auto chatId = group.value().id;
 
     auto sent = client->chat().sendMessage(
@@ -136,7 +136,7 @@ TEST_F(ChatTest, SyncMessagesPagination) {
     auto regA = client->auth().registerUser("alice", "p");
     auto tokenA = regA.value().token;
 
-    auto group = client->groups().createGroup(tokenA, {regA.value().userId});
+    auto group = client->groups().createGroup(tokenA, {regA.value().id});
     auto chatId = group.value().id;
 
     for (int i = 0; i < 5; ++i) {
@@ -170,7 +170,7 @@ TEST_F(ChatTest, SendMessageReplyTo) {
     auto regB = client->auth().registerUser("bob", "p");
 
     auto group = client->groups().createGroup(
-        regA.value().token, {regA.value().userId, regB.value().userId});
+        regA.value().token, {regA.value().id, regB.value().id});
     auto chatId = group.value().id;
 
     auto msg1 = client->chat().sendMessage(
@@ -188,7 +188,7 @@ TEST_F(ChatTest, SendEmptyMessage) {
     auto reg = client->auth().registerUser("alice", "p");
     auto token = reg.value().token;
 
-    auto group = client->groups().createGroup(token, {reg.value().userId});
+    auto group = client->groups().createGroup(token, {reg.value().id});
     auto chatId = group.value().id;
 
     MessageContent content;
