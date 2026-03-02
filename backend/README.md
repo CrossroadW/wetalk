@@ -6,21 +6,17 @@
 
 **重要**: 前后端开发必须严格遵守 [../api-spec/](../api-spec/) 中定义的规范。
 
-- 所有消息格式、字段定义、错误处理都在规范中明确定义
-- 后端实现必须与规范一致
-- 前端调用必须按规范发送请求
-- 使用 API 规范可以让 AI 准确生成代码
+所有消息格式、字段定义、错误处理都在规范中明确定义：
 
-**规范文档**:
 - [README.md](../api-spec/README.md) - 总览和索引
 - [common.md](../api-spec/common.md) - 通用消息格式、数据类型
-- [auth.md](../api-spec/auth.md) - 认证 API
-- [chat.md](../api-spec/chat.md) - 聊天 API
-- [contacts.md](../api-spec/contacts.md) - 联系人 API
-- [groups.md](../api-spec/groups.md) - 群组 API
-- [moments.md](../api-spec/moments.md) - 朋友圈 API
-- [errors.md](../api-spec/errors.md) - 错误处理
-- [flows.md](../api-spec/flows.md) - 认证流程
+- [auth.md](../api-spec/auth.md) - 认证 API（二维码登录、Token 验证）
+- [chat.md](../api-spec/chat.md) - 聊天 API（消息发送、获取、编辑、撤回）
+- [contacts.md](../api-spec/contacts.md) - 联系人 API（好友管理）
+- [groups.md](../api-spec/groups.md) - 群组 API（群组管理）
+- [moments.md](../api-spec/moments.md) - 朋友圈 API（朋友圈管理）
+- [errors.md](../api-spec/errors.md) - 错误处理规范
+- [flows.md](../api-spec/flows.md) - 认证流程说明
 
 ## 特性
 
@@ -28,6 +24,20 @@
 - **二维码登录**: 仅需用户名，无需密码（适合演示）
 - **Token 认证**: 支持 token 持久化，记住登录状态
 - **完整功能**: 聊天、联系人、群组、朋友圈
+- **模块化设计**: 清晰的目录结构，易于维护和扩展
+
+## 项目结构
+
+```
+backend/
+├── main.py                    # 应用入口
+├── core/                      # 核心模块（数据库）
+├── managers/                  # 管理器模块（连接管理）
+├── routers/                   # 路由处理模块（业务逻辑）
+├── tests/                     # 测试模块
+├── scripts/                   # 脚本目录
+└── docs/                      # 文档目录
+```
 
 ## 快速开始
 
@@ -36,7 +46,14 @@
 使用 uv 管理依赖：
 
 ```bash
+cd backend
 uv sync
+```
+
+### 初始化测试数据
+
+```bash
+uv run python scripts/init_test_data.py
 ```
 
 ### 运行服务器
@@ -47,332 +64,17 @@ uv run python main.py
 
 服务器将在 `http://localhost:8000` 启动。
 
-## API 文档
+### 运行测试
 
-### WebSocket 连接
+```bash
+# 运行所有测试
+uv run pytest
 
-连接地址: `ws://localhost:8000/ws`
-
-所有消息格式:
-
-**请求**:
-```json
-{
-  "type": "message_type",
-  "data": { ... }
-}
+# 运行特定测试
+uv run pytest tests/test_auth.py -v
 ```
 
-**响应**:
-```json
-{
-  "type": "message_type",
-  "success": true/false,
-  "data": { ... }
-}
-```
-
-### 认证相关
-
-#### 1. 二维码登录初始化
-
-桌面客户端请求生成二维码。
-
-**请求**:
-```json
-{
-  "type": "qr_login_init",
-  "data": {}
-}
-```
-
-**响应**:
-```json
-{
-  "type": "qr_login_init",
-  "success": true,
-  "data": {
-    "session_id": "abc123...",
-    "qr_url": "http://localhost:8000/qr-login?session=abc123...",
-    "expires_at": 1234567890
-  }
-}
-```
-
-客户端应该:
-1. 使用 `qr_url` 生成二维码显示给用户
-2. 保持 WebSocket 连接，等待 `qr_confirmed` 推送
-
-**推送通知** (当用户扫码确认后):
-```json
-{
-  "type": "qr_confirmed",
-  "success": true,
-  "data": {
-    "user_id": 1,
-    "username": "alice",
-    "token": "xyz789..."
-  }
-}
-```
-
-#### 2. 验证 Token
-
-检查已保存的 token 是否有效。
-
-**请求**:
-```json
-{
-  "type": "verify_token",
-  "data": {
-    "token": "xyz789..."
-  }
-}
-```
-
-**响应**:
-```json
-{
-  "type": "verify_token",
-  "success": true,
-  "data": {
-    "user_id": 1,
-    "username": "alice"
-  }
-}
-```
-
-#### 3. 登出
-
-**请求**:
-```json
-{
-  "type": "logout",
-  "data": {}
-}
-```
-
-**响应**:
-```json
-{
-  "type": "logout",
-  "success": true
-}
-```
-
-### 聊天相关
-
-#### 1. 获取消息列表
-
-**请求**:
-```json
-{
-  "type": "get_messages",
-  "data": {
-    "chat_id": 1,
-    "before_id": 0,
-    "limit": 50
-  }
-}
-```
-
-**响应**:
-```json
-{
-  "type": "get_messages",
-  "success": true,
-  "data": {
-    "messages": [
-      {
-        "id": 1,
-        "sender_id": 1,
-        "chat_id": 1,
-        "reply_to": 0,
-        "content_data": "{...}",
-        "revoked": 0,
-        "read_count": 0,
-        "updated_at": 1234567890
-      }
-    ]
-  }
-}
-```
-
-#### 2. 发送消息
-
-**请求**:
-```json
-{
-  "type": "send_message",
-  "data": {
-    "chat_id": 1,
-    "content_data": "{...}",
-    "reply_to": 0
-  }
-}
-```
-
-**响应**:
-```json
-{
-  "type": "send_message",
-  "success": true,
-  "data": {
-    "message": { ... }
-  }
-}
-```
-
-#### 3. 编辑消息
-
-**请求**:
-```json
-{
-  "type": "edit_message",
-  "data": {
-    "msg_id": 1,
-    "content_data": "{...}"
-  }
-}
-```
-
-#### 4. 撤回消息
-
-**请求**:
-```json
-{
-  "type": "revoke_message",
-  "data": {
-    "msg_id": 1
-  }
-}
-```
-
-### 联系人相关
-
-#### 1. 获取好友列表
-
-**请求**:
-```json
-{
-  "type": "get_friends",
-  "data": {}
-}
-```
-
-**响应**:
-```json
-{
-  "type": "get_friends",
-  "success": true,
-  "data": {
-    "friends": [
-      { "id": 2, "username": "bob" }
-    ]
-  }
-}
-```
-
-#### 2. 添加好友
-
-**请求**:
-```json
-{
-  "type": "add_friend",
-  "data": {
-    "friend_id": 2
-  }
-}
-```
-
-### 群组相关
-
-#### 1. 获取群组列表
-
-**请求**:
-```json
-{
-  "type": "get_groups",
-  "data": {}
-}
-```
-
-**响应**:
-```json
-{
-  "type": "get_groups",
-  "success": true,
-  "data": {
-    "groups": [
-      {
-        "id": 1,
-        "owner_id": 1,
-        "member_ids": [1, 2, 3]
-      }
-    ]
-  }
-}
-```
-
-#### 2. 创建群组
-
-**请求**:
-```json
-{
-  "type": "create_group",
-  "data": {
-    "member_ids": [1, 2, 3]
-  }
-}
-```
-
-### 朋友圈相关
-
-#### 1. 获取朋友圈
-
-**请求**:
-```json
-{
-  "type": "get_moments",
-  "data": {
-    "limit": 20
-  }
-}
-```
-
-**响应**:
-```json
-{
-  "type": "get_moments",
-  "success": true,
-  "data": {
-    "moments": [
-      {
-        "id": 1,
-        "author_id": 1,
-        "text": "Hello",
-        "image_ids": [],
-        "timestamp": 1234567890,
-        "liked_by": [],
-        "comments": []
-      }
-    ]
-  }
-}
-```
-
-#### 2. 创建朋友圈
-
-**请求**:
-```json
-{
-  "type": "create_moment",
-  "data": {
-    "text": "Hello World",
-    "image_ids": []
-  }
-}
-```
+详见 [tests/README.md](tests/README.md) 和 [docs/QUICKSTART.md](docs/QUICKSTART.md)
 
 ## 二维码登录流程
 
@@ -385,27 +87,46 @@ uv run python main.py
 7. **服务器**: 验证用户名，生成 token，推送 `qr_confirmed` 给桌面客户端
 8. **桌面客户端**: 收到推送，保存 token，进入主界面
 
+下次启动时，客户端使用保存的 token 发送 `verify_token` 请求，无需重新登录。
+
 ## 数据库
 
 SQLite3 数据库文件: `wetalk.db`
 
-表结构:
-- `users` - 用户表
-- `groups_` - 群组表
-- `group_members` - 群组成员
-- `friendships` - 好友关系
-- `messages` - 消息表
-- `moments` - 朋友圈
-- `moment_images` - 朋友圈图片
-- `moment_likes` - 朋友圈点赞
-- `moment_comments` - 朋友圈评论
-- `qr_sessions` - 二维码登录会话
+### 表结构
+
+- `users` - 用户表（id, username, password, token）
+- `groups_` - 群组表（id, owner_id, updated_at）
+- `group_members` - 群组成员（group_id, user_id, joined_at, removed, updated_at）
+- `friendships` - 好友关系（user_id_a, user_id_b）
+- `messages` - 消息表（id, sender_id, chat_id, reply_to, content_data, revoked, read_count, updated_at）
+- `moments` - 朋友圈（id, author_id, text, timestamp, updated_at）
+- `moment_images` - 朋友圈图片（moment_id, image_id, sort_order）
+- `moment_likes` - 朋友圈点赞（moment_id, user_id）
+- `moment_comments` - 朋友圈评论（id, moment_id, author_id, text, timestamp）
+- `qr_sessions` - 二维码登录会话（session_id, status, user_id, created_at, expires_at）
+
+### 索引
+
+- `idx_group_members_user` - 群组成员用户索引
+- `idx_messages_chat` - 消息聊天索引
+- `idx_messages_reply` - 消息回复索引
+- `idx_messages_updated` - 消息更新时间索引
+- `idx_moments_author` - 朋友圈作者索引
+- `idx_moment_comments_moment` - 朋友圈评论索引
+- `idx_qr_sessions_expires` - 二维码会话过期索引
 
 ## 开发
 
 ### 添加测试用户
 
-可以直接操作数据库添加测试用户:
+运行初始化脚本：
+
+```bash
+uv run python scripts/init_test_data.py
+```
+
+或直接操作数据库：
 
 ```bash
 sqlite3 wetalk.db
@@ -414,7 +135,6 @@ sqlite3 wetalk.db
 ```sql
 INSERT INTO users (username, password) VALUES ('alice', '');
 INSERT INTO users (username, password) VALUES ('bob', '');
-INSERT INTO users (username, password) VALUES ('charlie', '');
 ```
 
 注意: password 字段保留但不使用，可以为空字符串。
@@ -423,6 +143,22 @@ INSERT INTO users (username, password) VALUES ('charlie', '');
 
 ```bash
 rm wetalk.db
+uv run python main.py  # 会自动重新创建
 ```
 
-重启服务器会自动重新创建。
+### 运行测试
+
+测试框架会自动启动/停止后端服务：
+
+```bash
+uv run pytest -v
+```
+
+## 技术栈
+
+- **FastAPI** - 现代 Python Web 框架
+- **WebSocket** - 实时双向通信
+- **SQLite3** - 轻量级数据库
+- **Uvicorn** - ASGI 服务器
+- **pytest** - 测试框架
+- **httpx** - 异步 HTTP 客户端（测试用）

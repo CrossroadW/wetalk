@@ -8,7 +8,13 @@
       "Bash(ls -la src/chat/*)",
       "Read(//d/workspace/PowerCAD/PowerFC/Widgets/test/**)",
       "Bash(ls -la Mock*)",
-      "Bash(ls /d/workspace/wechat/src/network/Local*)"
+      "Bash(ls /d/workspace/wechat/src/network/Local*)",
+      "Bash(ls /d/workspace/wechat/src/network/*.h /d/workspace/wechat/src/network/*.cpp)",
+      "Bash(uv run python test_websocket.py)",
+      "Bash(uv sync)",
+      "Bash(uv run pytest tests/test_auth.py::test_qr_login_init -v)",
+      "Bash(ls -la *.md *.py)",
+      "Bash(d:/workspace/wechat/backend/tests/README.md:*)"
     ]
   }
 }

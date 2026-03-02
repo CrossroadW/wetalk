@@ -15,7 +15,7 @@ if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
 endif()
 
 find_package(spdlog CONFIG REQUIRED)
-find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Widgets Network Test)
+find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Widgets Network WebSockets Test)
 find_package(SQLiteCpp CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(Boost CONFIG REQUIRED COMPONENTS headers random)

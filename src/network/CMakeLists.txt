@@ -26,6 +26,7 @@ target_link_libraries(wechat_network
         wechat_cache
         wechat_log
         Qt6::Core
+        Qt6::WebSockets
         SQLiteCpp
         nlohmann_json::nlohmann_json
         Boost::headers

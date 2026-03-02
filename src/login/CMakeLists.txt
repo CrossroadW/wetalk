@@ -55,6 +55,7 @@ if(ENABLE_TESTING)
             PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}")
         set_target_properties(test_login_screen PROPERTIES AUTOMOC ON)
         target_link_libraries(test_login_screen PUBLIC wechat_login Qt6::Test Qt6::Widgets)
+        add_test(NAME test_login_screen COMMAND test_login_screen)
     endif()
 
     # Sandbox

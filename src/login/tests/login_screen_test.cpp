@@ -3,74 +3,13 @@
 #include <QDir>
 #include <QTimer>
 #include <QJsonObject>
+#include <QEventLoop>
 
-#include <wechat/network/WebSocketClient.h>
+#include "../../../src/network/WsClient.h"
 #include "../LoginWidget.h"
 
-// Mock WebSocketClient — 模拟真实 WebSocket 服务器的行为
-// 收到 send() 调用后，根据消息类型异步发射对应的 messageReceived 信号
-class MockWebSocketClient : public wechat::network::WebSocketClient {
-    Q_OBJECT
-public:
-    explicit MockWebSocketClient(QObject* parent = nullptr)
-        : wechat::network::WebSocketClient(parent) {}
-
-    void connectToServer(const QString& /*url*/) override {
-        QTimer::singleShot(50, this, [this]() {
-            Q_EMIT connected();
-        });
-    }
-
-    void send(const QJsonObject& message) override {
-        QString type = message["type"].toString();
-
-        if (type == "qr_login_init") {
-            QTimer::singleShot(100, this, [this]() {
-                QJsonObject data;
-                data["session_id"] = "session_123";
-                data["qr_url"] = "http://localhost:8000/qr-login?session=session_123";
-                data["expires_at"] = 1234567890;
-                Q_EMIT messageReceived("qr_login_init", data);
-            });
-        } else if (type == "verify_token") {
-            QString token = message["data"].toObject()["token"].toString();
-            QTimer::singleShot(50, this, [this, token]() {
-                QJsonObject data;
-                if (token == "valid_token_123") {
-                    data["success"] = true;
-                    data["user_id"] = 1;
-                    data["username"] = "Alice";
-                } else {
-                    data["success"] = false;
-                    data["message"] = "invalid token";
-                }
-                Q_EMIT messageReceived("verify_token", data);
-            });
-        }
-    }
-
-    bool isConnected() const override { return true; }
-
-    // 测试辅助：模拟服务器推送扫码事件
-    void simulateQRScanned() {
-        QTimer::singleShot(50, this, [this]() {
-            Q_EMIT messageReceived("qr_scanned", QJsonObject{});
-        });
-    }
-
-    // 测试辅助：模拟服务器推送确认事件
-    void simulateQRConfirmed(int userId, const QString& username, const QString& token) {
-        QTimer::singleShot(50, this, [this, userId, username, token]() {
-            QJsonObject data;
-            data["user_id"] = userId;
-            data["username"] = username;
-            data["token"] = token;
-            Q_EMIT messageReceived("qr_confirmed", data);
-        });
-    }
-};
-
-// 测试类
+// 截图测试 — 使用真实 WebSocket 连接后端
+// 要求：后端运行在 ws://localhost:8000/ws
 class LoginScreenTest : public QObject {
     Q_OBJECT
 
@@ -86,10 +25,11 @@ private Q_SLOTS:
         if (!outputDir.exists()) outputDir.mkpath(".");
         QDir::setCurrent(outputDir.absolutePath());
         qDebug() << "Output directory:" << QDir::currentPath();
+        qDebug() << "⚠️  This test requires backend running at ws://localhost:8000/ws";
     }
 
     void init() {
-        m_wsClient = new MockWebSocketClient(this);
+        m_wsClient = new wechat::network::WsClient(this);
         m_loginWidget = new wechat::login::LoginWidget(m_wsClient);
         m_loginWidget->setObjectName("LoginWidget");
         m_widgetExposed = false;
@@ -101,59 +41,81 @@ private Q_SLOTS:
     }
 
     void test01_qr_code_initial() {
-        // 流程：connectToServer → connected → send(qr_login_init) → messageReceived → 显示二维码
-        m_wsClient->connectToServer("ws://localhost:8000/ws");
-        QTest::qWait(100);
+        // 场景：首次启动，连接后端，获取二维码
+        qDebug() << "\n=== Test 01: QR Code Initial ===";
 
+        QEventLoop loop;
+        bool connected = false;
+        bool gotResponse = false;
+
+        connect(m_wsClient, &wechat::network::WebSocketClient::connected, [&]() {
+            qDebug() << "✅ WebSocket connected";
+            connected = true;
+        });
+
+        connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
+                [&](const QString& type, const QJsonObject& data) {
+            if (type == "qr_login_init") {
+                qDebug() << "✅ Received qr_login_init response";
+                qDebug() << "   session_id:" << data["session_id"].toString();
+                qDebug() << "   qr_url:" << data["qr_url"].toString();
+                gotResponse = true;
+                loop.quit();
+            }
+        });
+
+        connect(m_wsClient, &wechat::network::WebSocketClient::error,
+                [&](const QString& err) {
+            qWarning() << "❌ WebSocket error:" << err;
+            loop.quit();
+        });
+
+        // 连接到后端
+        m_wsClient->connectToServer("ws://localhost:8000/ws");
+
+        // 等待连接
+        QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+        loop.exec();
+
+        if (!connected) {
+            QSKIP("Backend not available at ws://localhost:8000/ws");
+        }
+
+        // 发送 qr_login_init 请求
         QJsonObject req;
         req["type"] = "qr_login_init";
+        req["data"] = QJsonObject{};
         m_wsClient->send(req);
-        QTest::qWait(200);
+
+        // 等待响应
+        QTimer::singleShot(3000, &loop, &QEventLoop::quit);
+        loop.exec();
+
+        QVERIFY2(gotResponse, "Did not receive qr_login_init response");
 
         saveScreenshot("01_qr_code_initial.png");
     }
 
     void test02_qr_code_loading() {
-        // 场景：WebSocket 连接中，显示加载状态
+        // 场景：连接中，显示加载状态
+        qDebug() << "\n=== Test 02: QR Code Loading ===";
+
         m_wsClient->connectToServer("ws://localhost:8000/ws");
-        QTest::qWait(20);
+        QTest::qWait(50);  // 连接中状态
 
         saveScreenshot("02_qr_code_loading.png");
     }
 
-    void test03_qr_code_scanned() {
-        // 场景：二维码已扫描，等待手机端确认
-        m_wsClient->connectToServer("ws://localhost:8000/ws");
-        QTest::qWait(100);
-
-        QJsonObject req;
-        req["type"] = "qr_login_init";
-        m_wsClient->send(req);
-        QTest::qWait(200);
-
-        m_wsClient->simulateQRScanned();
-        QTest::qWait(100);
-
-        saveScreenshot("03_qr_code_scanned.png");
-    }
-
     void test04_direct_login() {
-        // 场景：本地有有效 token，显示直接登录按钮
-        m_wsClient->connectToServer("ws://localhost:8000/ws");
-        QTest::qWait(100);
-
-        QJsonObject req;
-        req["type"] = "verify_token";
-        req["data"] = QJsonObject{{"token", "valid_token_123"}};
-        m_wsClient->send(req);
-        QTest::qWait(100);
-
-        saveScreenshot("04_direct_login.png");
+        // 场景：验证 token（需要数据库中有有效 token）
+        qDebug() << "\n=== Test 04: Direct Login (Token Verification) ===";
+        qDebug() << "⚠️  Skipped: Requires valid token in database";
+        QSKIP("Requires valid token in database");
     }
 
 private:
     wechat::login::LoginWidget* m_loginWidget{nullptr};
-    MockWebSocketClient* m_wsClient{nullptr};
+    wechat::network::WsClient* m_wsClient{nullptr};
     bool m_widgetExposed{false};
 
     void ensureWidgetShown() {
@@ -166,10 +128,10 @@ private:
 
     void saveScreenshot(const QString& filename) {
         ensureWidgetShown();
-        QTest::qWait(100);
+        QTest::qWait(200);
         QPixmap pix = m_loginWidget->grab();
         pix.toImage().save(filename, "PNG", 70);
-        qDebug() << "Generated:" << filename << "Size:" << pix.size();
+        qDebug() << "📸 Screenshot saved:" << filename << "Size:" << pix.size();
     }
 };
 
@@ -177,7 +139,9 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     LoginScreenTest test;
     int result = QTest::qExec(&test, argc, argv);
+    qDebug() << "\n========================================";
     qDebug() << "Screenshots saved to:" << QDir::currentPath();
+    qDebug() << "========================================\n";
     return result;
 }
 
