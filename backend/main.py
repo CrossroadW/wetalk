@@ -268,7 +268,19 @@ async def websocket_endpoint(websocket: WebSocket):
 
             # ==================== 认证相关 ====================
 
-            if msg_type == "qr_login_init":
+            if msg_type == "register":
+                response = await auth.handle_register(websocket, msg_data)
+                if response.get("success"):
+                    current_token = response["user"]["token"]
+                await websocket.send_json(response)
+
+            elif msg_type == "login":
+                response = await auth.handle_login(websocket, msg_data)
+                if response.get("success"):
+                    current_token = response["user"]["token"]
+                await websocket.send_json(response)
+
+            elif msg_type == "qr_login_init":
                 current_session, response = await auth.handle_qr_login_init(websocket, msg_data)
                 await websocket.send_json(response)
 

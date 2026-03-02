@@ -8,3 +8,4 @@
 
 # Screenshot test output (generated images)
 /tests/screenshots/*/output/
+.aider*

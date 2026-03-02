@@ -52,7 +52,7 @@ uv run pytest tests/test_auth.py -v  # 运行特定测试
 
 - `README.md` — 项目介绍、开发路线图、技术栈、环境要求
 - `TODO.md` — 各模块待办事项和完成进度
-- `docs/conventions.md` — 编码规范（命名、目录结构、CMake、include 顺序等）
+- `docs/conventions.md` — **编码规范（命名、目录结构、测试规范、CMake、include 路径等）**
 - `docs/constraints.md` — 项目约束（CMake、Qt、Pimpl、命名空间、模块化）
 - `docs/data-models.md` — 数据模型定义、数据库表结构、类型映射
 - `docs/data-cache-mechanism.md` — 客户端增量缓存机制设计（两个数据库 + 两个同步）
