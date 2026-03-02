@@ -21,11 +21,18 @@ target_link_libraries(wechat_core
 )
 
 if(ENABLE_TESTING)
-    # Unit tests
-    file(GLOB CORE_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-    if(CORE_TEST_SOURCES)
-        add_executable(test_core ${CORE_TEST_SOURCES})
-        target_link_libraries(test_core PUBLIC wechat_core GTest::gtest_main)
+    # 单元测试
+    file(GLOB CORE_UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.cpp)
+    file(GLOB CORE_UNIT_TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.h)
+    if(CORE_UNIT_TEST_SOURCES)
+        add_executable(test_core
+            ${CORE_UNIT_TEST_SOURCES}
+            ${CORE_UNIT_TEST_HEADERS}
+        )
+        target_link_libraries(test_core PUBLIC
+            wechat_core
+            GTest::gtest_main
+        )
         gtest_discover_tests(test_core)
     endif()
 

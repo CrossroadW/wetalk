@@ -19,7 +19,11 @@
       "Bash(grep -l \"public QObject\" Ws*.h)",
       "Bash(grep -A2 \"class.*Service\" *.h)",
       "Bash(grep -n \"namespace wechat::network\" Ws*.cpp)",
-      "Read(//d/workspace/wechat/src/network/**)"
+      "Read(//d/workspace/wechat/src/network/**)",
+      "Bash(ls -la /d/workspace/wechat/src/login/tests/test_*.cpp)",
+      "Bash(wc -l LoginTestFixture.h test_login_*.cpp test_main.cpp)",
+      "Read(//d/workspace/wechat/src/$dir/**)",
+      "Bash(done)"
     ]
   }
 }

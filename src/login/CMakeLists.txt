@@ -35,28 +35,49 @@ target_link_libraries(wechat_login
 )
 
 if(ENABLE_TESTING)
-    # 单元测试 (test_*.cpp, 不包含 screen)
-    file(GLOB LOGIN_UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/test_*.cpp)
+    # 单元测试 (unit/test_*.cpp)
+    # 所有 gtest 测试共享一个 exe 和自定义 main
+    file(GLOB LOGIN_UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/test_*.cpp)
+    file(GLOB LOGIN_UNIT_TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.h)
+
     if(LOGIN_UNIT_TEST_SOURCES)
-        add_executable(test_login ${LOGIN_UNIT_TEST_SOURCES})
+        add_executable(test_login
+            ${LOGIN_UNIT_TEST_SOURCES}
+            ${LOGIN_UNIT_TEST_HEADERS}
+        )
         target_compile_definitions(test_login PRIVATE QT_NO_KEYWORDS)
-        target_link_libraries(test_login PUBLIC wechat_login
-                GTest::gtest_main
-                Qt6::Test
+        target_link_libraries(test_login PUBLIC
+            wechat_login
+            GTest::gtest
+            Qt6::Test
+            Qt6::Network
         )
         gtest_discover_tests(test_login)
     endif()
 
-    # 截图测试 (*_screen_test.cpp)
-    file(GLOB LOGIN_SCREEN_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*_screen_test.cpp)
-    if(LOGIN_SCREEN_TEST_SOURCES)
-        qt_add_executable(test_login_screen ${LOGIN_SCREEN_TEST_SOURCES})
-        target_compile_definitions(test_login_screen PRIVATE QT_NO_KEYWORDS
-            PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}")
-        set_target_properties(test_login_screen PROPERTIES AUTOMOC ON)
-        target_link_libraries(test_login_screen PUBLIC wechat_login Qt6::Test Qt6::Widgets)
-        add_test(NAME test_login_screen COMMAND test_login_screen)
-    endif()
+    # 截图测试 (screen/*_test.cpp)
+    # 每个 .cpp 文件生成一个独立的 exe
+    file(GLOB LOGIN_SCREEN_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/screen/*_test.cpp)
+    foreach(SCREEN_TEST_FILE ${LOGIN_SCREEN_TEST_SOURCES})
+        get_filename_component(TEST_NAME ${SCREEN_TEST_FILE} NAME_WE)
+
+        qt_add_executable(${TEST_NAME} ${SCREEN_TEST_FILE})
+        target_compile_definitions(${TEST_NAME} PRIVATE
+            QT_NO_KEYWORDS
+            PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}"
+        )
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src
+            ${CMAKE_CURRENT_SOURCE_DIR}
+        )
+        set_target_properties(${TEST_NAME} PROPERTIES AUTOMOC ON)
+        target_link_libraries(${TEST_NAME} PUBLIC
+            wechat_login
+            Qt6::Test
+            Qt6::Widgets
+        )
+        add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    endforeach()
 
     # Sandbox
     file(GLOB LOGIN_SANDBOX_SOURCES

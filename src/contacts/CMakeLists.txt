@@ -34,16 +34,23 @@ target_link_libraries(wechat_contacts
 )
 
 if(ENABLE_TESTING)
-    file(GLOB CONTACTS_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-    if(CONTACTS_TEST_SOURCES)
-        add_executable(test_contacts_presenter ${CONTACTS_TEST_SOURCES})
-        target_link_libraries(test_contacts_presenter PUBLIC wechat_contacts
-                GTest::gtest_main
-                Qt6::Test
+    # 单元测试
+    file(GLOB CONTACTS_UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.cpp)
+    file(GLOB CONTACTS_UNIT_TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.h)
+    if(CONTACTS_UNIT_TEST_SOURCES)
+        add_executable(test_contacts_presenter
+            ${CONTACTS_UNIT_TEST_SOURCES}
+            ${CONTACTS_UNIT_TEST_HEADERS}
+        )
+        target_link_libraries(test_contacts_presenter PUBLIC
+            wechat_contacts
+            GTest::gtest_main
+            Qt6::Test
         )
         gtest_discover_tests(test_contacts_presenter)
     endif()
 
+    # Sandbox
     file(GLOB CONTACTS_SANDBOX_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.h)

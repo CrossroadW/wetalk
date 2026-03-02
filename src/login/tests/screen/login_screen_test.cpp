@@ -5,8 +5,8 @@
 #include <QJsonObject>
 #include <QEventLoop>
 
-#include "../../../src/network/WsClient.h"
-#include "../LoginWidget.h"
+#include <network/WsClient.h>
+#include "LoginWidget.h"
 
 // 截图测试 — 使用真实 WebSocket 连接后端
 // 要求：后端运行在 ws://localhost:8000/ws

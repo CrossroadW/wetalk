@@ -25,6 +25,7 @@
 - [contacts.md](contacts.md) - 联系人相关 API（好友列表、添加好友）
 - [groups.md](groups.md) - 群组相关 API（群组列表、创建群组）
 - [moments.md](moments.md) - 朋友圈相关 API（获取朋友圈、创建朋友圈）
+- [test.md](test.md) - 测试相关 API（数据库重置，仅测试环境）
 
 ### 其他
 - [errors.md](errors.md) - 错误处理规范、常见错误信息

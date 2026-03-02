@@ -38,10 +38,128 @@ include/
 
 ### 测试规范
 
-- **单元测试**：放在各模块内部的 `tests/` 子目录，使用 GTest，编译为 `test_<module>` 可执行文件
-- **Sandbox GUI**：放在各模块内部的 `sandbox/` 子目录，编译为 `sandbox_<module>` 可执行文件
-- Sandbox 用于交互式可视化测试（如添加聊天消息、查看联系人列表等），不适合用单元测试覆盖的场景
-- 通过 CMake 的 `ENABLE_TESTING=ON` 选项启用测试和 sandbox 编译
+#### 目录结构
+
+所有模块的测试统一使用以下结构：
+
+```
+src/<module>/
+├── tests/
+│   ├── unit/                  # 单元测试（GTest）
+│   │   ├── test_*.cpp         # 测试实现文件
+│   │   ├── test_main.cpp      # 自定义 main（如需 QCoreApplication）
+│   │   └── *.h                # 共享的测试头文件（如 fixture）
+│   └── screen/                # 截图测试（仅部分模块，如 login）
+│       └── *_test.cpp         # Qt 截图测试
+└── sandbox/                   # 可视化测试 GUI（仅有 GUI 的模块）
+    └── main.cpp
+```
+
+#### 测试类型
+
+1. **单元测试 (unit/)**
+   - 使用 GTest 框架
+   - 所有 `test_*.cpp` 文件编译为单个可执行文件 `test_<module>`
+   - 如需 Qt 事件循环，创建 `test_main.cpp` 提供自定义 main 函数
+   - 共享的测试 fixture 和辅助函数放在 `.h` 文件中
+
+2. **截图测试 (screen/)**
+   - 使用 Qt Test 框架
+   - 每个 `*_test.cpp` 文件编译为独立的可执行文件
+   - 用于验证 UI 渲染效果，生成截图供人工检查
+   - 仅在需要 UI 测试的模块中使用（如 login）
+
+3. **Sandbox GUI (sandbox/)**
+   - 交互式可视化测试工具
+   - 用于手动测试和演示功能
+   - 不适合自动化测试的场景
+
+#### CMakeLists.txt 配置规范
+
+```cmake
+if(ENABLE_TESTING)
+    # 单元测试
+    file(GLOB <MODULE>_UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.cpp)
+    file(GLOB <MODULE>_UNIT_TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.h)
+
+    if(<MODULE>_UNIT_TEST_SOURCES)
+        add_executable(test_<module>
+            ${<MODULE>_UNIT_TEST_SOURCES}
+            ${<MODULE>_UNIT_TEST_HEADERS}
+        )
+        target_link_libraries(test_<module> PUBLIC
+            wechat_<module>
+            GTest::gtest_main  # 或 GTest::gtest（如有自定义 main）
+            Qt6::Test          # 如需 Qt 支持
+        )
+        gtest_discover_tests(test_<module>)
+    endif()
+
+    # 截图测试（可选）
+    file(GLOB <MODULE>_SCREEN_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/screen/*_test.cpp)
+    foreach(SCREEN_TEST_FILE ${<MODULE>_SCREEN_TEST_SOURCES})
+        get_filename_component(TEST_NAME ${SCREEN_TEST_FILE} NAME_WE)
+        qt_add_executable(${TEST_NAME} ${SCREEN_TEST_FILE})
+        target_include_directories(${TEST_NAME} PRIVATE
+            ${CMAKE_SOURCE_DIR}/src           # 允许 <module/File.h> 导入
+            ${CMAKE_CURRENT_SOURCE_DIR}       # 允许 "File.h" 导入
+        )
+        target_link_libraries(${TEST_NAME} PUBLIC wechat_<module> Qt6::Test Qt6::Widgets)
+        add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
+    endforeach()
+
+    # Sandbox（可选）
+    file(GLOB <MODULE>_SANDBOX_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.cpp)
+    if(<MODULE>_SANDBOX_SOURCES)
+        qt_add_executable(sandbox_<module> ${<MODULE>_SANDBOX_SOURCES})
+        target_include_directories(sandbox_<module> PRIVATE
+            ${CMAKE_SOURCE_DIR}/src           # 允许 <module/File.h> 导入
+            ${CMAKE_CURRENT_SOURCE_DIR}       # 允许 "File.h" 导入
+        )
+        target_link_libraries(sandbox_<module> PUBLIC wechat_<module> Qt6::Widgets)
+    endif()
+endif()
+```
+
+#### Include 路径规范
+
+**模块内部正式库代码**（`src/<module>/*.cpp`）：
+- ✅ `#include "LocalFile.h"` - 当前目录的头文件
+- ✅ `#include <wechat/core/User.h>` - 公共导出的头文件（`include/wechat/`）
+- ❌ **禁止** 使用 `../` 相对路径
+- ❌ **禁止** 使用 `<module/File.h>` 形式（不添加 `src` 到 include 路径）
+
+**测试代码和 Sandbox**（`tests/` 和 `sandbox/`）：
+- ✅ `#include "LocalFile.h"` - 当前目录的头文件
+- ✅ `#include <wechat/core/User.h>` - 公共导出的头文件
+- ✅ `#include <network/WsClient.h>` - 模块内部互相导入（通过添加 `${CMAKE_SOURCE_DIR}/src` 到 include）
+- ❌ **禁止** 使用 `../` 相对路径
+
+**示例**：
+
+```cpp
+// ✅ 正确：模块内部库代码
+#include "LoginWidget.h"                    // 当前目录
+#include <wechat/core/User.h>              // 公共导出
+#include <wechat/network/NetworkClient.h>  // 公共导出
+
+// ✅ 正确：测试代码
+#include "LoginTestFixture.h"              // 当前目录
+#include <wechat/core/User.h>              // 公共导出
+#include <network/WsClient.h>              // 模块内部（仅测试可用）
+
+// ❌ 错误：使用相对路径
+#include "../../../src/network/WsClient.h"
+#include "../../core/User.h"
+```
+
+#### 测试最佳实践
+
+1. **共享测试代码**：将共享的 fixture、辅助函数放在 `.h` 文件中
+2. **自动文件收集**：使用 `file(GLOB)` 自动收集测试文件，无需手动维护列表
+3. **IDE 友好**：将 `.h` 文件添加到 target，IDE 可以正确识别依赖
+4. **隔离性**：每个测试用例应该独立，不依赖其他测试的执行顺序
+5. **清理**：测试后清理资源（如数据库重置、临时文件删除）
 
 ### 模块列表
 

@@ -48,11 +48,19 @@ set_target_properties(wechat_network PROPERTIES
 # ══════════════════════════════════════════════════
 
 if(ENABLE_TESTING)
-    file(GLOB NETWORK_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/*.cpp)
-    if(NETWORK_TEST_SOURCES)
-        add_executable(test_network ${NETWORK_TEST_SOURCES})
+    # 单元测试
+    file(GLOB NETWORK_UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.cpp)
+    file(GLOB NETWORK_UNIT_TEST_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.h)
+    if(NETWORK_UNIT_TEST_SOURCES)
+        add_executable(test_network
+            ${NETWORK_UNIT_TEST_SOURCES}
+            ${NETWORK_UNIT_TEST_HEADERS}
+        )
         target_include_directories(test_network PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-        target_link_libraries(test_network PUBLIC wechat_network GTest::gtest_main)
+        target_link_libraries(test_network PUBLIC
+            wechat_network
+            GTest::gtest_main
+        )
         gtest_discover_tests(test_network)
     endif()
 endif()
