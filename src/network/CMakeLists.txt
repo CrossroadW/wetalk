@@ -28,6 +28,7 @@ target_link_libraries(wechat_network
         SQLiteCpp
         nlohmann_json::nlohmann_json
         Boost::headers
+        Boost::random
 )
 
 target_compile_definitions(wechat_network PRIVATE

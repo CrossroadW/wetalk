@@ -18,7 +18,7 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(Qt6 CONFIG REQUIRED COMPONENTS Core Widgets Network Test)
 find_package(SQLiteCpp CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
-find_package(Boost REQUIRED COMPONENTS headers)
+find_package(Boost REQUIRED COMPONENTS headers random)
 
 if(ENABLE_TESTING)
     include(CTest)
