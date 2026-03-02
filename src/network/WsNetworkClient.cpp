@@ -13,14 +13,14 @@ namespace wechat {
 namespace network {
 
 WsNetworkClient::WsNetworkClient(const QString& wsUrl, int connectTimeout)
-    : ws(std::make_unique<WsClient>()) {
+    : wsClient_(std::make_unique<WsClient>()) {
 
     // 创建所有服务
-    authService = std::make_unique<WsAuthService>(*ws);
-    chatService = std::make_unique<WsChatService>(*ws, nullptr);
-    contactService = std::make_unique<WsContactService>(*ws);
-    groupService = std::make_unique<WsGroupService>(*ws);
-    momentService = std::make_unique<WsMomentService>(*ws);
+    authService = std::make_unique<WsAuthService>(*wsClient_);
+    chatService = std::make_unique<WsChatService>(*wsClient_, nullptr);
+    contactService = std::make_unique<WsContactService>(*wsClient_);
+    groupService = std::make_unique<WsGroupService>(*wsClient_);
+    momentService = std::make_unique<WsMomentService>(*wsClient_);
 
     // 连接到服务器
     QEventLoop loop;
@@ -30,20 +30,21 @@ WsNetworkClient::WsNetworkClient(const QString& wsUrl, int connectTimeout)
 
     bool connected = false;
 
-    QObject::connect(ws.get(), &WebSocketClient::connected, [&]() {
+    auto connOk  = QObject::connect(wsClient_.get(), &WebSocketClient::connected, [&]() {
         connected = true;
         loop.quit();
     });
-
-    QObject::connect(ws.get(), &WebSocketClient::error, [&](const QString&) {
+    auto connErr = QObject::connect(wsClient_.get(), &WebSocketClient::error, [&](const QString&) {
         loop.quit();
     });
-
     QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
 
-    ws->connectToServer(wsUrl);
+    wsClient_->connectToServer(wsUrl);
     timer.start();
     loop.exec();
+
+    QObject::disconnect(connOk);
+    QObject::disconnect(connErr);
 
     if (!connected) {
         throw std::runtime_error("Failed to connect to WebSocket server: " + wsUrl.toStdString());
@@ -73,7 +74,7 @@ MomentService& WsNetworkClient::moments() {
 }
 
 bool WsNetworkClient::isConnected() const {
-    return ws->isConnected();
+    return wsClient_->isConnected();
 }
 
 std::unique_ptr<NetworkClient> createWsClient(const QString& wsUrl) {

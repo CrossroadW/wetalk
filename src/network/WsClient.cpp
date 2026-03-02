@@ -44,12 +44,15 @@ void WsClient::onTextMessageReceived(const QString& message) {
 
     QJsonObject obj = doc.object();
     QString type = obj[QLatin1String("type")].toString();
+
+    // 将顶层字段（除 type 外）全部合并进 data，方便上层统一处理
     QJsonObject data = obj[QLatin1String("data")].toObject();
-    // 后端响应格式: { type, success, data }
-    // 将 success 合并进 data，方便上层统一处理
-    if (obj.contains(QLatin1String("success"))) {
-        data.insert(QLatin1String("success"), obj[QLatin1String("success")]);
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        if (it.key() != QLatin1String("type") && it.key() != QLatin1String("data")) {
+            data.insert(it.key(), it.value());
+        }
     }
+
     Q_EMIT messageReceived(type, data);
 }
 

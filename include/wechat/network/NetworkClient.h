@@ -5,9 +5,9 @@
 #include <wechat/network/ContactService.h>
 #include <wechat/network/GroupService.h>
 #include <wechat/network/MomentService.h>
+#include <wechat/network/WebSocketClient.h>
 
 #include <QString>
-#include <memory>
 
 namespace wechat::network {
 
@@ -22,6 +22,10 @@ public:
     virtual ContactService& contacts() = 0;
     virtual GroupService& groups() = 0;
     virtual MomentService& moments() = 0;
+
+    /// 暴露底层 WebSocket 客户端，用于监听推送消息（如 QR 登录确认）
+    /// Mock 实现可返回 nullptr
+    virtual WebSocketClient* ws() = 0;
 };
 
 /// 创建本地缓存实现（用于测试和离线模式）

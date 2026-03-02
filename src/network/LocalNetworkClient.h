@@ -23,6 +23,7 @@ public:
     ContactService& contacts() override;
     GroupService& groups() override;
     MomentService& moments() override;
+    WebSocketClient* ws() override { return nullptr; }
 
 private:
     std::shared_ptr<LocalDatabase> db;

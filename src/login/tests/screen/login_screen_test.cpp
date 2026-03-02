@@ -15,260 +15,181 @@ class LoginScreenTest : public QObject {
 
 private Q_SLOTS:
     void initTestCase() {
+        // 设置截图输出目录
         QDir rootDir(PROJECT_ROOT_PATH);
-        QString outputPath = rootDir.filePath("tests");
-        outputPath = QDir(outputPath).filePath("screenshots");
-        outputPath = QDir(outputPath).filePath("login");
-        outputPath = QDir(outputPath).filePath("output");
-
-        QDir outputDir(outputPath);
-        if (!outputDir.exists()) outputDir.mkpath(".");
-        QDir::setCurrent(outputDir.absolutePath());
+        QString outputPath = rootDir.filePath("tests/screenshots/login/output");
+        QDir().mkpath(outputPath);
+        QDir::setCurrent(outputPath);
         qDebug() << "Output directory:" << QDir::currentPath();
-        qDebug() << "⚠️  This test requires backend running at ws://localhost:8000/ws";
+
+        // 连接一次，所有测试复用
+        m_wsClient = new wechat::network::WsClient(this);
+
+        QEventLoop loop;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        timeout.setInterval(2000);
+        connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+        connect(m_wsClient, &wechat::network::WebSocketClient::connected, &loop, &QEventLoop::quit);
+        connect(m_wsClient, &wechat::network::WebSocketClient::error, &loop, &QEventLoop::quit);
+
+        m_wsClient->connectToServer("ws://localhost:8000/ws");
+        timeout.start();
+        loop.exec();
+
+        m_connected = m_wsClient->isConnected();
+        if (!m_connected)
+            qWarning() << "⚠️  Backend not available at ws://localhost:8000/ws";
     }
 
     void init() {
-        m_wsClient = new wechat::network::WsClient(this);
         m_loginWidget = new wechat::login::LoginWidget(m_wsClient);
         m_loginWidget->setObjectName("LoginWidget");
-        m_widgetExposed = false;
     }
 
     void cleanup() {
         delete m_loginWidget;
-        m_wsClient = nullptr;
+        m_loginWidget = nullptr;
     }
 
     void test01_qr_code_initial() {
-        // 场景：首次启动，连接后端，获取并显示二维码
+        if (!m_connected) QSKIP("Backend not available");
         qDebug() << "\n=== Test 01: QR Code Initial ===";
 
-        QEventLoop loop;
-        bool connected = false;
         bool gotResponse = false;
+        QEventLoop loop;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        timeout.setInterval(1500);
+        connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
 
-        connect(m_wsClient, &wechat::network::WebSocketClient::connected, [&]() {
-            qDebug() << "✅ WebSocket connected";
-            connected = true;
-        });
-
-        connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
+        auto conn = connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
                 [&](const QString& type, const QJsonObject& data) {
             if (type == "qr_login_init") {
-                qDebug() << "✅ Received qr_login_init response";
-                qDebug() << "   session_id:" << data["session_id"].toString();
-                qDebug() << "   qr_url:" << data["qr_url"].toString();
+                qDebug() << "✅ session_id:" << data["session_id"].toString();
                 gotResponse = true;
                 loop.quit();
             }
         });
 
-        connect(m_wsClient, &wechat::network::WebSocketClient::error,
-                [&](const QString& err) {
-            qWarning() << "❌ WebSocket error:" << err;
-            loop.quit();
-        });
-
-        // 连接到后端
-        m_wsClient->connectToServer("ws://localhost:8000/ws");
-
-        // 等待连接
-        QTimer::singleShot(5000, &loop, &QEventLoop::quit);
-        loop.exec();
-
-        if (!connected) {
-            QSKIP("Backend not available at ws://localhost:8000/ws");
-        }
-
-        // 发送 qr_login_init 请求
         QJsonObject req;
         req["type"] = "qr_login_init";
         req["data"] = QJsonObject{};
         m_wsClient->send(req);
 
-        // 等待响应
-        QTimer::singleShot(3000, &loop, &QEventLoop::quit);
+        timeout.start();
         loop.exec();
+        disconnect(conn);
 
         QVERIFY2(gotResponse, "Did not receive qr_login_init response");
-
         saveScreenshot("01_qr_code_initial.png");
     }
 
-    void test03_qr_code_scanned() {
-        // 场景：用户扫码后，但还未在手机上确认登录
-        qDebug() << "\n=== Test 03: QR Code Scanned (Not Confirmed Yet) ===";
-
-        bool connected = false;
-        QString sessionId;
-
-        // 第一阶段：连接到后端
-        {
-            QEventLoop loop;
-            QTimer timeout;
-            timeout.setSingleShot(true);
-            timeout.setInterval(5000);
-            connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
-
-            connect(m_wsClient, &wechat::network::WebSocketClient::connected, [&]() {
-                connected = true;
-                loop.quit();
-            });
-
-            m_wsClient->connectToServer("ws://localhost:8000/ws");
-            timeout.start();
-            loop.exec();
-        }
-
-        if (!connected) {
-            QSKIP("Backend not available");
-        }
-
-        // 第二阶段：获取二维码
-        {
-            QEventLoop loop;
-            QTimer timeout;
-            timeout.setSingleShot(true);
-            timeout.setInterval(3000);
-            connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
-
-            connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
-                    [&](const QString& type, const QJsonObject& data) {
-                if (type == "qr_login_init") {
-                    sessionId = data["session_id"].toString();
-                    qDebug() << "✅ Got session_id:" << sessionId;
-                    loop.quit();
-                }
-            });
-
-            QJsonObject req;
-            req["type"] = "qr_login_init";
-            req["data"] = QJsonObject{};
-            m_wsClient->send(req);
-
-            timeout.start();
-            loop.exec();
-        }
-
-        if (sessionId.isEmpty()) {
-            QSKIP("Failed to get session_id");
-        }
-
-        // 模拟扫码状态：显示"已扫码，请在手机上确认"
-        // 注意：这里不调用确认 API，只是显示扫码后的状态
-        qDebug() << "📱 Simulating scanned state (waiting for confirmation)";
-        QTest::qWait(500);  // 等待 UI 更新
-
-        saveScreenshot("03_qr_code_scanned.png");
-    }
-
     void test02_qr_code_loading() {
-        // 场景：手机确认登录后，显示加载状态（固定等待2秒）
-        qDebug() << "\n=== Test 02: QR Code Loading (After Confirmation) ===";
+        if (!m_connected) QSKIP("Backend not available");
+        qDebug() << "\n=== Test 02: QR Code Loading ===";
 
+        bool gotSession = false;
         QEventLoop loop;
-        bool connected = false;
-        QString sessionId;
-        bool loginSuccess = false;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        timeout.setInterval(1500);
+        connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
 
-        connect(m_wsClient, &wechat::network::WebSocketClient::connected, [&]() {
-            connected = true;
-        });
-
-        connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
+        auto conn = connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
                 [&](const QString& type, const QJsonObject& data) {
             if (type == "qr_login_init") {
-                sessionId = data["session_id"].toString();
-                qDebug() << "✅ Got session_id:" << sessionId;
-            } else if (type == "qr_confirmed") {
-                qDebug() << "✅ Login confirmed!";
-                loginSuccess = true;
+                qDebug() << "✅ Got session_id:" << data["session_id"].toString();
+                gotSession = true;
                 loop.quit();
             }
         });
-
-        // 连接并获取二维码
-        m_wsClient->connectToServer("ws://localhost:8000/ws");
-        QTimer::singleShot(5000, &loop, &QEventLoop::quit);
-        loop.exec();
-
-        if (!connected) {
-            QSKIP("Backend not available");
-        }
 
         QJsonObject req;
         req["type"] = "qr_login_init";
         req["data"] = QJsonObject{};
         m_wsClient->send(req);
-        QTest::qWait(1000);
 
-        if (sessionId.isEmpty()) {
-            QSKIP("Failed to get session_id");
-        }
+        timeout.start();
+        loop.exec();
+        disconnect(conn);
 
-        // 模拟手机确认登录（调用后端 API）
-        qDebug() << "📱 Simulating phone confirmation...";
-        // 注意：这里需要使用 QNetworkAccessManager 或 httpx 调用 /api/qr-confirm
-        // 为了简化，我们跳过这个测试，因为需要额外的 HTTP 客户端
+        if (!gotSession) QSKIP("Failed to get session_id");
+
         qDebug() << "⚠️  Skipped: Requires HTTP client to call /api/qr-confirm";
-
-        // 如果能确认，应该显示加载状态并固定等待2秒
-        QTest::qWait(2000);
-
+        QTest::qWait(200);
         saveScreenshot("02_qr_code_loading.png");
     }
 
-    void test04_direct_login() {
-        // 场景：有有效 token，直接登录（跳过二维码）
-        qDebug() << "\n=== Test 04: Direct Login (Token Verification) ===";
+    void test03_qr_code_scanned() {
+        if (!m_connected) QSKIP("Backend not available");
+        qDebug() << "\n=== Test 03: QR Code Scanned ===";
 
+        bool gotSession = false;
         QEventLoop loop;
-        bool connected = false;
-        bool tokenValid = false;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        timeout.setInterval(1500);
+        connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
 
-        connect(m_wsClient, &wechat::network::WebSocketClient::connected, [&]() {
-            connected = true;
-        });
-
-        connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
+        auto conn = connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
                 [&](const QString& type, const QJsonObject& data) {
-            if (type == "verify_token") {
-                if (data["success"].toBool()) {
-                    qDebug() << "✅ Token valid, logged in as:" << data["username"].toString();
-                    tokenValid = true;
-                } else {
-                    qDebug() << "❌ Token invalid";
-                }
+            if (type == "qr_login_init") {
+                qDebug() << "✅ Got session_id:" << data["session_id"].toString();
+                gotSession = true;
                 loop.quit();
             }
         });
 
-        // 连接到后端
-        m_wsClient->connectToServer("ws://localhost:8000/ws");
-        QTimer::singleShot(5000, &loop, &QEventLoop::quit);
+        QJsonObject req;
+        req["type"] = "qr_login_init";
+        req["data"] = QJsonObject{};
+        m_wsClient->send(req);
+
+        timeout.start();
         loop.exec();
+        disconnect(conn);
 
-        if (!connected) {
-            QSKIP("Backend not available");
-        }
+        if (!gotSession) QSKIP("Failed to get session_id");
 
-        // 尝试使用 token 登录（需要从数据库或配置文件读取）
-        // 这里使用一个假的 token 进行测试
-        QString testToken = "test_token_12345";
+        QTest::qWait(100);
+        saveScreenshot("03_qr_code_scanned.png");
+    }
+
+    void test04_direct_login() {
+        if (!m_connected) QSKIP("Backend not available");
+        qDebug() << "\n=== Test 04: Direct Login (Token Verification) ===";
+
+        bool gotResponse = false;
+        bool tokenValid = false;
+        QEventLoop loop;
+        QTimer timeout;
+        timeout.setSingleShot(true);
+        timeout.setInterval(1500);
+        connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+
+        auto conn = connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
+                [&](const QString& type, const QJsonObject& data) {
+            if (type == "verify_token") {
+                tokenValid = data["success"].toBool();
+                gotResponse = true;
+                loop.quit();
+            }
+        });
 
         QJsonObject req;
         req["type"] = "verify_token";
         QJsonObject data;
-        data["token"] = testToken;
+        data["token"] = "test_token_12345";
         req["data"] = data;
         m_wsClient->send(req);
 
-        QTimer::singleShot(3000, &loop, &QEventLoop::quit);
+        timeout.start();
         loop.exec();
+        disconnect(conn);
 
         if (!tokenValid) {
-            qDebug() << "⚠️  No valid token, skipping direct login screenshot";
+            qDebug() << "⚠️  No valid token, skipping";
             QSKIP("No valid token in database");
         }
 
@@ -278,19 +199,12 @@ private Q_SLOTS:
 private:
     wechat::login::LoginWidget* m_loginWidget{nullptr};
     wechat::network::WsClient* m_wsClient{nullptr};
-    bool m_widgetExposed{false};
-
-    void ensureWidgetShown() {
-        if (!m_widgetExposed) {
-            m_loginWidget->show();
-            QTest::qWaitForWindowExposed(m_loginWidget);
-            m_widgetExposed = true;
-        }
-    }
+    bool m_connected{false};
 
     void saveScreenshot(const QString& filename) {
-        ensureWidgetShown();
-        QTest::qWait(200);
+        m_loginWidget->show();
+        (void)QTest::qWaitForWindowExposed(m_loginWidget);
+        QTest::qWait(100);
         QPixmap pix = m_loginWidget->grab();
         pix.toImage().save(filename, "PNG", 70);
         qDebug() << "📸 Screenshot saved:" << filename << "Size:" << pix.size();

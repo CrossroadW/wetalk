@@ -28,15 +28,13 @@ public:
     ContactService& contacts() override;
     GroupService& groups() override;
     MomentService& moments() override;
-
-    /// 获取底层 WebSocket 客户端
-    WebSocketClient& wsClient() { return *ws; }
+    WebSocketClient* ws() override { return wsClient_.get(); }
 
     /// 检查是否已连接
     bool isConnected() const;
 
 private:
-    std::unique_ptr<WebSocketClient> ws;
+    std::unique_ptr<WebSocketClient> wsClient_;
     std::unique_ptr<WsAuthService> authService;
     std::unique_ptr<WsChatService> chatService;
     std::unique_ptr<WsContactService> contactService;
