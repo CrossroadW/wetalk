@@ -5,7 +5,6 @@
 #include <wechat/network/ContactService.h>
 #include <wechat/network/GroupService.h>
 #include <wechat/network/MomentService.h>
-#include <wechat/network/WebSocketClient.h>
 
 #include <QString>
 #include <memory>
@@ -23,8 +22,6 @@ public:
     virtual ContactService& contacts() = 0;
     virtual GroupService& groups() = 0;
     virtual MomentService& moments() = 0;
-
-    virtual WebSocketClient& webSocket() = 0;
 };
 
 /// 创建本地缓存实现（用于测试和离线模式）

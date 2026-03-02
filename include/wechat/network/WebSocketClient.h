@@ -24,9 +24,6 @@ public:
     /// 检查是否已连接
     virtual bool isConnected() const = 0;
 
-    /// 发起二维码登录请求
-    virtual void sendQrLoginInit() = 0;
-
 Q_SIGNALS:
     /// 连接成功
     void connected();
@@ -39,12 +36,6 @@ Q_SIGNALS:
 
     /// 发生错误
     void error(const QString& errorMessage);
-
-    /// 收到二维码登录初始化响应（sessionId, qrUrl）
-    void qrLoginInitReceived(const QString& sessionId, const QString& qrUrl);
-
-    /// 收到二维码登录确认（token）
-    void qrLoginConfirmed(const QString& token);
 };
 
 } // namespace wechat::network
