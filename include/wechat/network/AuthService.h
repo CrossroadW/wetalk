@@ -10,6 +10,11 @@ namespace wechat::network {
 /// 认证服务接口
 class AuthService {
 public:
+    struct QRLoginInitResult {
+        std::string sessionId;
+        std::string qrUrl;
+    };
+
     virtual ~AuthService() = default;
 
     /// 注册
@@ -25,6 +30,9 @@ public:
 
     /// 通过 token 获取当前用户
     virtual Result<core::User> getCurrentUser(const std::string& token) = 0;
+
+    /// 发起二维码登录，返回会话ID和二维码URL
+    virtual Result<QRLoginInitResult> startQRLogin() = 0;
 };
 
 } // namespace wechat::network
