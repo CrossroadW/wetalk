@@ -14,7 +14,12 @@
       "Bash(uv sync)",
       "Bash(uv run pytest tests/test_auth.py::test_qr_login_init -v)",
       "Bash(ls -la *.md *.py)",
-      "Bash(d:/workspace/wechat/backend/tests/README.md:*)"
+      "Bash(d:/workspace/wechat/backend/tests/README.md:*)",
+      "Bash(ninja wechat_network)",
+      "Bash(grep -l \"public QObject\" Ws*.h)",
+      "Bash(grep -A2 \"class.*Service\" *.h)",
+      "Bash(grep -n \"namespace wechat::network\" Ws*.cpp)",
+      "Read(//d/workspace/wechat/src/network/**)"
     ]
   }
 }

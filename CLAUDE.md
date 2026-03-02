@@ -1,6 +1,52 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # WeTalk - 项目指南
 
 > 基于 C++23 / Qt6 的微信客户端克隆项目。此文件是 Claude Code 的入口索引。
+
+## 快速开始
+
+### 客户端构建
+
+```bash
+# 1. 安装依赖（首次或依赖变更时）
+conan install . --build=missing
+
+# 2. 配置项目
+cmake --preset default
+
+# 3. 构建（Debug 或 Release）
+cmake --build --preset Debug
+cmake --build --preset Release
+
+# 4. 运行测试
+ctest --preset Debug
+ctest --preset Release
+
+# 5. 运行主程序
+./build/Release/wechat_app.exe
+```
+
+### 后端服务
+
+```bash
+cd backend
+
+# 安装依赖（首次）
+uv sync
+
+# 初始化测试数据
+uv run python scripts/init_test_data.py
+
+# 启动服务器（http://localhost:8000）
+uv run python main.py
+
+# 运行测试
+uv run pytest
+uv run pytest tests/test_auth.py -v  # 运行特定测试
+```
 
 ## 文档
 
@@ -129,8 +175,51 @@ ChatPresenter → ChatService → WebSocketClient 发送 `revoke_message`/`edit_
 
 ## 依赖与工具
 
-spdlog 1.17.0, gtest 1.17.0, sqlitecpp 3.3.3, boost 1.86.0 (UUID), Qt6 (Core/Widgets/Network/WebSockets), zxing-cpp (二维码生成)
+spdlog 1.17.0, gtest 1.17.0, sqlitecpp 3.3.3, boost 1.78.0, nlohmann_json 3.12.0, Qt6 (Core/Widgets/Network/WebSockets/Test), zxing-cpp 2.3.0
 
 C++23 / CMake 3.24+ / Conan 2.0+ / MSVC / Ninja Multi-Config / `ENABLE_TESTING=ON`
 
 后端: Python 3.11+ / FastAPI / uvicorn / websockets / uv (包管理)
+
+## 常用开发任务
+
+### 运行单个测试
+
+```bash
+# 构建特定测试
+cmake --build --preset Debug --target test_login_screen
+
+# 运行特定测试可执行文件
+./build/Debug/test_login_screen.exe
+```
+
+### 运行 Sandbox（可视化测试）
+
+```bash
+# 构建并运行 sandbox
+cmake --build --preset Debug --target sandbox_chat
+./build/Debug/sandbox_chat.exe
+```
+
+### 清理构建
+
+```bash
+# 删除 build 目录重新构建
+rm -rf build
+conan install . --build=missing
+cmake --preset default
+cmake --build --preset Debug
+```
+
+### 后端数据库操作
+
+```bash
+cd backend
+
+# 清空数据库重新初始化
+rm wetalk.db
+uv run python scripts/init_test_data.py
+
+# 直接操作数据库
+sqlite3 wetalk.db
+```

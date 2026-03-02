@@ -6,7 +6,7 @@ DB_PATH = Path(__file__).parent.parent / "wetalk.db"
 
 
 def init_db():
-    """初始化数据库表结构"""
+    """初始化数据库表结构并添加测试数据"""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -122,8 +122,54 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_moment_comments_moment ON moment_comments(moment_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_qr_sessions_expires ON qr_sessions(expires_at)")
 
+    # 添加测试用户数据
+    test_users = [
+        ("alice", ""),
+        ("bob", ""),
+        ("charlie", ""),
+        ("david", ""),
+        ("eve", ""),
+    ]
+
+    for username, password in test_users:
+        cursor.execute(
+            "INSERT OR IGNORE INTO users (username, password) VALUES (?, ?)",
+            (username, password)
+        )
+
+    # 添加好友关系
+    cursor.execute("SELECT id, username FROM users")
+    users = {row[1]: row[0] for row in cursor.fetchall()}
+
+    if "alice" in users and "bob" in users:
+        user_a, user_b = sorted([users["alice"], users["bob"]])
+        cursor.execute(
+            "INSERT OR IGNORE INTO friendships (user_id_a, user_id_b) VALUES (?, ?)",
+            (user_a, user_b)
+        )
+
+    if "alice" in users and "charlie" in users:
+        user_a, user_b = sorted([users["alice"], users["charlie"]])
+        cursor.execute(
+            "INSERT OR IGNORE INTO friendships (user_id_a, user_id_b) VALUES (?, ?)",
+            (user_a, user_b)
+        )
+
     conn.commit()
     conn.close()
+
+
+def reset_db():
+    """重置数据库（删除所有数据并重新初始化）
+
+    用于测试环境，清空所有表数据并重新创建表结构和测试数据
+    """
+    # 删除数据库文件
+    if DB_PATH.exists():
+        DB_PATH.unlink()
+
+    # 重新初始化
+    init_db()
 
 
 @contextmanager

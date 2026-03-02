@@ -80,8 +80,19 @@ async def ws_client(backend_server) -> AsyncGenerator:
     提供 WebSocket 客户端连接
 
     每个测试函数都会创建新的连接
+    测试前会自动重置数据库
     """
     import websockets
+    import httpx
+
+    # 测试前重置数据库
+    async with httpx.AsyncClient() as http_client:
+        try:
+            response = await http_client.post("http://127.0.0.1:8000/api/test/reset-db")
+            if response.status_code == 200:
+                print("\n🔄 数据库已重置")
+        except Exception as e:
+            print(f"\n⚠️  数据库重置失败: {e}")
 
     uri = backend_server
     async with websockets.connect(uri) as websocket:

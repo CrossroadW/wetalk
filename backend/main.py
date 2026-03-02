@@ -7,7 +7,7 @@ import time
 
 from core import init_db, get_db
 from managers import manager
-from routers import auth, chat, contacts, groups, moments
+from routers import auth, chat, contacts, groups, moments, test
 
 app = FastAPI(title="WeTalk WebSocket API", version="2.0.0")
 
@@ -19,6 +19,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 注册路由
+app.include_router(test.router)
 
 
 @app.on_event("startup")
