@@ -2,8 +2,9 @@ add_library(wechat_log STATIC)
 
 file(GLOB LOG_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB LOG_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file(GLOB LOG_PUBLIC_HEADERS ${CMAKE_SOURCE_DIR}/include/wechat/log/*.h)
 
-target_sources(wechat_log PRIVATE ${LOG_SOURCES} ${LOG_HEADERS})
+target_sources(wechat_log PRIVATE ${LOG_SOURCES} ${LOG_HEADERS} ${LOG_PUBLIC_HEADERS})
 
 target_include_directories(wechat_log
     PRIVATE

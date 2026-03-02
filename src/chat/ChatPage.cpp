@@ -5,6 +5,7 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QSplitter>
 #include <QVBoxLayout>
 
 namespace wechat {
@@ -39,10 +40,19 @@ void ChatPage::openChat(int64_t chatId, const core::User& peer) {
 void ChatPage::setupUI() {
     // 左侧：会话列表
     sessionList = new SessionListWidget;
+    sessionList->setStyleSheet(R"(
+        SessionListWidget {
+            background-color: #f5f5f5;
+            border-right: 1px solid #e0e0e0;
+        }
+    )");
 
     // 右侧：聊天栈
     chatStack = new QStackedWidget;
+    chatStack->setStyleSheet("QStackedWidget { background-color: #ffffff; }");
+
     placeholder = new QWidget;
+    placeholder->setStyleSheet("QWidget { background-color: #ffffff; }");
     auto* phLayout = new QVBoxLayout(placeholder);
     auto* phLabel = new QLabel("Select a chat to start");
     phLabel->setAlignment(Qt::AlignCenter);
@@ -52,11 +62,17 @@ void ChatPage::setupUI() {
 
     // Splitter 组合
     auto* splitter = new QSplitter(Qt::Horizontal);
+    splitter->setStyleSheet(R"(
+        QSplitter::handle {
+            background-color: #e0e0e0;
+            width: 1px;
+        }
+    )");
     splitter->addWidget(sessionList);
     splitter->addWidget(chatStack);
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
-    splitter->setSizes({220, 580});
+    splitter->setSizes({250, 600});
 
     auto* mainLayout = new QHBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);

@@ -2,8 +2,9 @@ add_library(wechat_core STATIC)
 
 file(GLOB CORE_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB CORE_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file(GLOB CORE_PUBLIC_HEADERS ${CMAKE_SOURCE_DIR}/include/wechat/core/*.h)
 
-target_sources(wechat_core PRIVATE ${CORE_SOURCES} ${CORE_HEADERS})
+target_sources(wechat_core PRIVATE ${CORE_SOURCES} ${CORE_HEADERS} ${CORE_PUBLIC_HEADERS})
 
 target_include_directories(wechat_core
     PRIVATE

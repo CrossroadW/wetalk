@@ -11,7 +11,8 @@ class MyProjectConan(ConanFile):
         self.requires("sqlitecpp/3.3.3")
         self.requires("nlohmann_json/3.12.0")
         self.requires("boost/1.78.0")
-
+        self.requires("zxing-cpp/2.3.0")
+        
     def layout(self):
         import os
         self.folders.build = os.path.join(os.path.dirname(__file__), "build")

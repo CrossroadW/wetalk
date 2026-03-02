@@ -2,8 +2,9 @@ add_library(wechat_moments STATIC)
 
 file(GLOB MOMENTS_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB MOMENTS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+file(GLOB MOMENTS_PUBLIC_HEADERS ${CMAKE_SOURCE_DIR}/include/wechat/moments/*.h)
 
-target_sources(wechat_moments PRIVATE ${MOMENTS_SOURCES} ${MOMENTS_HEADERS})
+target_sources(wechat_moments PRIVATE ${MOMENTS_SOURCES} ${MOMENTS_HEADERS} ${MOMENTS_PUBLIC_HEADERS})
 
 target_include_directories(wechat_moments
     PRIVATE
