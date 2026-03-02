@@ -1,13 +1,13 @@
-#include "MockAuthService.h"
+#include "LocalAuthCache.h"
 
-#include "MockDataStore.h"
+#include "LocalDatabase.h"
 
 namespace wechat::network {
 
-MockAuthService::MockAuthService(std::shared_ptr<MockDataStore> store)
+LocalAuthCache::LocalAuthCache(std::shared_ptr<LocalDatabase> store)
     : store(std::move(store)) {}
 
-Result<core::User> MockAuthService::registerUser(
+Result<core::User> LocalAuthCache::registerUser(
     const std::string& username, const std::string& password) {
     if (username.empty() || password.empty())
         return fail("username and password required");
@@ -23,7 +23,7 @@ Result<core::User> MockAuthService::registerUser(
     return *store->findUser(userId);
 }
 
-Result<core::User> MockAuthService::login(
+Result<core::User> LocalAuthCache::login(
     const std::string& username, const std::string& password) {
     auto userId = store->authenticate(username, password);
     if (!userId)
@@ -33,7 +33,7 @@ Result<core::User> MockAuthService::login(
     return *store->findUser(userId);
 }
 
-VoidResult MockAuthService::logout(const std::string& token) {
+VoidResult LocalAuthCache::logout(const std::string& token) {
     auto userId = store->resolveToken(token);
     if (!userId)
         return fail("invalid token");
@@ -42,7 +42,7 @@ VoidResult MockAuthService::logout(const std::string& token) {
     return success();
 }
 
-Result<core::User> MockAuthService::getCurrentUser(const std::string& token) {
+Result<core::User> LocalAuthCache::getCurrentUser(const std::string& token) {
     auto userId = store->resolveToken(token);
     if (!userId)
         return fail("invalid token");

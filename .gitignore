@@ -5,3 +5,6 @@
 /.idea/
 /.vs/
 /.vscode/
+
+# Screenshot test output (generated images)
+/tests/screenshots/*/output/

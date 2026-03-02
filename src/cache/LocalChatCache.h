@@ -5,11 +5,11 @@
 #include <memory>
 namespace wechat::network {
 
-class MockDataStore;
+class LocalDatabase;
 
-class MockChatService : public ChatService {
+class LocalChatCache : public ChatService {
 public:
-    explicit MockChatService(std::shared_ptr<MockDataStore> store);
+    explicit LocalChatCache(std::shared_ptr<LocalDatabase> store);
 
     Result<core::Message> sendMessage(
         const std::string& token, int64_t chatId,
@@ -35,7 +35,7 @@ public:
         int64_t lastMessageId) override;
 
 private:
-    std::shared_ptr<MockDataStore> store;
+    std::shared_ptr<LocalDatabase> store;
 };
 
 } // namespace wechat::network

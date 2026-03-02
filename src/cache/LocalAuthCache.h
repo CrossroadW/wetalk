@@ -5,11 +5,11 @@
 #include <memory>
 namespace wechat::network {
 
-class MockDataStore;
+class LocalDatabase;
 
-class MockAuthService : public AuthService {
+class LocalAuthCache : public AuthService {
 public:
-    explicit MockAuthService(std::shared_ptr<MockDataStore> store);
+    explicit LocalAuthCache(std::shared_ptr<LocalDatabase> store);
 
     Result<core::User> registerUser(
         const std::string& username, const std::string& password) override;
@@ -19,7 +19,7 @@ public:
     Result<core::User> getCurrentUser(const std::string& token) override;
 
 private:
-    std::shared_ptr<MockDataStore> store;
+    std::shared_ptr<LocalDatabase> store;
 };
 
 } // namespace wechat::network

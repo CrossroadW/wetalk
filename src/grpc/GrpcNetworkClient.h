@@ -1,12 +1,12 @@
 #pragma once
 
 #include <wechat/network/NetworkClient.h>
-#include "MockDataStore.h"
+#include "../cache/LocalDatabase.h"
 #include "GrpcAuthService.h"
-#include "MockChatService.h"
-#include "MockContactService.h"
-#include "MockGroupService.h"
-#include "MockMomentService.h"
+#include "../cache/LocalChatCache.h"
+#include "../cache/LocalContactCache.h"
+#include "../cache/LocalGroupCache.h"
+#include "../cache/LocalMomentCache.h"
 #include "auth.pb.h"
 #include "auth.grpc.pb.h"
 #include <memory>
@@ -32,12 +32,12 @@ public:
     MomentService& moments() override;
 
 private:
-    std::shared_ptr<MockDataStore> store;
+    std::shared_ptr<LocalDatabase> store;
     std::unique_ptr<GrpcAuthService> authService;
-    std::unique_ptr<MockChatService> chatService;
-    std::unique_ptr<MockContactService> contactService;
-    std::unique_ptr<MockGroupService> groupService;
-    std::unique_ptr<MockMomentService> momentService;
+    std::unique_ptr<LocalChatCache> chatService;
+    std::unique_ptr<LocalContactCache> contactService;
+    std::unique_ptr<LocalGroupCache> groupService;
+    std::unique_ptr<LocalMomentCache> momentService;
 };
 
 /// 创建 gRPC 客户端

@@ -1,15 +1,15 @@
-#include "MockChatService.h"
+#include "LocalChatCache.h"
 
-#include "MockDataStore.h"
+#include "LocalDatabase.h"
 
 #include <algorithm>
 
 namespace wechat::network {
 
-MockChatService::MockChatService(std::shared_ptr<MockDataStore> store)
+LocalChatCache::LocalChatCache(std::shared_ptr<LocalDatabase> store)
     : store(std::move(store)) {}
 
-Result<core::Message> MockChatService::sendMessage(
+Result<core::Message> LocalChatCache::sendMessage(
     const std::string& token, int64_t chatId,
     int64_t replyTo, const core::MessageContent& content) {
     auto userId = store->resolveToken(token);
@@ -33,7 +33,7 @@ Result<core::Message> MockChatService::sendMessage(
     return msg;
 }
 
-Result<SyncMessagesResponse> MockChatService::fetchAfter(
+Result<SyncMessagesResponse> LocalChatCache::fetchAfter(
     const std::string& token, int64_t chatId,
     int64_t afterId, int limit) {
     auto userId = store->resolveToken(token);
@@ -55,7 +55,7 @@ Result<SyncMessagesResponse> MockChatService::fetchAfter(
     return SyncMessagesResponse{std::move(msgs), hasMore};
 }
 
-Result<SyncMessagesResponse> MockChatService::fetchBefore(
+Result<SyncMessagesResponse> LocalChatCache::fetchBefore(
     const std::string& token, int64_t chatId,
     int64_t beforeId, int limit) {
     auto userId = store->resolveToken(token);
@@ -77,7 +77,7 @@ Result<SyncMessagesResponse> MockChatService::fetchBefore(
     return SyncMessagesResponse{std::move(msgs), hasMore};
 }
 
-Result<SyncMessagesResponse> MockChatService::fetchUpdated(
+Result<SyncMessagesResponse> LocalChatCache::fetchUpdated(
     const std::string& token, int64_t chatId,
     int64_t startId, int64_t endId,
     int64_t updatedAt, int limit) {
@@ -92,7 +92,7 @@ Result<SyncMessagesResponse> MockChatService::fetchUpdated(
     return SyncMessagesResponse{std::move(msgs), hasMore};
 }
 
-VoidResult MockChatService::revokeMessage(const std::string& token,
+VoidResult LocalChatCache::revokeMessage(const std::string& token,
                                           int64_t messageId) {
     auto userId = store->resolveToken(token);
     if (!userId)
@@ -112,7 +112,7 @@ VoidResult MockChatService::revokeMessage(const std::string& token,
     return success();
 }
 
-VoidResult MockChatService::editMessage(
+VoidResult LocalChatCache::editMessage(
     const std::string& token, int64_t messageId,
     const core::MessageContent& newContent) {
     auto userId = store->resolveToken(token);
@@ -138,7 +138,7 @@ VoidResult MockChatService::editMessage(
     return success();
 }
 
-VoidResult MockChatService::markRead(const std::string& token,
+VoidResult LocalChatCache::markRead(const std::string& token,
                                      int64_t chatId,
                                      int64_t lastMessageId) {
     auto userId = store->resolveToken(token);

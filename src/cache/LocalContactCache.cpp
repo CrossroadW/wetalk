@@ -1,13 +1,13 @@
-#include "MockContactService.h"
+#include "LocalContactCache.h"
 
-#include "MockDataStore.h"
+#include "LocalDatabase.h"
 
 namespace wechat::network {
 
-MockContactService::MockContactService(std::shared_ptr<MockDataStore> store)
+LocalContactCache::LocalContactCache(std::shared_ptr<LocalDatabase> store)
     : store(std::move(store)) {}
 
-VoidResult MockContactService::addFriend(const std::string& token,
+VoidResult LocalContactCache::addFriend(const std::string& token,
                                          int64_t targetUserId) {
     auto userId = store->resolveToken(token);
     if (!userId)
@@ -26,7 +26,7 @@ VoidResult MockContactService::addFriend(const std::string& token,
     return success();
 }
 
-VoidResult MockContactService::removeFriend(const std::string& token,
+VoidResult LocalContactCache::removeFriend(const std::string& token,
                                             int64_t targetUserId) {
     auto userId = store->resolveToken(token);
     if (!userId)
@@ -39,7 +39,7 @@ VoidResult MockContactService::removeFriend(const std::string& token,
     return success();
 }
 
-Result<std::vector<core::User>> MockContactService::listFriends(
+Result<std::vector<core::User>> LocalContactCache::listFriends(
     const std::string& token) {
     auto userId = store->resolveToken(token);
     if (!userId)
@@ -54,7 +54,7 @@ Result<std::vector<core::User>> MockContactService::listFriends(
     return result;
 }
 
-Result<std::vector<core::User>> MockContactService::searchUser(
+Result<std::vector<core::User>> LocalContactCache::searchUser(
     const std::string& token, const std::string& keyword) {
     auto userId = store->resolveToken(token);
     if (!userId)

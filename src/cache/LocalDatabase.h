@@ -11,12 +11,12 @@
 #include <string>
 #include <vector>
 namespace wechat { namespace network {
-/// Mock 服务端存储
-/// 内部使用 SQLite :memory: 持久化用户/好友/群组/消息/朋友圈
-/// 所有 MockXxxService 共享同一个 MockDataStore 实例
-class MockDataStore {
+/// 客户端本地缓存数据库
+/// 内部使用 SQLite 持久化用户/好友/群组/消息/朋友圈
+/// 所有 LocalXxxCache 共享同一个 LocalDatabase 实例
+class LocalDatabase {
 public:
-    MockDataStore();
+    LocalDatabase();
 
     // ── 时间 ──
     int64_t now();

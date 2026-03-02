@@ -1,16 +1,16 @@
-#include "MockGroupService.h"
+#include "LocalGroupCache.h"
 
-#include "MockDataStore.h"
+#include "LocalDatabase.h"
 
 #include <algorithm>
 
 namespace wechat {
 namespace network {
 
-MockGroupService::MockGroupService(std::shared_ptr<MockDataStore> store)
+LocalGroupCache::LocalGroupCache(std::shared_ptr<LocalDatabase> store)
     : store(std::move(store)) {}
 
-Result<core::Group> MockGroupService::createGroup(
+Result<core::Group> LocalGroupCache::createGroup(
     const std::string& token,
     const std::vector<int64_t>& memberIds) {
     auto userId = store->resolveToken(token);
@@ -26,7 +26,7 @@ Result<core::Group> MockGroupService::createGroup(
     return group;
 }
 
-VoidResult MockGroupService::dissolveGroup(const std::string& token,
+VoidResult LocalGroupCache::dissolveGroup(const std::string& token,
                                            int64_t groupId) {
     auto userId = store->resolveToken(token);
     if (!userId)
@@ -43,7 +43,7 @@ VoidResult MockGroupService::dissolveGroup(const std::string& token,
     return success();
 }
 
-VoidResult MockGroupService::addMember(const std::string& token,
+VoidResult LocalGroupCache::addMember(const std::string& token,
                                        int64_t groupId,
                                        int64_t userId) {
     auto callerId = store->resolveToken(token);
@@ -65,7 +65,7 @@ VoidResult MockGroupService::addMember(const std::string& token,
     return success();
 }
 
-VoidResult MockGroupService::removeMember(const std::string& token,
+VoidResult LocalGroupCache::removeMember(const std::string& token,
                                           int64_t groupId,
                                           int64_t userId) {
     auto callerId = store->resolveToken(token);
@@ -88,7 +88,7 @@ VoidResult MockGroupService::removeMember(const std::string& token,
     return success();
 }
 
-Result<std::vector<int64_t>> MockGroupService::listMembers(
+Result<std::vector<int64_t>> LocalGroupCache::listMembers(
     const std::string& token, int64_t groupId) {
     auto userId = store->resolveToken(token);
     if (!userId)
@@ -101,7 +101,7 @@ Result<std::vector<int64_t>> MockGroupService::listMembers(
     return group->memberIds;
 }
 
-Result<std::vector<core::Group>> MockGroupService::listMyGroups(
+Result<std::vector<core::Group>> LocalGroupCache::listMyGroups(
     const std::string& token) {
     auto userId = store->resolveToken(token);
     if (!userId)

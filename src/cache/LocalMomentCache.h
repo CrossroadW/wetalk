@@ -5,11 +5,11 @@
 #include <memory>
 namespace wechat::network {
 
-class MockDataStore;
+class LocalDatabase;
 
-class MockMomentService : public MomentService {
+class LocalMomentCache : public MomentService {
 public:
-    explicit MockMomentService(std::shared_ptr<MockDataStore> store);
+    explicit LocalMomentCache(std::shared_ptr<LocalDatabase> store);
 
     Result<Moment> postMoment(
         const std::string& token, const std::string& text,
@@ -23,7 +23,7 @@ public:
         const std::string& text) override;
 
 private:
-    std::shared_ptr<MockDataStore> store;
+    std::shared_ptr<LocalDatabase> store;
 };
 
 } // namespace wechat::network

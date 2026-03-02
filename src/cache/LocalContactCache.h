@@ -4,11 +4,11 @@
 #include <memory>
 namespace wechat::network {
 
-class MockDataStore;
+class LocalDatabase;
 
-class MockContactService : public ContactService {
+class LocalContactCache : public ContactService {
 public:
-    explicit MockContactService(std::shared_ptr<MockDataStore> store);
+    explicit LocalContactCache(std::shared_ptr<LocalDatabase> store);
 
     VoidResult addFriend(
         const std::string& token, int64_t targetUserId) override;
@@ -20,7 +20,7 @@ public:
         const std::string& token, const std::string& keyword) override;
 
 private:
-    std::shared_ptr<MockDataStore> store;
+    std::shared_ptr<LocalDatabase> store;
 };
 
 } // namespace wechat::network

@@ -1,4 +1,4 @@
-#include "MockDataStore.h"
+#include "LocalDatabase.h"
 
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -85,14 +85,14 @@ namespace wechat::network {
 
 // ── 构造 / Schema ──
 
-MockDataStore::MockDataStore()
+LocalDatabase::LocalDatabase()
     : db_(":memory:", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE) {
     db_.exec("PRAGMA journal_mode=WAL");
     db_.exec("PRAGMA foreign_keys=ON");
     initSchema();
 }
 
-void MockDataStore::initSchema() {
+void LocalDatabase::initSchema() {
     db_.exec(R"(
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -180,19 +180,19 @@ void MockDataStore::initSchema() {
     )");
 }
 
-int64_t MockDataStore::now() {
+int64_t LocalDatabase::now() {
     return std::chrono::duration_cast<std::chrono::microseconds>(
                std::chrono::system_clock::now().time_since_epoch())
         .count();
 }
 
-std::pair<int64_t, int64_t> MockDataStore::orderedPair(int64_t a, int64_t b) {
+std::pair<int64_t, int64_t> LocalDatabase::orderedPair(int64_t a, int64_t b) {
     return a < b ? std::make_pair(a, b) : std::make_pair(b, a);
 }
 
 // ── 用户 / 认证 ──
 
-int64_t MockDataStore::addUser(std::string const &username,
+int64_t LocalDatabase::addUser(std::string const &username,
                                std::string const &password) {
     SQLite::Statement stmt(db_,
         "INSERT INTO users (username, password) VALUES (?, ?)");
@@ -202,7 +202,7 @@ int64_t MockDataStore::addUser(std::string const &username,
     return db_.getLastInsertRowid();
 }
 
-int64_t MockDataStore::authenticate(std::string const &username,
+int64_t LocalDatabase::authenticate(std::string const &username,
                                     std::string const &password) {
     SQLite::Statement stmt(db_,
         "SELECT id FROM users WHERE username = ? AND password = ?");
@@ -212,7 +212,7 @@ int64_t MockDataStore::authenticate(std::string const &username,
     return stmt.getColumn(0).getInt64();
 }
 
-std::string MockDataStore::createToken(int64_t userId) {
+std::string LocalDatabase::createToken(int64_t userId) {
     auto token = to_string(boost::uuids::random_generator()());
     SQLite::Statement stmt(db_,
         "UPDATE users SET token = ? WHERE id = ?");
@@ -222,7 +222,7 @@ std::string MockDataStore::createToken(int64_t userId) {
     return token;
 }
 
-int64_t MockDataStore::resolveToken(std::string const &token) {
+int64_t LocalDatabase::resolveToken(std::string const &token) {
     SQLite::Statement stmt(db_,
         "SELECT id FROM users WHERE token = ?");
     stmt.bind(1, token);
@@ -230,14 +230,14 @@ int64_t MockDataStore::resolveToken(std::string const &token) {
     return stmt.getColumn(0).getInt64();
 }
 
-void MockDataStore::removeToken(std::string const &token) {
+void LocalDatabase::removeToken(std::string const &token) {
     SQLite::Statement stmt(db_,
         "UPDATE users SET token = NULL WHERE token = ?");
     stmt.bind(1, token);
     stmt.exec();
 }
 
-std::optional<core::User> MockDataStore::findUser(int64_t userId) {
+std::optional<core::User> LocalDatabase::findUser(int64_t userId) {
     SQLite::Statement stmt(db_,
         "SELECT id, username, password, token FROM users WHERE id = ?");
     stmt.bind(1, userId);
@@ -251,7 +251,7 @@ std::optional<core::User> MockDataStore::findUser(int64_t userId) {
     return u;
 }
 
-std::vector<core::User> MockDataStore::searchUsers(std::string const &keyword) {
+std::vector<core::User> LocalDatabase::searchUsers(std::string const &keyword) {
     SQLite::Statement stmt(db_,
         "SELECT id, username, password, token FROM users"
         " WHERE username LIKE ? OR CAST(id AS TEXT) LIKE ?");
@@ -273,7 +273,7 @@ std::vector<core::User> MockDataStore::searchUsers(std::string const &keyword) {
 
 // ── 好友 ──
 
-void MockDataStore::addFriendship(int64_t a, int64_t b) {
+void LocalDatabase::addFriendship(int64_t a, int64_t b) {
     auto [lo, hi] = orderedPair(a, b);
     SQLite::Statement stmt(db_,
         "INSERT OR IGNORE INTO friendships (user_id_a, user_id_b) VALUES (?, ?)");
@@ -282,7 +282,7 @@ void MockDataStore::addFriendship(int64_t a, int64_t b) {
     stmt.exec();
 }
 
-void MockDataStore::removeFriendship(int64_t a, int64_t b) {
+void LocalDatabase::removeFriendship(int64_t a, int64_t b) {
     auto [lo, hi] = orderedPair(a, b);
     SQLite::Statement stmt(db_,
         "DELETE FROM friendships WHERE user_id_a = ? AND user_id_b = ?");
@@ -291,7 +291,7 @@ void MockDataStore::removeFriendship(int64_t a, int64_t b) {
     stmt.exec();
 }
 
-bool MockDataStore::areFriends(int64_t a, int64_t b) {
+bool LocalDatabase::areFriends(int64_t a, int64_t b) {
     auto [lo, hi] = orderedPair(a, b);
     SQLite::Statement stmt(db_,
         "SELECT 1 FROM friendships WHERE user_id_a = ? AND user_id_b = ?");
@@ -300,7 +300,7 @@ bool MockDataStore::areFriends(int64_t a, int64_t b) {
     return stmt.executeStep();
 }
 
-std::vector<int64_t> MockDataStore::getFriendIds(int64_t userId) {
+std::vector<int64_t> LocalDatabase::getFriendIds(int64_t userId) {
     std::vector<int64_t> friends;
     SQLite::Statement s1(db_,
         "SELECT user_id_b FROM friendships WHERE user_id_a = ?");
@@ -319,7 +319,7 @@ std::vector<int64_t> MockDataStore::getFriendIds(int64_t userId) {
 
 // ── 群组 ──
 
-std::vector<int64_t> MockDataStore::findGroupMemberIds(int64_t groupId) {
+std::vector<int64_t> LocalDatabase::findGroupMemberIds(int64_t groupId) {
     std::vector<int64_t> ids;
     SQLite::Statement stmt(db_,
         "SELECT user_id FROM group_members WHERE group_id = ? AND removed = 0");
@@ -330,7 +330,7 @@ std::vector<int64_t> MockDataStore::findGroupMemberIds(int64_t groupId) {
     return ids;
 }
 
-std::vector<int64_t> MockDataStore::findGroupIdsByUser(int64_t userId) {
+std::vector<int64_t> LocalDatabase::findGroupIdsByUser(int64_t userId) {
     std::vector<int64_t> ids;
     SQLite::Statement stmt(db_,
         "SELECT group_id FROM group_members WHERE user_id = ? AND removed = 0");
@@ -342,7 +342,7 @@ std::vector<int64_t> MockDataStore::findGroupIdsByUser(int64_t userId) {
 }
 
 core::Group
-MockDataStore::createGroup(int64_t ownerId,
+LocalDatabase::createGroup(int64_t ownerId,
                            std::vector<int64_t> const &memberIds) {
     auto ts = now();
     SQLite::Statement stmt(db_,
@@ -369,7 +369,7 @@ MockDataStore::createGroup(int64_t ownerId,
     return core::Group{id, ownerId, memberIds};
 }
 
-std::optional<core::Group> MockDataStore::findGroup(int64_t groupId) {
+std::optional<core::Group> LocalDatabase::findGroup(int64_t groupId) {
     SQLite::Statement stmt(db_,
         "SELECT id, owner_id FROM groups_ WHERE id = ?");
     stmt.bind(1, groupId);
@@ -382,7 +382,7 @@ std::optional<core::Group> MockDataStore::findGroup(int64_t groupId) {
     return g;
 }
 
-void MockDataStore::addGroupMember(int64_t groupId, int64_t userId) {
+void LocalDatabase::addGroupMember(int64_t groupId, int64_t userId) {
     auto ts = now();
     SQLite::Statement stmt(db_, R"(
         INSERT INTO group_members (group_id, user_id, joined_at, removed, updated_at)
@@ -397,7 +397,7 @@ void MockDataStore::addGroupMember(int64_t groupId, int64_t userId) {
     stmt.exec();
 }
 
-void MockDataStore::removeGroupMember(int64_t groupId, int64_t userId) {
+void LocalDatabase::removeGroupMember(int64_t groupId, int64_t userId) {
     auto ts = now();
     SQLite::Statement stmt(db_, R"(
         UPDATE group_members SET removed = 1, updated_at = ?
@@ -409,7 +409,7 @@ void MockDataStore::removeGroupMember(int64_t groupId, int64_t userId) {
     stmt.exec();
 }
 
-void MockDataStore::removeGroup(int64_t groupId) {
+void LocalDatabase::removeGroup(int64_t groupId) {
     SQLite::Statement stmt1(db_, "DELETE FROM group_members WHERE group_id = ?");
     stmt1.bind(1, groupId);
     stmt1.exec();
@@ -419,7 +419,7 @@ void MockDataStore::removeGroup(int64_t groupId) {
 }
 
 std::vector<core::Group>
-MockDataStore::getGroupsByUser(int64_t userId) {
+LocalDatabase::getGroupsByUser(int64_t userId) {
     auto groupIds = findGroupIdsByUser(userId);
     std::vector<core::Group> result;
     for (auto gid : groupIds) {
@@ -439,7 +439,7 @@ MockDataStore::getGroupsByUser(int64_t userId) {
 
 // ── 消息 ──
 
-core::Message MockDataStore::rowToMessage(SQLite::Statement& stmt) {
+core::Message LocalDatabase::rowToMessage(SQLite::Statement& stmt) {
     core::Message msg;
     msg.id        = stmt.getColumn(0).getInt64();
     msg.senderId  = stmt.getColumn(1).getInt64();
@@ -454,7 +454,7 @@ core::Message MockDataStore::rowToMessage(SQLite::Statement& stmt) {
     return msg;
 }
 
-core::Message MockDataStore::addMessage(int64_t senderId,
+core::Message LocalDatabase::addMessage(int64_t senderId,
                                          int64_t chatId,
                                          int64_t replyTo,
                                          core::MessageContent const &content) {
@@ -477,7 +477,7 @@ core::Message MockDataStore::addMessage(int64_t senderId,
                          ts, 0,        false,  0,       0};
 }
 
-std::optional<core::Message> MockDataStore::findMessage(int64_t messageId) {
+std::optional<core::Message> LocalDatabase::findMessage(int64_t messageId) {
     SQLite::Statement stmt(db_, R"(
         SELECT id, sender_id, chat_id, reply_to, content_data,
                timestamp, edited_at, revoked, read_count, updated_at
@@ -488,7 +488,7 @@ std::optional<core::Message> MockDataStore::findMessage(int64_t messageId) {
     return rowToMessage(stmt);
 }
 
-void MockDataStore::saveMessage(const core::Message& msg) {
+void LocalDatabase::saveMessage(const core::Message& msg) {
     SQLite::Statement stmt(db_, R"(
         UPDATE messages SET
             sender_id = ?, chat_id = ?, reply_to = ?, content_data = ?,
@@ -508,7 +508,7 @@ void MockDataStore::saveMessage(const core::Message& msg) {
     stmt.exec();
 }
 
-std::vector<core::Message> MockDataStore::getMessagesAfter(int64_t chatId,
+std::vector<core::Message> LocalDatabase::getMessagesAfter(int64_t chatId,
                                                            int64_t afterId,
                                                            int limit) {
     std::vector<core::Message> result;
@@ -545,7 +545,7 @@ std::vector<core::Message> MockDataStore::getMessagesAfter(int64_t chatId,
     return result;
 }
 
-std::vector<core::Message> MockDataStore::getMessagesBefore(int64_t chatId,
+std::vector<core::Message> LocalDatabase::getMessagesBefore(int64_t chatId,
                                                             int64_t beforeId,
                                                             int limit) {
     std::vector<core::Message> result;
@@ -582,7 +582,7 @@ std::vector<core::Message> MockDataStore::getMessagesBefore(int64_t chatId,
     return result;
 }
 
-std::vector<core::Message> MockDataStore::getMessagesUpdatedAfter(
+std::vector<core::Message> LocalDatabase::getMessagesUpdatedAfter(
     int64_t chatId, int64_t startId, int64_t endId,
     int64_t updatedAt, int limit) {
     std::vector<core::Message> result;
@@ -606,7 +606,7 @@ std::vector<core::Message> MockDataStore::getMessagesUpdatedAfter(
 
 // ── 朋友圈 ──
 
-Moment MockDataStore::addMoment(int64_t authorId,
+Moment LocalDatabase::addMoment(int64_t authorId,
                                  std::string const &text,
                                  std::vector<std::string> const &imageIds) {
     auto ts = now();
@@ -630,7 +630,7 @@ Moment MockDataStore::addMoment(int64_t authorId,
     return Moment{id, authorId, text, imageIds, ts, {}, {}};
 }
 
-Moment MockDataStore::loadMoment(int64_t momentId) {
+Moment LocalDatabase::loadMoment(int64_t momentId) {
     Moment m;
     m.id = momentId;
 
@@ -671,7 +671,7 @@ Moment MockDataStore::loadMoment(int64_t momentId) {
     return m;
 }
 
-std::optional<Moment> MockDataStore::findMoment(int64_t momentId) {
+std::optional<Moment> LocalDatabase::findMoment(int64_t momentId) {
     SQLite::Statement stmt(db_,
         "SELECT id FROM moments WHERE id = ?");
     stmt.bind(1, momentId);
@@ -679,7 +679,7 @@ std::optional<Moment> MockDataStore::findMoment(int64_t momentId) {
     return loadMoment(momentId);
 }
 
-bool MockDataStore::hasLiked(int64_t momentId, int64_t userId) {
+bool LocalDatabase::hasLiked(int64_t momentId, int64_t userId) {
     SQLite::Statement stmt(db_,
         "SELECT 1 FROM moment_likes WHERE moment_id = ? AND user_id = ?");
     stmt.bind(1, momentId);
@@ -687,7 +687,7 @@ bool MockDataStore::hasLiked(int64_t momentId, int64_t userId) {
     return stmt.executeStep();
 }
 
-void MockDataStore::addLike(int64_t momentId, int64_t userId) {
+void LocalDatabase::addLike(int64_t momentId, int64_t userId) {
     SQLite::Statement stmt(db_,
         "INSERT OR IGNORE INTO moment_likes (moment_id, user_id) VALUES (?, ?)");
     stmt.bind(1, momentId);
@@ -695,7 +695,7 @@ void MockDataStore::addLike(int64_t momentId, int64_t userId) {
     stmt.exec();
 }
 
-int64_t MockDataStore::addComment(int64_t momentId, int64_t authorId,
+int64_t LocalDatabase::addComment(int64_t momentId, int64_t authorId,
                                   const std::string& text) {
     auto ts = now();
     SQLite::Statement stmt(db_,
@@ -709,7 +709,7 @@ int64_t MockDataStore::addComment(int64_t momentId, int64_t authorId,
 }
 
 std::vector<Moment>
-MockDataStore::getMoments(std::set<int64_t> const &visibleUserIds,
+LocalDatabase::getMoments(std::set<int64_t> const &visibleUserIds,
                           int64_t beforeTs, int limit) {
     std::vector<Moment> result;
     SQLite::Statement stmt(db_,

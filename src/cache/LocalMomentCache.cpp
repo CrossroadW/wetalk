@@ -1,6 +1,6 @@
-#include "MockMomentService.h"
+#include "LocalMomentCache.h"
 
-#include "MockDataStore.h"
+#include "LocalDatabase.h"
 
 #include <algorithm>
 #include <set>
@@ -8,10 +8,10 @@
 namespace wechat {
 namespace network {
 
-MockMomentService::MockMomentService(std::shared_ptr<MockDataStore> store)
+LocalMomentCache::LocalMomentCache(std::shared_ptr<LocalDatabase> store)
     : store(std::move(store)) {}
 
-Result<Moment> MockMomentService::postMoment(
+Result<Moment> LocalMomentCache::postMoment(
     const std::string& token, const std::string& text,
     const std::vector<std::string>& imageIds) {
     auto userId = store->resolveToken(token);
@@ -25,7 +25,7 @@ Result<Moment> MockMomentService::postMoment(
     return moment;
 }
 
-Result<std::vector<Moment>> MockMomentService::listMoments(
+Result<std::vector<Moment>> LocalMomentCache::listMoments(
     const std::string& token, int64_t beforeTs, int limit) {
     auto userId = store->resolveToken(token);
     if (!userId)
@@ -39,7 +39,7 @@ Result<std::vector<Moment>> MockMomentService::listMoments(
     return store->getMoments(visible, beforeTs, limit);
 }
 
-VoidResult MockMomentService::likeMoment(const std::string& token,
+VoidResult LocalMomentCache::likeMoment(const std::string& token,
                                          int64_t momentId) {
     auto userId = store->resolveToken(token);
     if (!userId)
@@ -56,7 +56,7 @@ VoidResult MockMomentService::likeMoment(const std::string& token,
     return success();
 }
 
-Result<Moment::Comment> MockMomentService::commentMoment(
+Result<Moment::Comment> LocalMomentCache::commentMoment(
     const std::string& token, int64_t momentId,
     const std::string& text) {
     auto userId = store->resolveToken(token);

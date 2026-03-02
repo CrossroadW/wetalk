@@ -11,7 +11,7 @@
 namespace wechat::network {
 
 /// 网络客户端抽象入口
-/// 上层模块通过此接口获取各 Service，不关心底层是 Mock 还是 gRPC
+/// 上层模块通过此接口获取各 Service
 class NetworkClient {
 public:
     virtual ~NetworkClient() = default;
@@ -23,7 +23,7 @@ public:
     virtual MomentService& moments() = 0;
 };
 
-/// 创建 Mock 实现（阶段 1 使用）
+/// 创建本地缓存实现（用于测试和离线模式）
 std::unique_ptr<NetworkClient> createMockClient();
 
 } // namespace wechat::network

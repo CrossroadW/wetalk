@@ -1,23 +1,23 @@
 #include "GrpcNetworkClient.h"
 
 #include "GrpcAuthService.h"
-#include "MockAuthService.h"
-#include "MockChatService.h"
-#include "MockContactService.h"
-#include "MockGroupService.h"
-#include "MockMomentService.h"
+#include "../cache/LocalAuthCache.h"
+#include "../cache/LocalChatCache.h"
+#include "../cache/LocalContactCache.h"
+#include "../cache/LocalGroupCache.h"
+#include "../cache/LocalMomentCache.h"
 #include "auth.pb.h"
 #include "auth.grpc.pb.h"
 namespace wechat {
 namespace network {
 
 GrpcNetworkClient::GrpcNetworkClient(const std::string& serverAddress)
-    : store(std::make_shared<MockDataStore>()),
+    : store(std::make_shared<LocalDatabase>()),
       authService(std::make_unique<GrpcAuthService>(serverAddress)),
-      chatService(std::make_unique<MockChatService>(store)),
-      contactService(std::make_unique<MockContactService>(store)),
-      groupService(std::make_unique<MockGroupService>(store)),
-      momentService(std::make_unique<MockMomentService>(store)) {}
+      chatService(std::make_unique<LocalChatCache>(store)),
+      contactService(std::make_unique<LocalContactCache>(store)),
+      groupService(std::make_unique<LocalGroupCache>(store)),
+      momentService(std::make_unique<LocalMomentCache>(store)) {}
 
 AuthService& GrpcNetworkClient::auth() {
     return *authService;

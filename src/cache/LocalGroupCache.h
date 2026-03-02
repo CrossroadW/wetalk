@@ -5,11 +5,11 @@
 #include <memory>
 namespace wechat::network {
 
-class MockDataStore;
+class LocalDatabase;
 
-class MockGroupService : public GroupService {
+class LocalGroupCache : public GroupService {
 public:
-    explicit MockGroupService(std::shared_ptr<MockDataStore> store);
+    explicit LocalGroupCache(std::shared_ptr<LocalDatabase> store);
 
     Result<core::Group> createGroup(
         const std::string& token,
@@ -28,7 +28,7 @@ public:
         const std::string& token) override;
 
 private:
-    std::shared_ptr<MockDataStore> store;
+    std::shared_ptr<LocalDatabase> store;
 };
 
 } // namespace wechat::network

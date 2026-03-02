@@ -5,7 +5,10 @@
       "Bash(del \"d:\\\\workspace\\\\wechat\\\\conanfile.txt\")",
       "Bash(findstr:*)",
       "Bash(cmake --build:*)",
-      "Bash(ls -la src/chat/*)"
+      "Bash(ls -la src/chat/*)",
+      "Read(//d/workspace/PowerCAD/PowerFC/Widgets/test/**)",
+      "Bash(ls -la Mock*)",
+      "Bash(ls /d/workspace/wechat/src/network/Local*)"
     ]
   }
 }
