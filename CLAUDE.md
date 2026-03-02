@@ -11,6 +11,30 @@
 - `docs/data-models.md` — 数据模型定义、数据库表结构、类型映射
 - `docs/data-cache-mechanism.md` — 客户端增量缓存机制设计（两个数据库 + 两个同步）
 - `docs/plan-cache-refactor.md` — 缓存同步重构方案（当前阶段实施计划）
+- `docs/websocket-client-design.md` — WebSocket 客户端实现设计（二维码登录 + 实时通信）
+
+## API 规范
+
+- `api-spec/` — **前后端通信 API 规范（独立目录）**
+- `api-spec/README.md` — 规范总览和索引
+- `api-spec/common.md` — 通用消息格式、数据类型定义
+- `api-spec/auth.md` — 认证 API（二维码登录、Token 验证）
+- `api-spec/chat.md` — 聊天 API（消息发送、获取、编辑、撤回）
+- `api-spec/contacts.md` — 联系人 API（好友列表、添加好友）
+- `api-spec/groups.md` — 群组 API（群组列表、创建群组）
+- `api-spec/moments.md` — 朋友圈 API（获取朋友圈、创建朋友圈）
+- `api-spec/errors.md` — 错误处理规范
+- `api-spec/flows.md` — 认证流程、实现要求
+
+## 后端
+
+- `backend/` — FastAPI + WebSocket + SQLite3 后端服务
+- `backend/README.md` — 后端文档（引用 api-spec）
+- `backend/QUICKSTART.md` — 后端快速开始指南
+- `backend/main.py` — WebSocket 服务器实现
+- `backend/database.py` — SQLite 数据库初始化
+- `backend/init_test_data.py` — 测试数据初始化脚本
+- `backend/test_websocket.py` — WebSocket API 测试脚本
 
 ## 关键目录
 
@@ -80,21 +104,33 @@ UI 层 (Qt Widgets)       LoginWidget, ChatWidget, ContactsWidget, SessionListWi
     ↕ Qt signals/slots
 Presenter (QObject)      LoginPresenter, ChatPresenter, SessionPresenter, ContactsPresenter
     ↕ 方法调用
-服务层 (QObject)         NetworkClient → ChatService, AuthService, ContactService, GroupService
-    ↕
-数据层                   MockDataStore (SQLite :memory:)
+服务层 (QObject)         NetworkClient → WebSocketClient → ChatService, AuthService, ContactService, GroupService
+    ↕ WebSocket (JSON)
+后端服务                 FastAPI + WebSocket + SQLite3
 ```
 
-发送: ChatWidget → ChatPresenter.sendMessage() → ChatService → Q_EMIT messageStored → fetchAfter → Q_EMIT messagesInserted → ChatWidget
+**二维码登录流程**:
+1. LoginWidget → LoginPresenter.startQRLogin()
+2. WebSocketClient 发送 `qr_login_init` → 后端返回 session_id + qr_url
+3. LoginWidget 使用 zxing 生成二维码显示 qr_url
+4. 用户扫码 → 浏览器打开网页 → 输入用户名（无需密码）
+5. 后端验证用户名 → 生成 token → 推送 `qr_confirmed` 给 WebSocketClient
+6. LoginPresenter 收到推送 → Q_EMIT loginSuccess(User, token)
+7. MainWindow 保存 token 到本地文件
 
-接收: ChatService Q_EMIT messageStored → ChatPresenter.fetchAfter → Q_EMIT messagesInserted → ChatWidget
+**消息发送**:
+ChatWidget → ChatPresenter.sendMessage() → ChatService → WebSocketClient 发送 `send_message` → 后端存储 → 返回消息 → Q_EMIT messageStored → ChatPresenter.fetchAfter → Q_EMIT messagesInserted → ChatWidget
 
-撤回/编辑: ChatPresenter → ChatService → Q_EMIT messageUpdated → fetchMessage → Q_EMIT messageUpdated → ChatWidget
+**消息接收**:
+后端推送 `new_message` → WebSocketClient → ChatService Q_EMIT messageStored → ChatPresenter.fetchAfter → Q_EMIT messagesInserted → ChatWidget
 
-登录: LoginWidget → LoginPresenter.login() → AuthService → Q_EMIT loginSuccess(User) → MainWindow
+**撤回/编辑**:
+ChatPresenter → ChatService → WebSocketClient 发送 `revoke_message`/`edit_message` → 后端更新 → 返回成功 → Q_EMIT messageUpdated → ChatWidget
 
 ## 依赖与工具
 
-spdlog 1.17.0, gtest 1.17.0, sqlitecpp 3.3.3, boost 1.86.0 (UUID), Qt6 (Core/Widgets/Network)
+spdlog 1.17.0, gtest 1.17.0, sqlitecpp 3.3.3, boost 1.86.0 (UUID), Qt6 (Core/Widgets/Network/WebSockets), zxing-cpp (二维码生成)
 
 C++23 / CMake 3.24+ / Conan 2.0+ / MSVC / Ninja Multi-Config / `ENABLE_TESTING=ON`
+
+后端: Python 3.11+ / FastAPI / uvicorn / websockets / uv (包管理)
