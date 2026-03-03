@@ -5,7 +5,11 @@
 file(GLOB APP_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB APP_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 
-add_executable(wechat_app ${APP_SOURCES} ${APP_HEADERS})
+qt_add_resources(wechat_resources
+        ${CMAKE_SOURCE_DIR}/resources/resources.qrc
+)
+
+add_executable(wechat_app ${APP_SOURCES} ${APP_HEADERS} ${wechat_resources})
 
 target_compile_features(wechat_app PRIVATE cxx_std_23)
 

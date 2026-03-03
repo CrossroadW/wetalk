@@ -80,19 +80,4 @@ if(ENABLE_TESTING)
         add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
     endforeach()
 
-    # Sandbox
-    file(GLOB LOGIN_SANDBOX_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/sandbox/*.h)
-    if(LOGIN_SANDBOX_SOURCES)
-        qt_add_executable(sandbox_login ${LOGIN_SANDBOX_SOURCES})
-        target_compile_definitions(sandbox_login PRIVATE QT_NO_KEYWORDS
-            PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}")
-        set_target_properties(sandbox_login PROPERTIES AUTOMOC ON)
-        target_link_libraries(sandbox_login PUBLIC
-            wechat_login
-            wechat_network
-            Qt6::Widgets
-            Qt6::WebSockets)
-    endif()
 endif()

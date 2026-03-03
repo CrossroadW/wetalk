@@ -21,6 +21,7 @@ target_link_libraries(wechat_core
         Boost::exception
 )
 
+
 if(ENABLE_TESTING)
     # 单元测试
     file(GLOB CORE_UNIT_TEST_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit/*.cpp)
@@ -45,5 +46,6 @@ if(ENABLE_TESTING)
         target_compile_definitions(${TOOL_NAME} PRIVATE
             PROJECT_ROOT_PATH="${CMAKE_SOURCE_DIR}")
         target_link_libraries(${TOOL_NAME} PUBLIC wechat_core)
+
     endforeach()
 endif()

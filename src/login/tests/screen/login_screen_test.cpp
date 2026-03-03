@@ -122,36 +122,40 @@ private Q_SLOTS:
         saveScreenshot("qr_code.png");
     }
 
-    // ── Test: 初始加载状态（连接建立但还未请求 QR 码）─────────────
+    // ── Test: 正在进入状态（登录成功后的过渡状态）─────────────────
     void test_qr_entering() {
         if (!m_connected) QSKIP("Backend not available");
-        qDebug() << "\n=== Test: QR Entering (initial loading state) ===";
+        qDebug() << "\n=== Test: QR Entering (login success transition) ===";
 
-        // Widget 创建后立刻就是 Loading 状态，无需发送任何请求
-        QCOMPARE(m_loginWidget->qrStatusLabel->text(), QString("Connecting to server..."));
+        // 模拟登录成功，触发 showEntering()
+        // 通过 friend access 直接调用私有方法
+        m_loginWidget->showEntering();
+
+        // 验证状态
+        QCOMPARE(m_loginWidget->qrStatusLabel->text(), QString("正在进入"));
         saveScreenshot("qr_entering.png");
     }
 
-    // ── Test: 连接失败状态 ─────────────────────────────────────────
-    void test_connection_failed() {
+    // ── Test: 尝试连接状态 ─────────────────────────────────────────
+    void test_connecting() {
         // 此测试不需要后端连接
-        qDebug() << "\n=== Test: Connection Failed ===";
+        qDebug() << "\n=== Test: Connecting ===";
 
         // 创建一个没有 WebSocket 客户端的 widget
         auto* widget = new wechat::login::LoginWidget(nullptr);
         widget->setObjectName("LoginWidget");
-        widget->showConnectionFailed();
+        widget->showConnecting();
 
         // 验证状态
-        QCOMPARE(widget->qrStatusLabel->text(), QString("Cannot connect to server. Retrying..."));
+        QCOMPARE(widget->qrStatusLabel->text(), QString("连接服务器中..."));
 
         // 保存截图
         widget->show();
         (void)QTest::qWaitForWindowExposed(widget);
         QTest::qWait(100);
         QPixmap pix = widget->grab();
-        pix.toImage().save("connection_failed.png", "PNG", 70);
-        qDebug() << "📸 Screenshot saved: connection_failed.png Size:" << pix.size();
+        pix.toImage().save("connecting.png", "PNG", 70);
+        qDebug() << "📸 Screenshot saved: connecting.png Size:" << pix.size();
 
         delete widget;
     }
@@ -236,7 +240,7 @@ private Q_SLOTS:
         for (int i = 0; i < 20; ++i) {  // 最多等待 2 秒
             QTest::qWait(100);
             QCoreApplication::processEvents();  // 强制处理事件队列
-            if (m_loginWidget->qrStatusLabel->text() == "Scanned! Please confirm on your phone") {
+            if (m_loginWidget->qrStatusLabel->text() == "已扫描！请在手机上确认") {
                 stateUpdated = true;
                 break;
             }

@@ -7,6 +7,7 @@
 #include <QHBoxLayout>
 #include <QPixmap>
 #include <QJsonObject>
+#include <QIcon>
 #include <ZXing/BarcodeFormat.h>
 #include <ZXing/MultiFormatWriter.h>
 #include <ZXing/BitMatrix.h>
@@ -28,38 +29,141 @@ void LoginWidget::setWebSocketClient(network::WebSocketClient* client) {
 }
 
 void LoginWidget::setupUI() {
+    // 设置窗口背景色 - ChatFlow 浅色主题
+    setStyleSheet("QWidget { background-color: #F5F5F5; }");
+
     auto mainLayout = new QVBoxLayout(this);
-    mainLayout->setAlignment(Qt::AlignCenter);
     mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
 
-    // QR code login page (only page now)
-    auto qrLayout = new QVBoxLayout;
-    qrLayout->setAlignment(Qt::AlignCenter);
-    qrLayout->setSpacing(20);
+    // ========== 顶部标题栏 ==========
+    auto titleBar = new QWidget;
+    titleBar->setFixedHeight(50);
+    titleBar->setStyleSheet("background-color: #FFFFFF; border-bottom: 1px solid #E0E0E0;");
 
-    auto qrTitleLabel = new QLabel("WeTalk");
-    qrTitleLabel->setAlignment(Qt::AlignCenter);
-    qrTitleLabel->setStyleSheet("font-size: 24px; font-weight: bold;");
+    auto titleLayout = new QHBoxLayout(titleBar);
+    titleLayout->setContentsMargins(20, 0, 20, 0);
 
+    // 应用名称
+    titleLabel = new QLabel("畅聊");
+    titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #333333;");
+
+    titleLayout->addWidget(titleLabel);
+    titleLayout->addStretch();
+
+    // 设置按钮
+    settingsButton = new QPushButton;
+    settingsButton->setIcon(QIcon(":/icons/settings.svg"));
+    settingsButton->setIconSize(QSize(20, 20));
+    settingsButton->setFixedSize(36, 36);
+    settingsButton->setStyleSheet(
+        "QPushButton { background-color: transparent; border: none; border-radius: 18px; }"
+        "QPushButton:hover { background-color: #F0F0F0; }"
+        "QPushButton:pressed { background-color: #E0E0E0; }"
+    );
+    settingsButton->setCursor(Qt::PointingHandCursor);
+
+    // 关闭按钮
+    closeButton = new QPushButton;
+    closeButton->setIcon(QIcon(":/icons/close.svg"));
+    closeButton->setIconSize(QSize(20, 20));
+    closeButton->setFixedSize(36, 36);
+    closeButton->setStyleSheet(
+        "QPushButton { background-color: transparent; border: none; border-radius: 18px; }"
+        "QPushButton:hover { background-color: #FFEBEE; }"
+        "QPushButton:pressed { background-color: #FFCDD2; }"
+    );
+    closeButton->setCursor(Qt::PointingHandCursor);
+    connect(closeButton, &QPushButton::clicked, this, &QWidget::close);
+
+    titleLayout->addWidget(settingsButton);
+    titleLayout->addWidget(closeButton);
+
+    mainLayout->addWidget(titleBar);
+
+    // ========== 中间内容区域 ==========
+    auto contentWidget = new QWidget;
+    auto contentLayout = new QVBoxLayout(contentWidget);
+    contentLayout->setAlignment(Qt::AlignCenter);
+    contentLayout->setSpacing(20);
+    contentLayout->setContentsMargins(40, 40, 40, 40);
+
+    // 二维码区域
     qrCodeLabel = new QLabel;
     qrCodeLabel->setAlignment(Qt::AlignCenter);
     qrCodeLabel->setFixedSize(300, 300);
-    qrCodeLabel->setStyleSheet("background-color: white; border: 1px solid #ccc;");
+    qrCodeLabel->setStyleSheet(
+        "background-color: #FFFFFF; "
+        "border: 1px solid #E0E0E0; "
+        "border-radius: 8px;"
+    );
 
-    qrStatusLabel = new QLabel("Loading...");
+    // 状态文字
+    qrStatusLabel = new QLabel("加载中...");
     qrStatusLabel->setAlignment(Qt::AlignCenter);
-    qrStatusLabel->setStyleSheet("font-size: 14px; color: #666;");
+    qrStatusLabel->setStyleSheet("font-size: 14px; color: #666666;");
 
-    directLoginButton = new QPushButton("Enter WeChat");
+    // 直接登录按钮
+    directLoginButton = new QPushButton("进入畅聊");
     directLoginButton->setFixedWidth(260);
+    directLoginButton->setFixedHeight(40);
+    directLoginButton->setStyleSheet(
+        "QPushButton { "
+        "  background-color: #5B9FED; "
+        "  color: #FFFFFF; "
+        "  border: none; "
+        "  border-radius: 20px; "
+        "  font-size: 14px; "
+        "  font-weight: bold; "
+        "}"
+        "QPushButton:hover { background-color: #6AAFFD; }"
+        "QPushButton:pressed { background-color: #4B8FDD; }"
+    );
+    directLoginButton->setCursor(Qt::PointingHandCursor);
     directLoginButton->setVisible(false);
 
-    qrLayout->addWidget(qrTitleLabel);
-    qrLayout->addWidget(qrCodeLabel);
-    qrLayout->addWidget(qrStatusLabel);
-    qrLayout->addWidget(directLoginButton);
+    contentLayout->addWidget(qrCodeLabel);
+    contentLayout->addWidget(qrStatusLabel);
+    contentLayout->addWidget(directLoginButton);
 
-    mainLayout->addLayout(qrLayout);
+    // 取消按钮（用于正在进入状态）
+    cancelButton = new QPushButton("取消");
+    cancelButton->setStyleSheet(
+        "QPushButton { "
+        "  background-color: transparent; "
+        "  color: #999999; "
+        "  border: none; "
+        "  font-size: 14px; "
+        "}"
+        "QPushButton:hover { color: #666666; }"
+    );
+    cancelButton->setCursor(Qt::PointingHandCursor);
+    cancelButton->setVisible(false);
+    contentLayout->addWidget(cancelButton);
+
+    mainLayout->addWidget(contentWidget, 1);
+
+    // ========== 底部文件传输按钮 ==========
+    auto bottomWidget = new QWidget;
+    bottomWidget->setFixedHeight(60);
+    auto bottomLayout = new QVBoxLayout(bottomWidget);
+    bottomLayout->setContentsMargins(0, 0, 0, 20);
+    bottomLayout->setAlignment(Qt::AlignCenter);
+
+    fileTransferButton = new QPushButton("仅传输文件");
+    fileTransferButton->setStyleSheet(
+        "QPushButton { "
+        "  background-color: transparent; "
+        "  color: #999999; "
+        "  border: none; "
+        "  font-size: 13px; "
+        "}"
+        "QPushButton:hover { color: #5B9FED; }"
+    );
+    fileTransferButton->setCursor(Qt::PointingHandCursor);
+
+    bottomLayout->addWidget(fileTransferButton);
+    mainLayout->addWidget(bottomWidget);
 
     setFixedSize(800, 600);
 }
@@ -126,30 +230,65 @@ void LoginWidget::showQRCode(const QString& qrUrl) {
         }
 
         qrCodeLabel->setPixmap(QPixmap::fromImage(image));
-        qrStatusLabel->setText("Scan QR code with WeChat mobile app");
+        qrStatusLabel->setText("请使用手机扫描二维码登录");
+        qrStatusLabel->setStyleSheet("font-size: 14px; color: #5B9FED;");  // ChatFlow 蓝色
     } catch (const std::exception& e) {
         qrStatusLabel->setText(QString("Failed to generate QR code: %1").arg(e.what()));
+        qrStatusLabel->setStyleSheet("font-size: 14px; color: #E53935;");  // 错误红色
     }
 }
 
 void LoginWidget::showLoading() {
-    qrCodeLabel->setText("Loading...");
-    qrStatusLabel->setText("Connecting to server...");
+    qrCodeLabel->setText("加载中...");
+    qrCodeLabel->setStyleSheet(
+        "background-color: #FFFFFF; "
+        "border: 1px solid #E0E0E0; "
+        "border-radius: 8px; "
+        "color: #999999; "
+        "font-size: 16px;"
+    );
+    qrStatusLabel->setText("连接服务器中...");
+    qrStatusLabel->setStyleSheet("font-size: 14px; color: #666666;");
     directLoginButton->setVisible(false);
+    cancelButton->setVisible(false);
 }
 
 void LoginWidget::showScanned() {
-    qrStatusLabel->setText("Scanned! Please confirm on your phone");
-    qrStatusLabel->setStyleSheet("font-size: 14px; color: #07c160;");
+    qrStatusLabel->setText("已扫描！请在手机上确认");
+    qrStatusLabel->setStyleSheet("font-size: 14px; color: #5B9FED;");  // ChatFlow 蓝色
+    cancelButton->setVisible(false);
+}
+
+void LoginWidget::showEntering() {
+    qrCodeLabel->setText("加载中...");
+    qrCodeLabel->setStyleSheet(
+        "background-color: #FFFFFF; "
+        "border: 1px solid #E0E0E0; "
+        "border-radius: 8px; "
+        "color: #999999; "
+        "font-size: 16px;"
+    );
+    qrStatusLabel->setText("正在进入");
+    qrStatusLabel->setStyleSheet("font-size: 14px; color: #07C160;");  // 微信绿色
+    directLoginButton->setVisible(false);
+    cancelButton->setVisible(true);
 }
 
 void LoginWidget::showDirectLogin(const QString& username) {
     currentUsername = username;
     qrCodeLabel->clear();
-    qrCodeLabel->setText(QString("Welcome back, %1!").arg(username));
-    qrCodeLabel->setStyleSheet("background-color: white; border: 1px solid #ccc; font-size: 18px;");
-    qrStatusLabel->setText("Click below to enter WeChat");
+    qrCodeLabel->setText(QString("欢迎回来，%1！").arg(username));
+    qrCodeLabel->setStyleSheet(
+        "background-color: #FFFFFF; "
+        "border: 1px solid #E0E0E0; "
+        "border-radius: 8px; "
+        "font-size: 18px; "
+        "color: #333333;"
+    );
+    qrStatusLabel->setText("点击下方按钮进入");
+    qrStatusLabel->setStyleSheet("font-size: 14px; color: #666666;");
     directLoginButton->setVisible(true);
+    cancelButton->setVisible(false);
 
     connect(directLoginButton, &QPushButton::clicked, this, [this]() {
         // TODO: Get userId from token verification
@@ -159,11 +298,19 @@ void LoginWidget::showDirectLogin(const QString& username) {
     });
 }
 
-void LoginWidget::showConnectionFailed() {
-    qrCodeLabel->setText("Loading...");
-    qrStatusLabel->setText("Cannot connect to server. Retrying...");
-    qrStatusLabel->setStyleSheet("font-size: 14px; color: #e74c3c;");  // 红色
+void LoginWidget::showConnecting() {
+    qrCodeLabel->setText("加载中...");
+    qrCodeLabel->setStyleSheet(
+        "background-color: #FFFFFF; "
+        "border: 1px solid #E0E0E0; "
+        "border-radius: 8px; "
+        "color: #999999; "
+        "font-size: 16px;"
+    );
+    qrStatusLabel->setText("连接服务器中...");
+    qrStatusLabel->setStyleSheet("font-size: 14px; color: #666666;");
     directLoginButton->setVisible(false);
+    cancelButton->setVisible(false);
 }
 
 void LoginWidget::onConnected() {
@@ -188,6 +335,9 @@ void LoginWidget::onQRScanned() {
 void LoginWidget::onQRConfirmed(int userId, const QString& username, const QString& token) {
     currentToken = token;
     // TODO: Save token to settings
+
+    // 显示正在进入状态
+    showEntering();
 
     core::User user;
     user.id = userId;

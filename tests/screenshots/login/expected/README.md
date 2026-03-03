@@ -9,7 +9,7 @@
 ```
 启动
   ↓
-connection_failed — 连接失败（显示重试中，每秒重试）
+connecting — 尝试连接（显示连接中，每秒重试）
   ↓（连接成功）
 qr_code 或 direct_login
 ```
@@ -44,13 +44,13 @@ qr_entering      — 正在进入
 
 ## 截图说明
 
-### connection_failed.png — 连接失败
+### connecting.png — 尝试连接
 
 - 显示 WeTalk 标题
 - 显示 "Loading..." 加载状态
-- 提示文字：`Cannot connect to server. Retrying...`（红色）
+- 提示文字：`Connecting to server...`（灰色）
 
-**触发方式**：WebSocket 连接失败时显示此状态，每秒自动重试连接。
+**触发方式**：应用启动时立即显示此状态，无论服务器是否可用。每秒自动尝试连接，连接成功后切换到二维码或直接登录状态。
 
 ---
 
@@ -76,9 +76,9 @@ qr_entering      — 正在进入
 ### qr_entering.png — 正在进入
 
 - 二维码区域显示 `Loading...`
-- 提示文字：`Connecting to server...`
+- 提示文字：`Entering ChatFlow...`（蓝色）
 
-**触发方式**：widget 刚创建、WebSocket 连接已建立但尚未收到 `qr_login_init` 响应时的初始状态；也用于表示登录成功后跳转前的过渡状态。
+**触发方式**：登录成功后（qr_confirmed 或 token 验证成功），跳转主界面前的过渡状态。
 
 ---
 

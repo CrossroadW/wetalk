@@ -27,7 +27,7 @@ public:
     explicit LoginWidget(network::WebSocketClient* wsClient, QWidget* parent = nullptr);
 
     void setWebSocketClient(network::WebSocketClient* client);
-    void showConnectionFailed();  // 公共方法：显示连接失败状态
+    void showConnecting();  // 公共方法：显示尝试连接状态
 
 private Q_SLOTS:
     // QR code login slots
@@ -48,12 +48,20 @@ private:
     void showQRCode(const QString& qrUrl);
     void showLoading();
     void showScanned();
+    void showEntering();
     void showDirectLogin(const QString& username);
+
+    // Title bar widgets
+    QLabel* titleLabel;
+    QPushButton* settingsButton;
+    QPushButton* closeButton;
 
     // QR code login widgets
     QLabel* qrCodeLabel;
     QLabel* qrStatusLabel;
     QPushButton* directLoginButton;
+    QPushButton* cancelButton;  // 取消按钮
+    QPushButton* fileTransferButton;
 
     network::WebSocketClient* wsClient = nullptr;
     QString currentSessionId;
