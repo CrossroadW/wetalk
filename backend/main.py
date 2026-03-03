@@ -1,5 +1,5 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import secrets
@@ -203,7 +203,10 @@ async def qr_confirm(data: dict):
     username = data.get("username")
 
     if not session_id or not username:
-        return {"success": False, "detail": "缺少参数"}
+        return JSONResponse(
+            status_code=400,
+            content={"success": False, "detail": "缺少参数"}
+        )
 
     with get_db() as conn:
         cursor = conn.cursor()
@@ -215,16 +218,33 @@ async def qr_confirm(data: dict):
         )
         session = cursor.fetchone()
         if not session:
-            return {"success": False, "detail": "二维码已失效"}
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "detail": "二维码已失效"}
+            )
 
         if session["expires_at"] < int(time.time()):
-            return {"success": False, "detail": "二维码已过期"}
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "detail": "二维码已过期"}
+            )
 
         # 查找用户（仅通过用户名）
         cursor.execute("SELECT id, username FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         if not user:
-            return {"success": False, "detail": "用户不存在"}
+            # 用户不存在，推送错误消息给客户端
+            await manager.send_to_qr_watcher(session_id, {
+                "type": "qr_login_failed",
+                "success": False,
+                "data": {
+                    "message": "用户不存在"
+                }
+            })
+            return JSONResponse(
+                status_code=400,
+                content={"success": False, "detail": "用户不存在"}
+            )
 
         # 生成 token
         token = secrets.token_urlsafe(32)

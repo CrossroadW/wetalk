@@ -31,6 +31,7 @@ Q_SIGNALS:
 
 private:
     network::NetworkClient& client;
+    static int _init;
 };
 
 } // namespace login

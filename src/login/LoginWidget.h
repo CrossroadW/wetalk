@@ -35,6 +35,7 @@ private Q_SLOTS:
     void onQRLoginInitResponse(const QString& sessionId, const QString& qrUrl, int expiresAt);
     void onQRScanned();
     void onQRConfirmed(int userId, const QString& username, const QString& token);
+    void onQRLoginFailed(const QString& message);
     void onTokenVerified(int userId, const QString& username);
     void onTokenInvalid();
 

@@ -7,6 +7,7 @@ import time
 from fastapi import WebSocket
 from managers import manager
 from core import get_db
+from config import QR_BASE_URL
 
 
 async def handle_register(websocket: WebSocket, msg_data: dict) -> dict:
@@ -148,7 +149,7 @@ async def handle_qr_login_init(websocket: WebSocket, msg_data: dict) -> tuple[st
         "success": True,
         "data": {
             "session_id": session_id,
-            "qr_url": f"http://localhost:8000/qr-login?session={session_id}",
+            "qr_url": f"{QR_BASE_URL}/qr-login?session={session_id}",
             "expires_at": expires_at
         }
     }

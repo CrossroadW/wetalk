@@ -9,23 +9,43 @@ import json
 @pytest.fixture
 async def authenticated_client(ws_client):
     """提供已认证的 WebSocket 客户端"""
-    # 获取有效 token
-    import sqlite3
-    from pathlib import Path
+    import httpx
 
-    db_path = Path(__file__).parent.parent / "wetalk.db"
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT token FROM users WHERE username = 'alice' AND token IS NOT NULL LIMIT 1")
-    row = cursor.fetchone()
-    conn.close()
+    # 通过二维码登录流程获取 token
+    await ws_client.send(json.dumps({
+        "type": "qr_login_init",
+        "data": {}
+    }))
 
-    if not row or not row[0]:
-        pytest.skip("需要先登录获取 token")
+    response = await ws_client.recv()
+    data = json.loads(response)
+    session_id = data["data"]["session_id"]
 
-    token = row[0]
+    # 模拟扫码确认
+    async with httpx.AsyncClient() as client:
+        await client.post(
+            "http://127.0.0.1:8000/api/qr-confirm",
+            json={
+                "session_id": session_id,
+                "username": "alice"
+            }
+        )
 
-    # 验证 token
+    # 接收登录成功推送（先 qr_scanned，再 qr_confirmed）
+    response = await ws_client.recv()
+    data = json.loads(response)
+    if data["type"] != "qr_scanned":
+        pytest.skip("未收到 qr_scanned")
+
+    response = await ws_client.recv()
+    data = json.loads(response)
+
+    if data["type"] != "qr_confirmed" or not data["success"]:
+        pytest.skip("登录失败")
+
+    token = data["data"]["token"]
+
+    # 验证 token 以在 WebSocket 连接中设置 current_token
     await ws_client.send(json.dumps({
         "type": "verify_token",
         "data": {"token": token}

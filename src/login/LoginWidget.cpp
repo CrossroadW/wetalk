@@ -8,6 +8,7 @@
 #include <QPixmap>
 #include <QJsonObject>
 #include <QIcon>
+#include <QTimer>
 #include <ZXing/BarcodeFormat.h>
 #include <ZXing/MultiFormatWriter.h>
 #include <ZXing/BitMatrix.h>
@@ -189,6 +190,8 @@ void LoginWidget::setupQRLoginConnections() {
                 data["username"].toString(),
                 data["token"].toString()
             );
+        } else if (type == "qr_login_failed") {
+            onQRLoginFailed(data["message"].toString());
         } else if (type == "verify_token") {
             if (data["success"].toBool()) {
                 onTokenVerified(data["user_id"].toInt(), data["username"].toString());
@@ -260,18 +263,19 @@ void LoginWidget::showScanned() {
 }
 
 void LoginWidget::showEntering() {
-    qrCodeLabel->setText("加载中...");
+    qrCodeLabel->setText("✓ 登录成功");
     qrCodeLabel->setStyleSheet(
-        "background-color: #FFFFFF; "
-        "border: 1px solid #E0E0E0; "
+        "background-color: #07C160; "  // 微信绿色背景
+        "border: 1px solid #06AD56; "
         "border-radius: 8px; "
-        "color: #999999; "
-        "font-size: 16px;"
+        "color: #FFFFFF; "  // 白色文字
+        "font-size: 24px; "
+        "font-weight: bold;"
     );
-    qrStatusLabel->setText("正在进入");
-    qrStatusLabel->setStyleSheet("font-size: 14px; color: #07C160;");  // 微信绿色
+    qrStatusLabel->setText("正在进入微信...");
+    qrStatusLabel->setStyleSheet("font-size: 16px; color: #07C160; font-weight: bold;");
     directLoginButton->setVisible(false);
-    cancelButton->setVisible(true);
+    cancelButton->setVisible(false);  // 登录成功后隐藏取消按钮
 }
 
 void LoginWidget::showDirectLogin(const QString& username) {
@@ -345,6 +349,28 @@ void LoginWidget::onQRConfirmed(int userId, const QString& username, const QStri
     user.token = token.toStdString();
 
     Q_EMIT loggedIn(user);
+}
+
+void LoginWidget::onQRLoginFailed(const QString& message) {
+    // 显示错误信息
+    qrCodeLabel->clear();
+    qrCodeLabel->setText("登录失败");
+    qrCodeLabel->setStyleSheet(
+        "background-color: #FFFFFF; "
+        "border: 1px solid #E0E0E0; "
+        "border-radius: 8px; "
+        "font-size: 18px; "
+        "color: #E53935;"  // 红色
+    );
+    qrStatusLabel->setText(message);
+    qrStatusLabel->setStyleSheet("font-size: 14px; color: #E53935;");  // 红色
+    directLoginButton->setVisible(false);
+    cancelButton->setVisible(false);
+
+    // 3秒后重新显示二维码
+    QTimer::singleShot(3000, this, [this]() {
+        initQRLogin();
+    });
 }
 
 void LoginWidget::onTokenVerified(int userId, const QString& username) {

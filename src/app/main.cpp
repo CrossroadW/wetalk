@@ -7,13 +7,14 @@
 #include "../login/LoginWidget.h"
 
 #include <QApplication>
+#include <QDirIterator>
 #include <QTimer>
 
 #include <spdlog/spdlog.h>
 
 int main(int argc, char* argv[]) {
+    Q_INIT_RESOURCE(resources);
     wechat::log::init();
-
     QApplication app(argc, argv);
 
     // 连接 WebSocket 后端（二维码登录）
@@ -59,16 +60,15 @@ int main(int argc, char* argv[]) {
 
         // 登录成功 → 切换到主窗口
         QObject::connect(loginWidget, &wechat::login::LoginWidget::loggedIn,
-                         [mainWindow](wechat::core::User user) {
+                         [mainWindow,loginWidget](wechat::core::User user) {
                              spdlog::info("Logged in as {} (id={})",
                                           user.username, user.id);
                              mainWindow->setSession(user.token, user.id);
                              mainWindow->show();
+                             loginWidget->deleteLater();
                          });
 
         // 登录窗口关闭时也关闭主窗口
-        QObject::connect(loginWidget, &QWidget::destroyed, mainWindow,
-                         &QWidget::close);
     };
 
     // 首次尝试连接

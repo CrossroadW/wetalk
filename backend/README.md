@@ -148,11 +148,24 @@ uv run python main.py  # 会自动重新创建
 
 ### 运行测试
 
-测试框架会自动启动/停止后端服务：
+推荐使用 pytest 进行自动化测试（会自动启动/停止后端服务）：
 
 ```bash
-uv run pytest -v
+# 运行所有测试
+uv run pytest
+
+# 运行特定测试
+uv run pytest tests/test_auth.py -v
+
+# 显示详细输出
+uv run pytest -v -s
 ```
+
+测试框架会自动：
+- ✅ 启动后端服务器
+- ✅ 初始化数据库
+- ✅ 运行所有测试
+- ✅ 停止服务器并清理
 
 ## 技术栈
 

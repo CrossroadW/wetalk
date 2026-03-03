@@ -5,11 +5,15 @@
 namespace wechat {
 namespace login {
 
-LoginPresenter::LoginPresenter(network::NetworkClient& client, QObject* parent)
-    : QObject(parent), client(client) {}
 
-void LoginPresenter::login(const std::string& username,
-                           const std::string& password) {
+LoginPresenter::LoginPresenter(network::NetworkClient &client, QObject *parent)
+    : QObject(parent),
+      client(client) {
+
+}
+
+void LoginPresenter::login(std::string const &username,
+                           std::string const &password) {
     auto result = client.auth().login(username, password);
     if (result.has_value()) {
         Q_EMIT loginSuccess(result.value());
@@ -18,8 +22,8 @@ void LoginPresenter::login(const std::string& username,
     }
 }
 
-void LoginPresenter::registerUser(const std::string& username,
-                                  const std::string& password) {
+void LoginPresenter::registerUser(std::string const &username,
+                                  std::string const &password) {
     auto result = client.auth().registerUser(username, password);
     if (result.has_value()) {
         Q_EMIT loginSuccess(result.value());
@@ -29,18 +33,19 @@ void LoginPresenter::registerUser(const std::string& username,
 }
 
 void LoginPresenter::startQRLogin() {
-    auto* ws = client.ws();
+    auto *ws = client.ws();
     if (!ws) {
         Q_EMIT loginFailed("QR login not supported in offline mode");
         return;
     }
 
     // 每次调用重新连接（先断开旧连接避免重复）
-    QObject::disconnect(ws, &network::WebSocketClient::messageReceived,
-                        this, nullptr);
+    QObject::disconnect(ws, &network::WebSocketClient::messageReceived, this,
+                        nullptr);
 
-    QObject::connect(ws, &network::WebSocketClient::messageReceived,
-        this, [this](const QString& type, const QJsonObject& data) {
+    QObject::connect(
+        ws, &network::WebSocketClient::messageReceived, this,
+        [this](QString const &type, QJsonObject const &data) {
             if (type == "qr_login_init") {
                 if (data["success"].toBool()) {
                     Q_EMIT qrCodeReady(data["qr_url"].toString(),
@@ -63,7 +68,7 @@ void LoginPresenter::startQRLogin() {
     ws->send(request);
 }
 
-void LoginPresenter::loginWithToken(const std::string& token) {
+void LoginPresenter::loginWithToken(std::string const &token) {
     auto result = client.auth().getCurrentUser(token);
     if (result.has_value()) {
         Q_EMIT loginSuccess(result.value());

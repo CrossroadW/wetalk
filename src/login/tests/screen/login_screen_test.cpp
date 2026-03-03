@@ -132,7 +132,8 @@ private Q_SLOTS:
         m_loginWidget->showEntering();
 
         // 验证状态
-        QCOMPARE(m_loginWidget->qrStatusLabel->text(), QString("正在进入"));
+        QCOMPARE(m_loginWidget->qrStatusLabel->text(), QString("正在进入微信..."));
+        QCOMPARE(m_loginWidget->qrCodeLabel->text(), QString("✓ 登录成功"));
         saveScreenshot("qr_entering.png");
     }
 
@@ -235,19 +236,24 @@ private Q_SLOTS:
 
         QVERIFY2(httpSuccess, "HTTP POST to /api/qr-confirm failed");
 
-        // 轮询等待 widget 状态更新（backend 推送 qr_scanned 后 widget 调用 showScanned）
+        // 轮询等待 widget 状态更新
+        // 由于后端连续推送 qr_scanned 和 qr_confirmed，可能捕获到中间状态或最终状态
         bool stateUpdated = false;
+        QString finalLabel;
         for (int i = 0; i < 20; ++i) {  // 最多等待 2 秒
             QTest::qWait(100);
             QCoreApplication::processEvents();  // 强制处理事件队列
-            if (m_loginWidget->qrStatusLabel->text() == "已扫描！请在手机上确认") {
+            finalLabel = m_loginWidget->qrStatusLabel->text();
+            // 接受两种状态：中间状态（已扫描）或最终状态（正在进入微信...）
+            if (finalLabel == "已扫描！请在手机上确认" || finalLabel == "正在进入微信...") {
                 stateUpdated = true;
                 break;
             }
         }
 
         QVERIFY2(stateUpdated, qPrintable(QString("Widget state not updated. Current label: '%1'")
-                                          .arg(m_loginWidget->qrStatusLabel->text())));
+                                          .arg(finalLabel)));
+        qDebug() << "✅ Widget state:" << finalLabel;
         saveScreenshot("qr_scanned.png");
     }
 
@@ -344,6 +350,7 @@ private:
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+    Q_INIT_RESOURCE(resources);
     LoginScreenTest test;
     int result = QTest::qExec(&test, argc, argv);
     qDebug() << "\n========================================";

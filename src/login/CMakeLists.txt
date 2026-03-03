@@ -4,10 +4,13 @@ file(GLOB LOGIN_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
 file(GLOB LOGIN_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
 file(GLOB LOGIN_PUBLIC_HEADERS ${CMAKE_SOURCE_DIR}/include/wechat/login/*.h)
 
+set(wechat_resources ${CMAKE_SOURCE_DIR}/resources/resources.qrc)
+
 target_sources(wechat_login PRIVATE
     ${LOGIN_SOURCES}
     ${LOGIN_HEADERS}
     ${LOGIN_PUBLIC_HEADERS}
+    ${wechat_resources}
 )
 
 target_include_directories(wechat_login
@@ -22,7 +25,7 @@ target_compile_definitions(wechat_login PRIVATE
 set_target_properties(wechat_login PROPERTIES
     AUTOMOC ON
     AUTOUIC OFF
-    AUTORCC OFF
+    AUTORCC ON
 )
 
 target_link_libraries(wechat_login

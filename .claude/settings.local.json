@@ -31,7 +31,15 @@
       "Bash(python -c \":*)",
       "Read(//c/workspace/wechat/src/login/**)",
       "Read(//c/workspace/**)",
-      "Bash(cmake --preset default)"
+      "Bash(cmake --preset default)",
+      "Bash(curl -X POST http://127.0.0.1:8000/api/qr-confirm -H \"Content-Type: application/json\" -d '{\"\"session_id\"\": \"\"test_session_123\"\", \"\"username\"\": \"\"nonexistent_user\"\"}')",
+      "Bash(python test_qr_flow.py)",
+      "Bash(uv run python test_qr_flow.py)",
+      "Bash(curl -X POST http://localhost:8000/api/qr-confirm -H \"Content-Type: application/json\" -d '{\"\"session_id\"\": \"\"test123\"\", \"\"username\"\": \"\"nonexistent\"\"}' -i)",
+      "Bash(uv run pytest tests/test_auth.py -v)",
+      "Bash(uv run pytest tests/test_chat.py -v)",
+      "Bash(uv run pytest tests/test_chat.py::test_send_message -v)",
+      "Bash(uv run pytest tests/ -v --tb=short)"
     ]
   }
 }
