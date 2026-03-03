@@ -18,6 +18,7 @@ target_link_libraries(wechat_core
         wechat_log
         SQLiteCpp
         Boost::headers
+        Boost::exception
 )
 
 if(ENABLE_TESTING)

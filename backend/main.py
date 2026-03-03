@@ -237,7 +237,12 @@ async def qr_confirm(data: dict):
         )
         conn.commit()
 
-        # 推送通知给桌面客户端
+        # 先推送扫码通知，再推送确认通知
+        await manager.send_to_qr_watcher(session_id, {
+            "type": "qr_scanned",
+            "success": True,
+            "data": {}
+        })
         await manager.send_to_qr_watcher(session_id, {
             "type": "qr_confirmed",
             "success": True,

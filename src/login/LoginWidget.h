@@ -12,6 +12,9 @@ namespace wechat::network {
 class WebSocketClient;
 }
 
+// Forward declaration for screen test access
+class LoginScreenTest;
+
 namespace wechat {
 namespace login {
 
@@ -21,18 +24,12 @@ class LoginWidget : public QWidget {
     Q_OBJECT
 
 public:
-    explicit LoginWidget(QWidget* parent = nullptr);
     explicit LoginWidget(network::WebSocketClient* wsClient, QWidget* parent = nullptr);
 
-    void setPresenter(LoginPresenter* presenter);
     void setWebSocketClient(network::WebSocketClient* client);
+    void showConnectionFailed();  // 公共方法：显示连接失败状态
 
 private Q_SLOTS:
-    void onSubmit();
-    void onToggleMode();
-    void onLoginSuccess(core::User user);
-    void onLoginFailed(QString message);
-
     // QR code login slots
     void onConnected();
     void onQRLoginInitResponse(const QString& sessionId, const QString& qrUrl, int expiresAt);
@@ -46,7 +43,6 @@ Q_SIGNALS:
 
 private:
     void setupUI();
-    void setupConnections();
     void setupQRLoginConnections();
     void initQRLogin();
     void showQRCode(const QString& qrUrl);
@@ -54,27 +50,17 @@ private:
     void showScanned();
     void showDirectLogin(const QString& username);
 
-    // Username/password login widgets
-    QLineEdit* usernameInput;
-    QLineEdit* passwordInput;
-    QPushButton* submitButton;
-    QPushButton* toggleButton;
-    QLabel* statusLabel;
-
     // QR code login widgets
-    QStackedWidget* stackedWidget;
-    QWidget* usernamePasswordPage;
-    QWidget* qrCodePage;
     QLabel* qrCodeLabel;
     QLabel* qrStatusLabel;
     QPushButton* directLoginButton;
 
-    LoginPresenter* presenter = nullptr;
     network::WebSocketClient* wsClient = nullptr;
-    bool registerMode = false;
     QString currentSessionId;
     QString currentToken;
     QString currentUsername;
+
+    friend class ::LoginScreenTest;
 };
 
 } // namespace login

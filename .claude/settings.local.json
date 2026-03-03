@@ -30,7 +30,8 @@
       "Bash(./build/src/login/Release/login_screen_test.exe)",
       "Bash(python -c \":*)",
       "Read(//c/workspace/wechat/src/login/**)",
-      "Read(//c/workspace/**)"
+      "Read(//c/workspace/**)",
+      "Bash(cmake --preset default)"
     ]
   }
 }

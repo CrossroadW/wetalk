@@ -39,7 +39,11 @@ class ConnectionManager:
     async def send_to_qr_watcher(self, session_id: str, message: dict):
         """向二维码监听者发送消息"""
         if session_id in self.qr_watchers:
+            print(f"✅ Sending to QR watcher {session_id}: {message.get('type')}")
             await self.qr_watchers[session_id].send_json(message)
+        else:
+            print(f"⚠️  QR watcher not found for session {session_id}")
+            print(f"   Available sessions: {list(self.qr_watchers.keys())}")
 
 
 # 全局连接管理器实例
