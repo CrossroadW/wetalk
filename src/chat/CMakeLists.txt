@@ -31,7 +31,7 @@ target_link_libraries(wechat_chat
         wechat_network
         Qt6::Core
         Qt6::Widgets
-        wechat_log
+        
 )
 
 if(ENABLE_TESTING)

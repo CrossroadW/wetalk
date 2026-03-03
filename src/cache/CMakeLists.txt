@@ -26,7 +26,7 @@ set_target_properties(wechat_cache PROPERTIES
 target_link_libraries(wechat_cache
     PUBLIC
         wechat_core
-        wechat_log
+        
         Qt6::Core
         SQLiteCpp
         nlohmann_json::nlohmann_json

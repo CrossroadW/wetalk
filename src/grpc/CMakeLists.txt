@@ -71,7 +71,7 @@ target_link_libraries(wechat_grpc
         PUBLIC
         wechat_network  # 依赖网络模块接口
         wechat_core
-        wechat_log
+        
         gRPC::grpc++
         protobuf::libprotobuf
 )

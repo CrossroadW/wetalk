@@ -39,7 +39,8 @@
       "Bash(uv run pytest tests/test_auth.py -v)",
       "Bash(uv run pytest tests/test_chat.py -v)",
       "Bash(uv run pytest tests/test_chat.py::test_send_message -v)",
-      "Bash(uv run pytest tests/ -v --tb=short)"
+      "Bash(uv run pytest tests/ -v --tb=short)",
+      "Bash(xargs grep -l \"wechat/log/Log.h\")"
     ]
   }
 }

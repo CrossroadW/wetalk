@@ -1,7 +1,7 @@
 #include "MainWindow.h"
 
 #include <wechat/core/AppPaths.h>
-#include <wechat/log/Log.h>
+#include <wechat/core/Log.h>
 #include <wechat/network/NetworkClient.h>
 
 #include "../login/LoginWidget.h"

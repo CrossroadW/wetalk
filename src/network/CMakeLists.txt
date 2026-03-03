@@ -24,7 +24,7 @@ target_link_libraries(wechat_network
     PUBLIC
         wechat_core
         wechat_cache
-        wechat_log
+        
         Qt6::Core
         Qt6::WebSockets
         SQLiteCpp

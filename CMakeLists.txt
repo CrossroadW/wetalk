@@ -32,7 +32,6 @@ endif ()
 include_directories(include)
 
 # Modules
-add_subdirectory(src/log)
 add_subdirectory(src/core)
 add_subdirectory(src/cache)
 add_subdirectory(src/network)

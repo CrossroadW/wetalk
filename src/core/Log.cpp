@@ -1,4 +1,4 @@
-#include <wechat/log/Log.h>
+#include <wechat/core/Log.h>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/daily_file_sink.h>

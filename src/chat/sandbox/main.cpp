@@ -2,7 +2,7 @@
 #include <spdlog/spdlog.h>
 
 #include <wechat/core/AppPaths.h>
-#include <wechat/log/Log.h>
+#include <wechat/core/Log.h>
 
 #include "ChatSandbox.h"
 

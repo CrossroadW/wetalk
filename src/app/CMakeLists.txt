@@ -36,7 +36,7 @@ target_link_libraries(wechat_app
         wechat_login
         wechat_contacts
         wechat_network
-        wechat_log
+        
         Qt6::Widgets
 )
 

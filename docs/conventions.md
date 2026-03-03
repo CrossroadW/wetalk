@@ -165,7 +165,6 @@ endif()
 
 | 模块 | 库名 | 说明 | 有 Sandbox |
 |------|------|------|-----------|
-| log | wechat_log | 日志模块（封装 spdlog） | 是 |
 | core | wechat_core | 基础类型（User, Message, Group） | 否 |
 | network | wechat_network | 网络服务接口 + Mock 实现（含 SQLite 存储） | 否 |
 | login | wechat_login | 登录/注册（LoginPresenter + LoginWidget） | 是 |
@@ -379,7 +378,6 @@ target_link_libraries(wechat_foo
     PUBLIC
         wechat_core
         wechat_network
-        wechat_log
         Qt6::Core
 )
 ```
