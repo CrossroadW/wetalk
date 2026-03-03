@@ -10,7 +10,7 @@ TEST_F(LoginPresenterTest, RegisterSuccess) {
     ASSERT_TRUE(successSpy.isValid());
     ASSERT_TRUE(failSpy.isValid());
 
-    presenter->registerUser("alice", "pass123");
+    presenter->registerUser("newuser", "pass123");
 
     ASSERT_TRUE(waitForSignal(successSpy, 3000)) << "Timeout waiting for loginSuccess signal";
     ASSERT_EQ(successSpy.count(), 1);
@@ -18,7 +18,7 @@ TEST_F(LoginPresenterTest, RegisterSuccess) {
 
     auto user = successSpy.at(0).at(0).value<core::User>();
     EXPECT_NE(user.id, 0);
-    EXPECT_EQ(user.username, "alice");
+    EXPECT_EQ(user.username, "newuser");
     EXPECT_FALSE(user.token.empty());
 }
 

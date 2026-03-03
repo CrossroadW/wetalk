@@ -101,8 +101,8 @@ TEST_F(LoginPresenterTest, QRLogin_MultipleRequests) {
     presenter->startQRLogin();
 
     // 每次请求都应该生成新的二维码（等待所有信号，最多3秒）
-    for (int i = 0; i < 3 && qrReadySpy.count() < 3; ++i) {
-        waitForSignal(qrReadySpy, 1000);
+    while (qrReadySpy.count() < 3) {
+        if (!qrReadySpy.wait(1000)) break;
     }
     ASSERT_EQ(qrReadySpy.count(), 3);
 

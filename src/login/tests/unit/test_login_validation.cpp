@@ -7,23 +7,23 @@
 TEST_F(LoginPresenterTest, RegisterReturnsValidUser) {
     QSignalSpy spy(presenter.get(), &login::LoginPresenter::loginSuccess);
 
-    presenter->registerUser("eve", "password");
+    presenter->registerUser("testuser1", "password");
 
     ASSERT_TRUE(waitForSignal(spy, 3000)) << "Timeout waiting for loginSuccess signal";
     auto user = spy.at(0).at(0).value<core::User>();
     EXPECT_NE(user.id, 0);
-    EXPECT_EQ(user.username, "eve");
+    EXPECT_EQ(user.username, "testuser1");
     EXPECT_EQ(user.password, "password");
     EXPECT_FALSE(user.token.empty());
 }
 
 TEST_F(LoginPresenterTest, LoginRefreshesToken) {
-    auto reg = client->auth().registerUser("frank", "pass");
+    auto reg = client->auth().registerUser("testuser2", "pass");
     auto firstToken = reg->token;
 
     QSignalSpy spy(presenter.get(), &login::LoginPresenter::loginSuccess);
 
-    presenter->login("frank", "pass");
+    presenter->login("testuser2", "pass");
 
     ASSERT_TRUE(waitForSignal(spy, 3000)) << "Timeout waiting for loginSuccess signal";
     auto user = spy.at(0).at(0).value<core::User>();

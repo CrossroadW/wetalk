@@ -9,7 +9,7 @@
 #include "LoginWidget.h"
 
 // 截图测试 — 使用真实 WebSocket 连接后端
-// 要求：后端运行在 ws://localhost:8000/ws
+// 要求：后端运行在 ws://127.0.0.1:8000/ws
 class LoginScreenTest : public QObject {
     Q_OBJECT
 
@@ -30,16 +30,25 @@ private Q_SLOTS:
         timeout.setSingleShot(true);
         timeout.setInterval(2000);
         connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
-        connect(m_wsClient, &wechat::network::WebSocketClient::connected, &loop, &QEventLoop::quit);
-        connect(m_wsClient, &wechat::network::WebSocketClient::error, &loop, &QEventLoop::quit);
+        connect(m_wsClient, &wechat::network::WebSocketClient::connected, [&]() {
+            qDebug() << "✅ WebSocket connected";
+            loop.quit();
+        });
+        connect(m_wsClient, &wechat::network::WebSocketClient::error, [&](const QString& err) {
+            qWarning() << "❌ WebSocket error:" << err;
+            loop.quit();
+        });
 
-        m_wsClient->connectToServer("ws://localhost:8000/ws");
-        timeout.start();
+        qDebug() << "Connecting to ws://127.0.0.1:8000/ws...";
+        m_wsClient->connectToServer("ws://127.0.0.1:8000/ws");
+        timeout.start(); 
         loop.exec();
 
         m_connected = m_wsClient->isConnected();
         if (!m_connected)
-            qWarning() << "⚠️  Backend not available at ws://localhost:8000/ws";
+            qWarning() << "⚠️  Backend not available at ws://127.0.0.1:8000/ws";
+        else
+            qDebug() << "✅ Backend connected successfully";
     }
 
     void init() {
@@ -160,39 +169,75 @@ private Q_SLOTS:
         if (!m_connected) QSKIP("Backend not available");
         qDebug() << "\n=== Test 04: Direct Login (Token Verification) ===";
 
-        bool gotResponse = false;
-        bool tokenValid = false;
-        QEventLoop loop;
-        QTimer timeout;
-        timeout.setSingleShot(true);
-        timeout.setInterval(1500);
-        connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+        // 先注册测试用户获取真实 token（若已存在则改用 login）
+        QString token;
+        const QString testUser = "screen_test04";
+        const QString testPass = "pass123";
 
-        auto conn = connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
-                [&](const QString& type, const QJsonObject& data) {
-            if (type == "verify_token") {
-                tokenValid = data["success"].toBool();
-                gotResponse = true;
-                loop.quit();
-            }
-        });
+        for (const QString& msgType : {"register", "login"}) {
+            if (!token.isEmpty()) break;
 
-        QJsonObject req;
-        req["type"] = "verify_token";
-        QJsonObject data;
-        data["token"] = "test_token_12345";
-        req["data"] = data;
-        m_wsClient->send(req);
+            QEventLoop loop;
+            QTimer timeout;
+            timeout.setSingleShot(true);
+            timeout.setInterval(1500);
+            connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
 
-        timeout.start();
-        loop.exec();
-        disconnect(conn);
+            auto conn = connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
+                    [&](const QString& type, const QJsonObject& data) {
+                if (type == msgType) {
+                    if (data["success"].toBool())
+                        token = data["user"].toObject()["token"].toString();
+                    loop.quit();
+                }
+            });
 
-        if (!tokenValid) {
-            qDebug() << "⚠️  No valid token, skipping";
-            QSKIP("No valid token in database");
+            QJsonObject req;
+            req["type"] = msgType;
+            QJsonObject d;
+            d["username"] = testUser;
+            d["password"] = testPass;
+            req["data"] = d;
+            m_wsClient->send(req);
+
+            timeout.start();
+            loop.exec();
+            disconnect(conn);
         }
 
+        if (token.isEmpty()) QSKIP("Failed to obtain token (register/login both failed)");
+        qDebug() << "✅ Got token, verifying...";
+
+        // 用获取到的 token 做 verify_token
+        bool tokenValid = false;
+        {
+            QEventLoop loop;
+            QTimer timeout;
+            timeout.setSingleShot(true);
+            timeout.setInterval(1500);
+            connect(&timeout, &QTimer::timeout, &loop, &QEventLoop::quit);
+
+            auto conn = connect(m_wsClient, &wechat::network::WebSocketClient::messageReceived,
+                    [&](const QString& type, const QJsonObject& data) {
+                if (type == "verify_token") {
+                    tokenValid = data["success"].toBool();
+                    loop.quit();
+                }
+            });
+
+            QJsonObject req;
+            req["type"] = "verify_token";
+            QJsonObject d;
+            d["token"] = token;
+            req["data"] = d;
+            m_wsClient->send(req);
+
+            timeout.start();
+            loop.exec();
+            disconnect(conn);
+        }
+
+        QVERIFY2(tokenValid, "Token verification failed");
         saveScreenshot("04_direct_login.png");
     }
 

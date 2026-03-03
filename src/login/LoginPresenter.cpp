@@ -35,12 +35,17 @@ void LoginPresenter::startQRLogin() {
         return;
     }
 
-    // 监听后端推送：qr_login_init 响应 和 qr_confirmed 推送
+    // 每次调用重新连接（先断开旧连接避免重复）
+    QObject::disconnect(ws, &network::WebSocketClient::messageReceived,
+                        this, nullptr);
+
     QObject::connect(ws, &network::WebSocketClient::messageReceived,
         this, [this](const QString& type, const QJsonObject& data) {
-            if (type == "qr_login_init" && data["success"].toBool()) {
-                Q_EMIT qrCodeReady(data["qr_url"].toString(),
-                                   data["session_id"].toString());
+            if (type == "qr_login_init") {
+                if (data["success"].toBool()) {
+                    Q_EMIT qrCodeReady(data["qr_url"].toString(),
+                                       data["session_id"].toString());
+                }
             } else if (type == "qr_confirmed") {
                 auto u = data["user"].toObject();
                 core::User user;
@@ -49,7 +54,7 @@ void LoginPresenter::startQRLogin() {
                 user.token = u["token"].toString().toStdString();
                 Q_EMIT loginSuccess(user);
             }
-        }, Qt::UniqueConnection);
+        });
 
     // 发送 qr_login_init 请求
     QJsonObject request;

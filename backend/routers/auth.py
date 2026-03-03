@@ -54,10 +54,12 @@ async def handle_register(websocket: WebSocket, msg_data: dict) -> dict:
         return {
             "type": "register",
             "success": True,
-            "user": {
-                "id": user_id,
-                "username": username,
-                "token": token
+            "data": {
+                "user": {
+                    "id": user_id,
+                    "username": username,
+                    "token": token
+                }
             }
         }
 
@@ -110,10 +112,12 @@ async def handle_login(websocket: WebSocket, msg_data: dict) -> dict:
         return {
             "type": "login",
             "success": True,
-            "user": {
-                "id": user["id"],
-                "username": user["username"],
-                "token": token
+            "data": {
+                "user": {
+                    "id": user["id"],
+                    "username": user["username"],
+                    "token": token
+                }
             }
         }
 
@@ -212,5 +216,6 @@ async def handle_logout(current_token: str | None) -> dict:
 
     return {
         "type": "logout",
-        "success": True
+        "success": True,
+        "data": {}
     }

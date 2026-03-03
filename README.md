@@ -79,3 +79,5 @@ include/wechat/<module>/    # 仅存放需要跨模块导出的头文件
 ## 许可证
 
 MIT
+
+ctest --rerun-failed --output-on-failure --stop-on-failure --progress

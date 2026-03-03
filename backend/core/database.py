@@ -124,11 +124,11 @@ def init_db():
 
     # 添加测试用户数据
     test_users = [
-        ("alice", ""),
-        ("bob", ""),
-        ("charlie", ""),
-        ("david", ""),
-        ("eve", ""),
+        ("alice", "123"),
+        ("bob", "123"),
+        ("charlie", "123"),
+        ("david", "123"),
+        ("eve", "123"),
     ]
 
     for username, password in test_users:

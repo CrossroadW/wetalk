@@ -23,7 +23,14 @@
       "Bash(ls -la /d/workspace/wechat/src/login/tests/test_*.cpp)",
       "Bash(wc -l LoginTestFixture.h test_login_*.cpp test_main.cpp)",
       "Read(//d/workspace/wechat/src/$dir/**)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(ls d:/workspace/wechat/backend/*.py)",
+      "Bash(curl -s http://localhost:8000/docs)",
+      "Bash(uv run python main.py)",
+      "Bash(./build/src/login/Release/login_screen_test.exe)",
+      "Bash(python -c \":*)",
+      "Read(//c/workspace/wechat/src/login/**)",
+      "Read(//c/workspace/**)"
     ]
   }
 }

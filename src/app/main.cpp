@@ -13,21 +13,26 @@
 
 int main(int argc, char* argv[]) {
     wechat::log::init();
-    wechat::core::AppPaths::setDataDir(PROJECT_ROOT_PATH);
 
     QApplication app(argc, argv);
 
-    // 网络层（Mock）
-    auto client = wechat::network::createMockClient();
+    // 连接 WebSocket 后端（支持二维码登录）
+    std::unique_ptr<wechat::network::NetworkClient> client;
+    wechat::network::WebSocketClient* wsClient = nullptr;
 
-    // 预注册测试用户
-    client->auth().registerUser("alice", "123");
-    client->auth().registerUser("bob", "123");
-    client->auth().registerUser("carol", "123");
+    try {
+        client = wechat::network::createWsClient("ws://localhost:8000/ws");
+        wsClient = dynamic_cast<wechat::network::WebSocketClient*>(client.get());
+        spdlog::info("Connected to WebSocket backend at ws://localhost:8000/ws");
+    } catch (const std::exception& e) {
+        spdlog::error("Failed to connect to backend: {}", e.what());
+        spdlog::info("Please start the backend server: cd backend && uv run python main.py");
+        return 1;
+    }
 
-    // ── Login ──
+    // ── Login (with QR code support) ──
     wechat::login::LoginPresenter loginPresenter(*client);
-    wechat::login::LoginWidget loginWidget;
+    wechat::login::LoginWidget loginWidget(wsClient);  // Pass WebSocket client for QR code
     loginWidget.setPresenter(&loginPresenter);
     loginWidget.setWindowTitle("WeTalk - Login");
 

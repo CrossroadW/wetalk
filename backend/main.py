@@ -271,13 +271,13 @@ async def websocket_endpoint(websocket: WebSocket):
             if msg_type == "register":
                 response = await auth.handle_register(websocket, msg_data)
                 if response.get("success"):
-                    current_token = response["user"]["token"]
+                    current_token = response["data"]["user"]["token"]
                 await websocket.send_json(response)
 
             elif msg_type == "login":
                 response = await auth.handle_login(websocket, msg_data)
                 if response.get("success"):
-                    current_token = response["user"]["token"]
+                    current_token = response["data"]["user"]["token"]
                 await websocket.send_json(response)
 
             elif msg_type == "qr_login_init":
@@ -311,6 +311,22 @@ async def websocket_endpoint(websocket: WebSocket):
 
             elif msg_type == "revoke_message":
                 response = await chat.handle_revoke_message(current_token, msg_data)
+                await websocket.send_json(response)
+
+            elif msg_type == "fetch_after":
+                response = await chat.handle_fetch_after(current_token, msg_data)
+                await websocket.send_json(response)
+
+            elif msg_type == "fetch_before":
+                response = await chat.handle_fetch_before(current_token, msg_data)
+                await websocket.send_json(response)
+
+            elif msg_type == "fetch_updated":
+                response = await chat.handle_fetch_updated(current_token, msg_data)
+                await websocket.send_json(response)
+
+            elif msg_type == "mark_read":
+                response = await chat.handle_mark_read(current_token, msg_data)
                 await websocket.send_json(response)
 
             # ==================== 联系人相关 ====================

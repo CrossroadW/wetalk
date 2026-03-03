@@ -62,5 +62,6 @@ async def handle_add_friend(current_token: str | None, msg_data: dict) -> dict:
 
     return {
         "type": "add_friend",
-        "success": True
+        "success": True,
+        "data": {}
     }
