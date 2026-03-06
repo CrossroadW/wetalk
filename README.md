@@ -81,3 +81,5 @@ include/wechat/<module>/    # 仅存放需要跨模块导出的头文件
 MIT
 
 ctest --rerun-failed --output-on-failure --stop-on-failure --progress
+我让chatgpt实现了一个，C:\Users\adminstrator\Documents\untitled8\main.cpp
+你要按照这个需求逻辑去设计，首先应该出一个重构文档，并更新目前的这些旧文档，按照极简原则，只保留必要的文档内容 @docs/data-models.md @docs/data-cache-mechanism.md ，比如数据模型就应该只有表结构，cpp类型应该单独的文档，
