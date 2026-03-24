@@ -1,87 +1,14 @@
 #include "LocalDatabase.h"
+#include "MessageJson.h"
 
 #include <boost/uuid/random_generator.hpp>
 #include <boost/uuid/uuid_io.hpp>
-#include <nlohmann/json.hpp>
 #include <algorithm>
 #include <chrono>
 
-using json = nlohmann::json;
-
-namespace {
-
-// ── JSON 序列化（从 MessageDao 搬入）──
-
-json metaToJson(const wechat::core::ResourceMeta& m) {
-    return {{"size", m.size}, {"filename", m.filename}, {"extra", m.extra}};
-}
-
-wechat::core::ResourceMeta jsonToMeta(const json& j) {
-    wechat::core::ResourceMeta m;
-    m.size = j.value("size", std::size_t{0});
-    m.filename = j.value("filename", "");
-    if (j.contains("extra")) {
-        m.extra = j["extra"].get<std::map<std::string, std::string>>();
-    }
-    return m;
-}
-
-json blockToJson(const wechat::core::ContentBlock& block) {
-    return std::visit([](auto&& arg) -> json {
-        using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, std::monostate>) {
-            return {{"type", 0}};
-        } else if constexpr (std::is_same_v<T, wechat::core::TextContent>) {
-            return {{"type", 1}, {"text", arg.text}};
-        } else if constexpr (std::is_same_v<T, wechat::core::ResourceContent>) {
-            return {{"type", 2},
-                    {"resourceId", arg.resourceId},
-                    {"resType", static_cast<int>(arg.type)},
-                    {"resSubtype", static_cast<int>(arg.subtype)},
-                    {"meta", metaToJson(arg.meta)}};
-        }
-    }, block);
-}
-
-wechat::core::ContentBlock jsonToBlock(const json& j) {
-    int type = j.value("type", 0);
-    switch (type) {
-    case 1:
-        return wechat::core::TextContent{j.value("text", "")};
-    case 2: {
-        wechat::core::ResourceContent rc;
-        rc.resourceId = j.value("resourceId", "");
-        rc.type = static_cast<wechat::core::ResourceType>(j.value("resType", 0));
-        rc.subtype = static_cast<wechat::core::ResourceSubtype>(j.value("resSubtype", 0));
-        if (j.contains("meta")) rc.meta = jsonToMeta(j["meta"]);
-        return rc;
-    }
-    default:
-        return std::monostate{};
-    }
-}
-
-std::string serializeContent(const wechat::core::MessageContent& content) {
-    json arr = json::array();
-    for (const auto& block : content) {
-        arr.push_back(blockToJson(block));
-    }
-    return arr.dump();
-}
-
-wechat::core::MessageContent deserializeContent(const std::string& str) {
-    wechat::core::MessageContent content;
-    auto arr = json::parse(str, nullptr, false);
-    if (arr.is_discarded() || !arr.is_array()) return content;
-    for (const auto& item : arr) {
-        content.push_back(jsonToBlock(item));
-    }
-    return content;
-}
-
-} // anonymous namespace
-
 namespace wechat::network {
+
+using namespace cache::detail;
 
 // ── 构造 / Schema ──
 

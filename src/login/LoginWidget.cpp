@@ -18,6 +18,8 @@ namespace login {
 
 LoginWidget::LoginWidget(network::WebSocketClient* wsClient, QWidget* parent)
     : QWidget(parent), wsClient(wsClient) {
+    setWindowFlags(Qt::FramelessWindowHint);
+    setAttribute(Qt::WA_TranslucentBackground, false);
     setupUI();
     setupQRLoginConnections();
     initQRLogin();
@@ -380,6 +382,28 @@ void LoginWidget::onTokenVerified(int userId, const QString& username) {
 void LoginWidget::onTokenInvalid() {
     // Token invalid, show QR code login
     showLoading();
+}
+
+void LoginWidget::mousePressEvent(QMouseEvent* event) {
+    if (event->button() == Qt::LeftButton) {
+        dragPosition = event->globalPosition().toPoint() - frameGeometry().topLeft();
+        dragging = true;
+        event->accept();
+    }
+}
+
+void LoginWidget::mouseMoveEvent(QMouseEvent* event) {
+    if (dragging && (event->buttons() & Qt::LeftButton)) {
+        move(event->globalPosition().toPoint() - dragPosition);
+        event->accept();
+    }
+}
+
+void LoginWidget::mouseReleaseEvent(QMouseEvent* event) {
+    if (event->button() == Qt::LeftButton) {
+        dragging = false;
+        event->accept();
+    }
 }
 
 } // namespace login

@@ -111,11 +111,12 @@ struct Message {
     int64_t chatId = 0;        // 始终是 Group.id
     int64_t replyTo = 0;       // 引用消息 id，0 = 无引用
     MessageContent content;     // 内容块列表，支持图文混排
-    int64_t timestamp;
-    int64_t editedAt;           // 最后编辑时间，0 = 未编辑
-    bool revoked;               // 是否已撤回
-    uint32_t readCount;         // 已读人数
-    int64_t updatedAt;          // 最后修改时间（编辑/撤回时更新），0 = 未修改
+    int64_t timestamp = 0;
+    int64_t editedAt = 0;       // 最后编辑时间，0 = 未编辑
+    bool revoked = false;       // 是否已撤回
+    uint32_t readCount = 0;     // 已读人数
+    int64_t updatedAt = 0;      // 最后修改时间（编辑/撤回时更新），0 = 未修改
+    int32_t chatSeq = 0;        // per-chat 单调自增序号（分页用，0 = 未分配）
 };
 
 } // namespace core

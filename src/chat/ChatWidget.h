@@ -7,11 +7,11 @@
 #include <QPushButton>
 #include <QLabel>
 
+#include <wechat/cache/InsertHint.h>
 #include <wechat/core/Message.h>
 
 #include "MessageListView.h"
 
-#include <string>
 #include <vector>
 
 namespace wechat {
@@ -23,10 +23,10 @@ class ChatPresenter;
  * @brief MVP View：主聊天界面
  *
  * 纯展示层，不做任何数据操作。
- * 通过 ChatPresenter 的 3 个信号保持 UI 与数据模型一致。
+ * 通过 ChatPresenter 的信号保持 UI 与数据模型一致。
  *
- * 首次显示时通过 initChat() 调用 openChat + loadLatest 拉取最新数据。
- * 滚动到顶部时自动触发 loadHistory 加载更早的历史消息。
+ * 首次显示时通过 initChat() 调用 loadLatest 拉取最新数据。
+ * 滚动到顶部时自动触发 loadOlder 加载更早的历史消息。
  */
 class ChatWidget : public QWidget {
     Q_OBJECT
@@ -47,10 +47,11 @@ public:
 
 private Q_SLOTS:
     // 模型变化回调
-    void onMessagesInserted(int64_t chatId,
-                            std::vector<core::Message> messages);
-    void onMessageUpdated(int64_t chatId, core::Message message);
-    void onMessageRemoved(int64_t chatId, int64_t messageId);
+    void onMessagesLoaded(int64_t chatId,
+                          std::vector<core::Message> messages,
+                          wechat::cache::InsertHint hint,
+                          int32_t jumpTarget);
+    void onMessageChanged(int64_t chatId, core::Message message);
 
     // 右键菜单
     void onReplyRequested(core::Message const& message);
@@ -67,7 +68,7 @@ private:
     void setupUI();
     void setupConnections();
 
-    /// 首次初始化：openChat + loadLatest（仅执行一次）
+    /// 首次初始化：loadLatest（仅执行一次）
     void initChat();
 
     MessageListView* messageListView_;
@@ -81,8 +82,6 @@ private:
 
     ChatPresenter* presenter_ = nullptr;
     bool initialized_ = false;
-    bool loading_ = false;
-    bool loadingHistory_ = false;  // 区分"加载历史"和"收到新消息"
 
     // toast 提示
     QLabel* toastLabel_ = nullptr;

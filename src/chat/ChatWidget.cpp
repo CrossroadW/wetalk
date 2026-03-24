@@ -1,5 +1,6 @@
 #include "ChatWidget.h"
 
+#include <wechat/cache/InsertHint.h>
 #include <wechat/chat/ChatPresenter.h>
 
 #include <QVBoxLayout>
@@ -151,14 +152,11 @@ void ChatWidget::setChatId(int64_t chatId) {
 void ChatWidget::setPresenter(ChatPresenter* presenter) {
     presenter_ = presenter;
     if (presenter_) {
-        connect(presenter_, &ChatPresenter::messagesInserted,
-                this, &ChatWidget::onMessagesInserted,
+        connect(presenter_, &ChatPresenter::messagesLoaded,
+                this, &ChatWidget::onMessagesLoaded,
                 static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
-        connect(presenter_, &ChatPresenter::messageUpdated,
-                this, &ChatWidget::onMessageUpdated,
-                static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
-        connect(presenter_, &ChatPresenter::messageRemoved,
-                this, &ChatWidget::onMessageRemoved,
+        connect(presenter_, &ChatPresenter::messageChanged,
+                this, &ChatWidget::onMessageChanged,
                 static_cast<Qt::ConnectionType>(Qt::QueuedConnection | Qt::UniqueConnection));
     }
     initChat();
@@ -180,54 +178,57 @@ void ChatWidget::sendMessage() {
             presenter_->sendTextMessage(chatId_, text.toStdString());
         }
     }
-    messageListView_->scrollToBottom();
     messageInput_->clear();
 }
 
 // ── 模型变化回调 ──
 
-void ChatWidget::onMessagesInserted(int64_t chatId,
-                                     std::vector<core::Message> messages) {
-    if (chatId_ && chatId != chatId_) {
-        return;
-    }
+void ChatWidget::onMessagesLoaded(int64_t chatId,
+                                   std::vector<core::Message> messages,
+                                   cache::InsertHint hint,
+                                   int32_t jumpTarget) {
+    if (chatId_ && chatId != chatId_) return;
+    if (messages.empty()) return;
 
-    // 插入前判断是否在底部（用于决定插入后是否自动滚到底）
-    bool wasAtBottom = messageListView_->isAtBottom();
-    bool wasEmpty = (messageListView_->count() == 0);
+    switch (hint) {
+    case cache::InsertHint::Replace:
+        // 清空列表，重新填充，再滚动到目标位置
+        messageListView_->clear();
+        for (auto const& msg : messages)
+            messageListView_->addMessage(msg, currentUser_);
+        if (jumpTarget >= 0) {
+            // TODO: 滚动到 chatSeq == jumpTarget 的消息
+            messageListView_->scrollToBottom();
+        } else {
+            messageListView_->scrollToBottom();
+        }
+        break;
 
-    for (auto const& msg : messages) {
-        messageListView_->addMessage(msg, currentUser_);
-    }
-
-    if (loadingHistory_) {
-        // 加载历史 → 恢复锚点位置
+    case cache::InsertHint::Top:
+        // 保存锚点 → 插入历史消息 → 恢复位置（防跳动）
+        messageListView_->saveScrollAnchor();
+        for (auto const& msg : messages)
+            messageListView_->addMessage(msg, currentUser_);
         messageListView_->restoreScrollAnchor();
-        loadingHistory_ = false;
-    } else if (wasEmpty || wasAtBottom) {
-        // 初始化 / 收到新消息且在底部 → 滚到底
-        messageListView_->scrollToBottom();
-    }
-    // 否则：用户在翻看中间消息，不动
+        break;
 
-    loading_ = false;
+    case cache::InsertHint::Bottom:
+        // 追加新消息，若用户在底部则自动滚到底
+        {
+            bool wasAtBottom = messageListView_->isAtBottom();
+            for (auto const& msg : messages)
+                messageListView_->addMessage(msg, currentUser_);
+            if (wasAtBottom)
+                messageListView_->scrollToBottom();
+        }
+        break;
+    }
 }
 
-void ChatWidget::onMessageUpdated(int64_t chatId,
-                                   core::Message message) {
-    if (chatId_ && chatId != chatId_) {
-        return;
-    }
-    // upsert 语义：addMessage 会更新已有消息
+void ChatWidget::onMessageChanged(int64_t chatId, core::Message message) {
+    if (chatId_ && chatId != chatId_) return;
+    // upsert 语义：addMessage 按 msg.id 更新已有消息
     messageListView_->addMessage(message, currentUser_);
-}
-
-void ChatWidget::onMessageRemoved(int64_t chatId, int64_t messageId) {
-    if (chatId_ && chatId != chatId_) {
-        return;
-    }
-    // TODO: 从列表中移除对应消息项
-    Q_UNUSED(messageId);
 }
 
 // ── 初始化 & 懒加载 ──
@@ -237,19 +238,11 @@ void ChatWidget::initChat() {
         return;
     }
     initialized_ = true;
-    presenter_->openChat(chatId_);
     presenter_->loadLatest(chatId_, 20);
 }
 
 void ChatWidget::onReachedTop() {
-    if (!presenter_ || !chatId_ || loading_) {
-        return;
-    }
-    loading_ = true;
-    loadingHistory_ = true;
-
-    // 保存当前滚动锚点，加载完成后恢复
-    messageListView_->saveScrollAnchor();
+    if (!presenter_ || !chatId_) return;
 
     // 显示 toast
     if (toastLabel_) {
@@ -259,13 +252,11 @@ void ChatWidget::onReachedTop() {
         toastLabel_->move(x, 8);
         toastLabel_->show();
         QTimer::singleShot(1500, this, [this]() {
-            if (toastLabel_) {
-                toastLabel_->hide();
-            }
+            if (toastLabel_) toastLabel_->hide();
         });
     }
 
-    presenter_->loadHistory(chatId_, 20);
+    presenter_->loadOlder(chatId_, 20);
 }
 
 // ── 右键菜单处理 ──
@@ -283,13 +274,10 @@ void ChatWidget::onReplyRequested(core::Message const& message) {
                 }
             },
             block);
-        if (!preview.isEmpty()) {
-            break;
-        }
+        if (!preview.isEmpty()) break;
     }
-    if (preview.length() > 30) {
+    if (preview.length() > 30)
         preview = preview.left(30) + "...";
-    }
 
     replyLabel_->setText(tr("回复: ") + preview);
     replyIndicator_->show();
@@ -302,9 +290,7 @@ void ChatWidget::onForwardRequested(core::Message const& /*message*/) {
         auto original = titleLabel_->text();
         titleLabel_->setText(tr("转发功能开发中..."));
         QTimer::singleShot(2000, this, [this, original]() {
-            if (titleLabel_) {
-                titleLabel_->setText(original);
-            }
+            if (titleLabel_) titleLabel_->setText(original);
         });
     }
 }

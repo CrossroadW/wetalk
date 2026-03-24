@@ -28,10 +28,10 @@ set_target_properties(wechat_chat PROPERTIES
 target_link_libraries(wechat_chat
     PUBLIC
         wechat_core
+        wechat_cache
         wechat_network
         Qt6::Core
         Qt6::Widgets
-        
 )
 
 if(ENABLE_TESTING)

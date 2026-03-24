@@ -67,10 +67,7 @@ void ChatSandbox::onAddChat() {
     backend->setPeerSession(peerToken, peerId);
     backend->setChatId(chatId);
 
-    // 临时清除 session，防止 onMessageStored 自动同步
-    chatPage->chatPresenter()->setSession("", 0);
     backend->prefill(100, {myToken, peerToken});
-    chatPage->chatPresenter()->setSession(myToken, myUserId);
 
     spdlog::info("Pre-filled 100 messages in chat {}", chatId);
 

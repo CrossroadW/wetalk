@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QStackedWidget>
+#include <QMouseEvent>
 
 namespace wechat::network {
 class WebSocketClient;
@@ -68,6 +69,13 @@ private:
     QString currentSessionId;
     QString currentToken;
     QString currentUsername;
+
+    // Frameless window dragging
+    QPoint dragPosition;
+    bool dragging = false;
+    void mousePressEvent(QMouseEvent* event) override;
+    void mouseMoveEvent(QMouseEvent* event) override;
+    void mouseReleaseEvent(QMouseEvent* event) override;
 
     friend class ::LoginScreenTest;
 };

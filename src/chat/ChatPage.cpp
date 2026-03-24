@@ -3,6 +3,10 @@
 #include "ChatWidget.h"
 #include "SessionListWidget.h"
 
+#include <wechat/network/ChatTransport.h>
+
+#include "../network/WsChatTransport.h"
+
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QSplitter>
@@ -12,26 +16,36 @@ namespace wechat {
 namespace chat {
 
 ChatPage::ChatPage(network::NetworkClient& client, QWidget* parent)
-    : QWidget(parent), client(client) {
-    chatPresenter_ = std::make_unique<ChatPresenter>(client);
-    sessionPresenter_ = std::make_unique<SessionPresenter>(client);
+    : QWidget(parent), client_(client)
+{
+    // 有真实 WebSocket 连接时才启用 MessageCache 路径
+    if (auto* ws = client_.ws()) {
+        chatTransport_ = std::make_unique<network::WsChatTransport>(*ws);
+        messageCache_  = std::make_unique<cache::MessageCache>(*chatTransport_);
+        chatPresenter_ = std::make_unique<ChatPresenter>(*messageCache_);
+    }
+    // Mock 模式（ws() == nullptr）时 chatPresenter_ 保持 nullptr，
+    // ChatWidget::setPresenter(nullptr) 会静默跳过所有网络操作。
+
+    sessionPresenter_ = std::make_unique<SessionPresenter>(client_);
     setupUI();
 }
 
 void ChatPage::setSession(const std::string& token, int64_t userId) {
-    this->token = token;
-    this->userId = userId;
+    token_  = token;
+    userId_ = userId;
 
-    chatPresenter_->setSession(token, userId);
+    if (chatPresenter_)
+        chatPresenter_->setSession(token, userId);
     sessionPresenter_->setSession(token, userId);
 
-    sessionList->setPresenter(sessionPresenter_.get());
+    sessionList_->setPresenter(sessionPresenter_.get());
 }
 
 void ChatPage::openChat(int64_t chatId, const core::User& peer) {
-    peers[chatId] = peer;
+    peers_[chatId] = peer;
     auto* widget = getOrCreateChatWidget(chatId);
-    chatStack->setCurrentWidget(widget);
+    chatStack_->setCurrentWidget(widget);
 
     // 让 SessionPresenter 刷新列表以显示新会话
     sessionPresenter_->loadSessions();
@@ -39,8 +53,8 @@ void ChatPage::openChat(int64_t chatId, const core::User& peer) {
 
 void ChatPage::setupUI() {
     // 左侧：会话列表
-    sessionList = new SessionListWidget;
-    sessionList->setStyleSheet(R"(
+    sessionList_ = new SessionListWidget;
+    sessionList_->setStyleSheet(R"(
         SessionListWidget {
             background-color: #f5f5f5;
             border-right: 1px solid #e0e0e0;
@@ -48,17 +62,17 @@ void ChatPage::setupUI() {
     )");
 
     // 右侧：聊天栈
-    chatStack = new QStackedWidget;
-    chatStack->setStyleSheet("QStackedWidget { background-color: #ffffff; }");
+    chatStack_ = new QStackedWidget;
+    chatStack_->setStyleSheet("QStackedWidget { background-color: #ffffff; }");
 
-    placeholder = new QWidget;
-    placeholder->setStyleSheet("QWidget { background-color: #ffffff; }");
-    auto* phLayout = new QVBoxLayout(placeholder);
+    placeholder_ = new QWidget;
+    placeholder_->setStyleSheet("QWidget { background-color: #ffffff; }");
+    auto* phLayout = new QVBoxLayout(placeholder_);
     auto* phLabel = new QLabel("Select a chat to start");
     phLabel->setAlignment(Qt::AlignCenter);
     phLabel->setStyleSheet("color: #999; font-size: 16px;");
     phLayout->addWidget(phLabel);
-    chatStack->addWidget(placeholder);
+    chatStack_->addWidget(placeholder_);
 
     // Splitter 组合
     auto* splitter = new QSplitter(Qt::Horizontal);
@@ -68,8 +82,8 @@ void ChatPage::setupUI() {
             width: 1px;
         }
     )");
-    splitter->addWidget(sessionList);
-    splitter->addWidget(chatStack);
+    splitter->addWidget(sessionList_);
+    splitter->addWidget(chatStack_);
     splitter->setStretchFactor(0, 0);
     splitter->setStretchFactor(1, 1);
     splitter->setSizes({250, 600});
@@ -78,35 +92,33 @@ void ChatPage::setupUI() {
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->addWidget(splitter);
 
-    // 信号
-    connect(sessionList, &SessionListWidget::sessionSelected,
+    connect(sessionList_, &SessionListWidget::sessionSelected,
             this, &ChatPage::onSessionSelected);
 }
 
 void ChatPage::onSessionSelected(int64_t chatId) {
     auto* widget = getOrCreateChatWidget(chatId);
-    chatStack->setCurrentWidget(widget);
+    chatStack_->setCurrentWidget(widget);
 }
 
 ChatWidget* ChatPage::getOrCreateChatWidget(int64_t chatId) {
-    auto it = chatWidgets.find(chatId);
-    if (it != chatWidgets.end()) {
+    auto it = chatWidgets_.find(chatId);
+    if (it != chatWidgets_.end()) {
         return it->second;
     }
 
     auto* widget = new ChatWidget;
-    widget->setCurrentUser(core::User{userId});
+    widget->setCurrentUser(core::User{userId_});
     widget->setChatId(chatId);
 
-    // 设置聊天对象名字
-    auto peerIt = peers.find(chatId);
-    if (peerIt != peers.end()) {
+    auto peerIt = peers_.find(chatId);
+    if (peerIt != peers_.end()) {
         widget->setChatPartner(peerIt->second);
     }
 
-    widget->setPresenter(chatPresenter_.get());
-    chatStack->addWidget(widget);
-    chatWidgets[chatId] = widget;
+    widget->setPresenter(chatPresenter_.get()); // nullptr-safe
+    chatStack_->addWidget(widget);
+    chatWidgets_[chatId] = widget;
 
     return widget;
 }

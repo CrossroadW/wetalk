@@ -1,5 +1,6 @@
 #pragma once
 
+#include <wechat/cache/MessageCache.h>
 #include <wechat/chat/ChatPresenter.h>
 #include <wechat/chat/SessionPresenter.h>
 #include <wechat/core/User.h>
@@ -13,6 +14,10 @@
 #include <memory>
 
 namespace wechat {
+namespace network {
+class ChatTransport;
+} // namespace network
+
 namespace chat {
 
 class ChatWidget;
@@ -22,6 +27,9 @@ class SessionListWidget;
 ///
 /// 组合 SessionPresenter + ChatPresenter，
 /// 管理多个 ChatWidget（按 chatId 切换）。
+///
+/// 内部持有 ChatTransport + MessageCache 的所有权。
+/// 若 NetworkClient::ws() 返回 nullptr（Mock 模式），消息功能不可用。
 class ChatPage : public QWidget {
     Q_OBJECT
 
@@ -44,20 +52,22 @@ private:
     void setupUI();
     ChatWidget* getOrCreateChatWidget(int64_t chatId);
 
-    network::NetworkClient& client;
-    std::string token;
-    int64_t userId = 0;
+    network::NetworkClient& client_;
+    std::string token_;
+    int64_t userId_ = 0;
 
-    std::unique_ptr<ChatPresenter> chatPresenter_;
-    std::unique_ptr<SessionPresenter> sessionPresenter_;
+    // 按顺序声明：transport → cache → presenter（析构反序）
+    std::unique_ptr<network::ChatTransport> chatTransport_;
+    std::unique_ptr<cache::MessageCache>    messageCache_;
+    std::unique_ptr<ChatPresenter>          chatPresenter_;
+    std::unique_ptr<SessionPresenter>       sessionPresenter_;
 
-    SessionListWidget* sessionList = nullptr;
-    QStackedWidget* chatStack = nullptr;
-    QWidget* placeholder = nullptr;
+    SessionListWidget* sessionList_ = nullptr;
+    QStackedWidget*    chatStack_   = nullptr;
+    QWidget*           placeholder_ = nullptr;
 
-    std::map<int64_t, ChatWidget*> chatWidgets;
-    // chatId → peer info (for display)
-    std::map<int64_t, core::User> peers;
+    std::map<int64_t, ChatWidget*> chatWidgets_;
+    std::map<int64_t, core::User>  peers_;
 };
 
 } // namespace chat

@@ -1,41 +1,42 @@
 #pragma once
 
-#include <QObject>
+#include <QFuture>
 #include <QJsonObject>
+#include <QObject>
 #include <QString>
 
-namespace wechat::network {
+#include <wechat/network/NetworkTypes.h>
+
+namespace wechat {
+namespace network {
 
 /// WebSocket 客户端接口
-/// 用于与后端 WebSocket 服务器通信
 class WebSocketClient : public QObject {
     Q_OBJECT
 
 public:
     explicit WebSocketClient(QObject* parent = nullptr) : QObject(parent) {}
-    virtual ~WebSocketClient() = default;
+    ~WebSocketClient() override = default;
 
-    /// 连接到 WebSocket 服务器
     virtual void connectToServer(const QString& url) = 0;
-
-    /// 发送 JSON 消息
-    virtual void send(const QJsonObject& message) = 0;
-
-    /// 检查是否已连接
     virtual bool isConnected() const = 0;
 
-Q_SIGNALS:
-    /// 连接成功
-    void connected();
+    /// 请求-响应：自动分配 req_id，返回 QFuture 等待匹配响应。
+    /// 超时或网络错误时 future 携带 error string。
+    virtual QFuture<Result<QJsonObject>> request(QJsonObject payload) = 0;
 
-    /// 连接断开
+    /// fire-and-forget：发送推送类消息（无 req_id，不等响应）
+    virtual void send(QJsonObject payload) = 0;
+
+Q_SIGNALS:
+    void connected();
     void disconnected();
 
-    /// 收到消息（type 是消息类型，data 是消息数据）
-    void messageReceived(const QString& type, const QJsonObject& data);
+    /// 服务端主动推送（无 req_id 的消息）：新消息、消息变更等
+    void pushReceived(const QString& type, const QJsonObject& data);
 
-    /// 发生错误
-    void error(const QString& errorMessage);
+    void error(const QString& message);
 };
 
-} // namespace wechat::network
+} // namespace network
+} // namespace wechat

@@ -1,8 +1,7 @@
 #include "WsAuthService.h"
 
-#include <optional>
-
 #include <QEventLoop>
+#include <QFutureWatcher>
 #include <QJsonDocument>
 #include <QTimer>
 
@@ -111,47 +110,34 @@ std::optional<QJsonObject> WsAuthService::sendAndWait(
     const QJsonObject& requestData,
     int timeout) {
 
-    if (!ws.isConnected()) {
-        return std::nullopt;
-    }
+    if (!ws.isConnected()) return std::nullopt;
+
+    // 将字段合并进 payload，由 WsClient.request() 自动附加 req_id
+    QJsonObject payload;
+    payload["type"] = requestType;
+    for (auto it = requestData.constBegin(); it != requestData.constEnd(); ++it)
+        payload[it.key()] = it.value();
+
+    auto future = ws.request(payload);
 
     QEventLoop loop;
     QTimer timer;
     timer.setSingleShot(true);
     timer.setInterval(timeout);
 
-    std::optional<QJsonObject> result;
-    bool gotResponse = false;
+    QFutureWatcher<Result<QJsonObject>> watcher;
+    QObject::connect(&watcher, &QFutureWatcherBase::finished,
+                     &loop, &QEventLoop::quit);
+    QObject::connect(&timer, &QTimer::timeout,
+                     &loop, &QEventLoop::quit);
 
-    // 连接响应信号
-    auto conn = QObject::connect(&ws, &WebSocketClient::messageReceived,
-                       [&](const QString& type, const QJsonObject& data) {
-        if (type == requestType) {
-            result = data;
-            gotResponse = true;
-            loop.quit();
-        }
-    });
-
-    // 连接超时信号
-    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-
-    // 发送请求
-    QJsonObject request;
-    request["type"] = requestType;
-    request["data"] = requestData;
-    ws.send(request);
-
-    // 启动超时定时器
+    watcher.setFuture(future);
     timer.start();
-
-    // 等待响应或超时
     loop.exec();
 
-    // 断开连接
-    QObject::disconnect(conn);
-
-    return result;
+    if (!future.isFinished() || !future.result().has_value())
+        return std::nullopt;
+    return future.result().value();
 }
 
 } // namespace network
